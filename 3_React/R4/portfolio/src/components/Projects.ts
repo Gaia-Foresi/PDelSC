@@ -17,60 +17,37 @@ export function Projects(): HTMLElement {
   // Datos de proyectos
   const projects: Project[] = [
     {
-      name: 'E-commerce Store',
+      name: 'Pagina Informativa de Arduino',
       date: '2024',
-      description: 'Tienda online completa con carrito de compras, autenticación de usuarios y pasarela de pago integrada.',
-      technologies: ['React', 'Node.js', 'PostgreSQL', 'Stripe', 'Redux'],
+      description: 'Página web informativa sobre Arduino, con secciones de piesas y proyectos.',
+      technologies: ['HTML', 'CSS'],
       features: [
-        'Autenticación JWT',
-        'Carrito de compras persistente',
-        'Panel de administración',
-        'Procesamiento de pagos'
+        'Sección de piezas de Arduino',
+        'Sección de proyectos con ejemplos',
+        'Imagenes y descripciones de cada proyecto',
       ],
-      link: '#',
-      github: '#'
     },
     {
-      name: 'Task Manager Pro',
-      date: '2023',
-      description: 'Gestor de tareas colaborativo con Drag & Drop, notificaciones en tiempo real y reportes de productividad.',
-      technologies: ['TypeScript', 'Express', 'MongoDB', 'Socket.io', 'React'],
+      name: 'Diario Digital con Bootstrap',
+      date: '2026',
+      description: 'Diario digital informativo con diseño responsivo.',
+      technologies: ['HTML', 'CSS', 'Bootstrap', 'JavaScript'],
       features: [
-        'Drag & Drop de tareas',
-        'Notificaciones en tiempo real',
-        'Reportes de productividad',
-        'Gestión de equipos'
+        'Diseño responsivo con Bootstrap',
+        'Sección de noticias y artículos',
+        'Formulario de contacto con validación',
       ],
-      link: '#',
-      github: '#'
     },
     {
-      name: 'Weather Dashboard',
-      date: '2023',
-      description: 'Dashboard interactivo con datos meteorológicos en tiempo real, gráficos de tendencia y pronósticos extendidos.',
-      technologies: ['React', 'Chart.js', 'OpenWeather API', 'Tailwind', 'TypeScript'],
+      name: 'Videojuego de Snake rediseñado',
+      date: '2026',
+      description: 'Replica del clásico videojuego Snake con un nuevo diseño.',
+      technologies: ['HTML', 'CSS', 'JavaScript'],
       features: [
-        'Datos en tiempo real',
-        'Gráficos interactivos',
-        'Pronóstico extendido',
-        'Búsqueda por ciudad'
+        'Diseño moderno y responsivo',
+        'Sprites hechos a mano y sonido de juego',
+        'registro de juegadores y puntuaciones',
       ],
-      link: '#',
-      github: '#'
-    },
-    {
-      name: 'School Management System',
-      date: '2022',
-      description: 'Sistema de gestión para instituciones educativas con módulos de alumnos, profesores y calificaciones.',
-      technologies: ['Python', 'Django', 'PostgreSQL', 'Bootstrap', 'jQuery'],
-      features: [
-        'Gestión de alumnos',
-        'Gestión de profesores',
-        'Sistema de calificaciones',
-        'Reportes personalizados'
-      ],
-      link: '#',
-      github: '#'
     }
   ];
 

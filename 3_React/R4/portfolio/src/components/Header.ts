@@ -7,7 +7,7 @@ export function Header(): HTMLElement {
   
   // Estructura del header
   header.innerHTML = `
-    <h1>🚀 Mi Portfolio</h1>
+    <h1>Mi Portfolio</h1>
     <nav>
       <a href="#about">Sobre mí</a>
       <a href="#skills">Habilidades</a>

@@ -9,7 +9,7 @@ export function Footer(): HTMLElement {
     <div class="footer-content">
       <div class="footer-top">
         <div class="footer-brand">
-          <h3>🚀 Mi Portfolio</h3>
+          <h3>Mi Portfolio</h3>
           <p>Estudiante de secundaria técnica apasionado por el desarrollo web.</p>
         </div>
         <div class="footer-links">
@@ -22,14 +22,11 @@ export function Footer(): HTMLElement {
         </div>
         <div class="footer-social">
           <h4>Redes</h4>
-          <a href="#" target="_blank" rel="noopener noreferrer">🐙 GitHub</a>
-          <a href="#" target="_blank" rel="noopener noreferrer">💼 LinkedIn</a>
-          <a href="#" target="_blank" rel="noopener noreferrer">🐦 Twitter</a>
+          <a href="https://github.com/Gaia-Foresi" target="_blank" rel="noopener noreferrer">🐙 GitHub</a>
         </div>
       </div>
       <div class="footer-bottom">
-        <p>© ${currentYear} - Mi Portfolio. Todos los derechos reservados.</p>
-        <p class="footer-tech">Hecho con TypeScript, Vite y 💙</p>
+        <p>© ${currentYear} - Realizado por Gaia Foresi.</p>
         <button id="backToTop" class="back-to-top" aria-label="Volver arriba">
           ↑ Volver arriba
         </button>

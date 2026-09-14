@@ -5,6 +5,8 @@ interface ContactFormData {
   message: string;
 }
 
+import Parse from '../parseConfig';
+
 //Crea el <section> donde va a estar todo el contenido de contacto
 export function Contact(): HTMLElement {
   const section = document.createElement('section');
@@ -24,19 +26,15 @@ export function Contact(): HTMLElement {
           <div class="contact-methods">
             <div class="contact-method">
               <span class="icon">📧</span>
-              <span>estudiante@email.com</span>
-            </div>
-            <div class="contact-method">
-              <span class="icon">📱</span>
-              <span>+54 11 1234-5678</span>
+              <span>gaiaforesi17@email.com</span>
             </div>
             <div class="contact-method">
               <span class="icon">📍</span>
-              <span>Buenos Aires, Argentina</span>
+              <span>Mar Del Plata, Argentina</span>
             </div>
           </div>
           <div class="social-links">
-            <a href="#" target="_blank" class="social-link">
+            <a href="https://github.com/Gaia-Foresi" target="_blank" class="social-link">
               <span class="social-icon">🐙</span> GitHub
             </a>
           </div>
@@ -213,7 +211,7 @@ function setupCharCounter(section: HTMLElement): void {
   });
 }
 
-//Se encarga del botón Enviar: revisa todo, si hay errores avisa, si está todo bien junta los datos y simula el envío
+//Se encarga del botón Enviar: revisa todo, si hay errores avisa, si está todo bien junta los datos y los guarda en Back4App
 function setupFormSubmit(section: HTMLElement): void {
   const form = section.querySelector('#contactForm') as HTMLFormElement;
   if (!form) return;
@@ -245,12 +243,12 @@ function setupFormSubmit(section: HTMLElement): void {
       message: formData.get('message') as string
     };
 
-    // Simular envío
+    // Guardar en la base de datos de Back4App
     await simulateSubmit(form, data);
   });
 }
 
-//Hace de cuenta que manda el mensaje y muestra al usuario que se está enviando
+//Envía el mensaje a la base de datos de Back4App y muestra al usuario que se está enviando
 async function simulateSubmit(form: HTMLFormElement, data: ContactFormData): Promise<void> {
   const submitBtn = form.querySelector('.btn-submit') as HTMLButtonElement;
   const btnText = submitBtn.querySelector('.btn-text') as HTMLSpanElement;
@@ -262,18 +260,19 @@ async function simulateSubmit(form: HTMLFormElement, data: ContactFormData): Pro
   btnSpinner.style.display = 'inline';
 
   try {
-    // Simular delay de envío (1.5 segundos)
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // Crear un objeto Parse de la clase ContactMessage y guardarlo en Back4App
+    const ContactMessage = Parse.Object.extend('ContactMessage');
+    const msg = new ContactMessage();
+    
+    msg.set('name', data.name);
+    msg.set('email', data.email);
+    msg.set('subject', data.subject);
+    msg.set('message', data.message);
 
-    // Simular éxito
-    showNotification(
-      `✅ ¡Mensaje enviado exitosamente!\n\n` +
-      `Nombre: ${data.name}\n` +
-      `Email: ${data.email}\n` +
-      `Asunto: ${data.subject}\n` +
-      `Mensaje: ${data.message}`,
-      'success'
-    );
+    await msg.save();
+
+    // Mostrar éxito
+    showNotification('✅ ¡Mensaje guardado en la base de datos!', 'success');
     
     // Resetear formulario
     form.reset();
@@ -283,6 +282,8 @@ async function simulateSubmit(form: HTMLFormElement, data: ContactFormData): Pro
     if (counter) counter.textContent = '0/500';
 
   } catch (error) {
+    // Mostrar error en consola y al usuario
+    console.error('Error al guardar en Back4App:', error);
     showNotification('❌ Hubo un error al enviar el mensaje. Intentá de nuevo.', 'error');
   } finally {
     // Restaurar botón

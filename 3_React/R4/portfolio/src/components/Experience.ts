@@ -15,40 +15,37 @@ export function Experience(): HTMLElement {
   //Guarda todos los datos de las experiencias en una lista
   const experiences: Experience[] = [
     {
-      title: 'Desarrollador Full-Stack Freelance',
-      company: 'Proyectos Independientes',
-      date: '2024 - Presente',
+      title: 'Desarrollo de E-commerce',
+      company: 'Proyecto escolar de 5°to año',
+      date: '2024',
       description: [
-        'Desarrollo de aplicaciones web completas para clientes locales',
-        'Implementación de soluciones con React, Node.js y PostgreSQL',
-        'Diseño de interfaces responsive con enfoque mobile-first',
-        'Mantenimiento y mejora de sistemas existentes'
+        'Desarrollo de un comercio electronico para una expocicicón escolar con tematica libre',
+        'Implementación de carrusel, menu de navegación y targetas de productos',
+        'Fue de los primeros proyectos realizados en grupo que hice',
       ],
-      technologies: ['React', 'Node.js', 'PostgreSQL', 'TypeScript']
+      technologies: ['CSS', 'HTML']
     },
     {
-      title: 'Prácticas Profesionales',
-      company: 'TechSolutions S.A.',
-      date: '2023',
+      title: 'Videojuego de Pac-Man',
+      company: 'Proyecto grupal de 7°mo año',
+      date: '2026 - presente',
       description: [
-        'Mantenimiento de sistemas internos de la empresa',
-        'Corrección de bugs y optimización de consultas SQL',
-        'Participación en desarrollo de nuevos módulos',
-        'Documentación técnica de proyectos'
+        'Desarrollo de replica condiferente estilo de los juegos Pac-Man',
+        'Implementación de mecánicas de juego, puntuaciones y sprites hechos a mano',
+        'Trabajo en equipos de 2 personas'
       ],
-      technologies: ['Python', 'SQL', 'Docker', 'Git']
+      technologies: ['HTML', 'CSS', 'JavaScript']
     },
     {
-      title: 'Proyecto Integrador Escolar',
-      company: 'Escuela Técnica N°1',
-      date: '2022 - 2023',
+      title: 'Portfolio Personal',
+      company: 'Proyecto personal de 7°mo año',
+      date: '2026 - presente',
       description: [
-        'Desarrollo de sistema de gestión escolar con Python y SQL',
-        'Módulos de administración de alumnos y profesores',
-        'Sistema de calificaciones y reportes',
-        'Trabajo en equipo con metodología ágil'
+        'Creación de un portfolio personal para mostrar mis proyectos y habilidades',
+        'Implementación de diseño responsivo y animaciones con IntersectionObserver',
+        'Integración de componentes de React para mejorar la experiencia del usuario'
       ],
-      technologies: ['Python', 'SQL', 'Bootstrap', 'Git']
+      technologies: ['HTML', 'CSS', 'React']
     }
   ];
 

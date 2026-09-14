@@ -13,6 +13,8 @@
     "vite": "^4.4.5"
   },
   "dependencies": {
-    "@react-spring/web": "^9.7.3"
+    "@react-spring/web": "^9.7.3",
+    "events": "^3.3.0",
+    "parse": "^8.6.0"
   }
 }

@@ -38,7 +38,7 @@ export function Skills(): HTMLElement {
   //Define los nombres que se mostrarán visualmente para cada categoría
   const categoryNames = {
     frontend: '🖥️ Frontend',
-    backend: '⚙️ Backend',
+    backend: '⚙️ Backend and Database',
     tools: '🔧 Herramientas',
     soft: '💡 Habilidades Blandas'
   };
