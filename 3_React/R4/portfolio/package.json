@@ -6,15 +6,31 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "server": "tsx server/index.ts",
+    "dev:full": "concurrently \"npm run dev\" \"npm run server\""
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^4.17.25",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^20.19.43",
+    "@vercel/node": "^20.0.0",
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.1.14",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.23.15",
     "typescript": "^5.0.2",
     "vite": "^4.4.5"
   },
   "dependencies": {
     "@react-spring/web": "^9.7.3",
-    "events": "^3.3.0",
-    "parse": "^8.6.0"
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.3",
+    "jsonwebtoken": "^9.0.3",
+    "mysql2": "^3.24.5"
   }
 }

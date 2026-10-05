@@ -1,7 +1,7 @@
 interface Skill {
   name: string;
   level: number; // 1-5
-  category: 'frontend' | 'backend' | 'tools' | 'soft';
+  category: 'programacion' | 'frontend' | 'backend' | 'tools' | 'soft';
 }
 
 // Función para crear la sección de habilidades
@@ -14,6 +14,10 @@ export function Skills(): HTMLElement {
 
   // Datos de habilidades
   const skills: Skill[] = [
+    //Programacion 
+    { name: 'C++', level: 2, category: 'programacion' },
+    { name: 'Java', level: 2, category: 'programacion' },
+
     // Frontend
     { name: 'JavaScript', level: 3, category: 'frontend' },
     { name: 'TypeScript', level: 3, category: 'frontend' },
@@ -23,9 +27,10 @@ export function Skills(): HTMLElement {
     // Backend y Base de Datos
     { name: 'Node.js', level: 3, category: 'backend' },
     { name: 'MySQL', level: 4, category: 'backend' },
+    { name: 'PHP', level: 3, category: 'backend' },
 
     // Herramientas
-    { name: 'Git/GitHub', level: 3, category: 'tools' },
+    { name: 'GitHub', level: 3, category: 'tools' },
     { name: 'VS Code', level: 4, category: 'tools' },
     
     // Habilidades blandas
@@ -37,6 +42,7 @@ export function Skills(): HTMLElement {
 
   //Define los nombres que se mostrarán visualmente para cada categoría
   const categoryNames = {
+    programacion: '💻 Programación',
     frontend: '🖥️ Frontend',
     backend: '⚙️ Backend and Database',
     tools: '🔧 Herramientas',

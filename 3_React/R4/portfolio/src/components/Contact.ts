@@ -5,8 +5,6 @@ interface ContactFormData {
   message: string;
 }
 
-import Parse from '../parseConfig';
-
 //Crea el <section> donde va a estar todo el contenido de contacto
 export function Contact(): HTMLElement {
   const section = document.createElement('section');
@@ -260,33 +258,25 @@ async function simulateSubmit(form: HTMLFormElement, data: ContactFormData): Pro
   btnSpinner.style.display = 'inline';
 
   try {
-    // Crear un objeto Parse de la clase ContactMessage y guardarlo en Back4App
-    const ContactMessage = Parse.Object.extend('ContactMessage');
-    const msg = new ContactMessage();
+    await new Promise(resolve => setTimeout(resolve, 1500));
     
-    msg.set('name', data.name);
-    msg.set('email', data.email);
-    msg.set('subject', data.subject);
-    msg.set('message', data.message);
-
-    await msg.save();
-
-    // Mostrar éxito
-    showNotification('✅ ¡Mensaje guardado en la base de datos!', 'success');
+    showNotification(
+      `✅ ¡Mensaje enviado exitosamente!\n\n` +
+      `Nombre: ${data.name}\n` +
+      `Email: ${data.email}\n` +
+      `Asunto: ${data.subject}\n` +
+      `Mensaje: ${data.message}`,
+      'success'
+    );
     
-    // Resetear formulario
     form.reset();
     
-    // Resetear contador de caracteres
     const counter = form.querySelector('#charCounter');
     if (counter) counter.textContent = '0/500';
 
   } catch (error) {
-    // Mostrar error en consola y al usuario
-    console.error('Error al guardar en Back4App:', error);
     showNotification('❌ Hubo un error al enviar el mensaje. Intentá de nuevo.', 'error');
   } finally {
-    // Restaurar botón
     submitBtn.disabled = false;
     btnText.textContent = 'Enviar mensaje';
     btnSpinner.style.display = 'none';

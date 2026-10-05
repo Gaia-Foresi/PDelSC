@@ -1,7 +1,7 @@
 import './styles/style.css';
+import './admin/Admin.css';
 import { themeManager } from './theme';
 
-// ========== IMPORTAR COMPONENTES ==========
 import { Header } from './components/Header';
 import { About } from './components/About';
 import { Skills } from './components/Skills';
@@ -9,8 +9,8 @@ import { Experience } from './components/Experience';
 import { Projects } from './components/Projects';
 import { Contact } from './components/Contact';
 import { Footer } from './components/Footer';
+import { renderAdmin } from './admin/Admin';
 
-// ========== INICIALIZAR LA APP ==========
 document.addEventListener('DOMContentLoaded', () => {
   const app = document.getElementById('app');
   if (!app) {
@@ -18,7 +18,13 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
-  // Renderizar todas las secciones
+  // ⬇️ ESTA LÍNEA TIENE QUE ESTAR
+  if (window.location.hash === '#admin') {
+    renderAdmin(app);
+    return;
+  }
+
+  // Si no, renderizar el portfolio normal
   app.appendChild(Header());
   app.appendChild(About());
   app.appendChild(Skills());
@@ -29,4 +35,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   console.log('✅ Portfolio inicializado correctamente');
   console.log('📌 Tema actual:', themeManager.getTheme());
+});
+
+// Detectar cambios en el hash de la URL
+window.addEventListener('hashchange', () => {
+  window.location.reload();
 });
