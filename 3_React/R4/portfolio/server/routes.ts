@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getPool } from './db';
+import { getConnection } from './db';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { requireAuth, AuthRequest } from './middleware';
@@ -10,21 +10,21 @@ const router = Router();
 router.post('/contacto', async (req, res) => {
   try {
     const { nombre, email, asunto, mensaje } = req.body;
-    const pool = getPool();
+    const db = getConnection();
 
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS contactos (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        nombre VARCHAR(100) NOT NULL,
-        email VARCHAR(100) NOT NULL,
-        asunto VARCHAR(200) NOT NULL,
-        mensaje TEXT NOT NULL,
-        creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+    await db.execute(`CREATE TABLE IF NOT EXISTS contactos (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      nombre VARCHAR(100) NOT NULL,
+      email VARCHAR(100) NOT NULL,
+      asunto VARCHAR(200) NOT NULL,
+      mensaje TEXT NOT NULL,
+      creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`);
 
-    const query = 'INSERT INTO contactos (nombre, email, asunto, mensaje) VALUES (?, ?, ?, ?)';
-    await pool.query(query, [nombre, email, asunto, mensaje]);
+    await db.execute(
+      'INSERT INTO contactos (nombre, email, asunto, mensaje) VALUES (?, ?, ?, ?)',
+      [nombre, email, asunto, mensaje]
+    );
 
     res.status(201).json({ message: 'Mensaje guardado exitosamente' });
   } catch (error) {
@@ -37,14 +37,14 @@ router.post('/contacto', async (req, res) => {
 router.post('/admin/login', async (req, res) => {
   try {
     const { username, password } = req.body;
-    const pool = getPool();
+    const db = getConnection();
 
-    const [rows]: any = await pool.query(
+    const rows: any = await db.execute(
       'SELECT * FROM usuarios WHERE username = ?',
       [username]
     );
 
-    if (rows.length === 0) {
+    if (!rows || rows.length === 0) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
@@ -71,8 +71,8 @@ router.post('/admin/login', async (req, res) => {
 // ========== RUTA: OBTENER MENSAJES DE CONTACTO (solo admin) ==========
 router.post('/admin/contactos', requireAuth, async (req: AuthRequest, res) => {
   try {
-    const pool = getPool();
-    const [rows] = await pool.query('SELECT * FROM contactos ORDER BY creado_en DESC');
+    const db = getConnection();
+    const rows: any = await db.execute('SELECT * FROM contactos ORDER BY creado_en DESC');
     res.json(rows);
   } catch (error) {
     console.error('Error al obtener contactos:', error);
@@ -89,13 +89,14 @@ router.post('/admin/contenido', requireAuth, async (req: AuthRequest, res) => {
       return res.status(400).json({ error: 'Faltan datos: seccion, clave, valor' });
     }
 
-    const pool = getPool();
+    const db = getConnection();
 
-    await pool.query(`
-      INSERT INTO contenido_portfolio (seccion, clave, valor)
-      VALUES (?, ?, ?)
-      ON DUPLICATE KEY UPDATE valor = VALUES(valor), actualizado_en = CURRENT_TIMESTAMP
-    `, [seccion, clave, valor]);
+    await db.execute(
+      `INSERT INTO contenido_portfolio (seccion, clave, valor)
+       VALUES (?, ?, ?)
+       ON DUPLICATE KEY UPDATE valor = VALUES(valor), actualizado_en = CURRENT_TIMESTAMP`,
+      [seccion, clave, valor]
+    );
 
     res.json({ message: 'Contenido actualizado exitosamente' });
   } catch (error) {
@@ -107,8 +108,8 @@ router.post('/admin/contenido', requireAuth, async (req: AuthRequest, res) => {
 // ========== RUTA: OBTENER CONTENIDO (público) ==========
 router.post('/contenido', async (req, res) => {
   try {
-    const pool = getPool();
-    const [rows] = await pool.query('SELECT seccion, clave, valor FROM contenido_portfolio');
+    const db = getConnection();
+    const rows: any = await db.execute('SELECT seccion, clave, valor FROM contenido_portfolio');
     res.json(rows);
   } catch (error) {
     console.error('Error al obtener contenido:', error);
@@ -116,11 +117,11 @@ router.post('/contenido', async (req, res) => {
   }
 });
 
-// ========== RUTA: OBTENER CONTENIDO (admin - para el panel) ==========
+// ========== RUTA: OBTENER CONTENIDO (admin) ==========
 router.post('/admin/contenido/listar', requireAuth, async (req: AuthRequest, res) => {
   try {
-    const pool = getPool();
-    const [rows] = await pool.query('SELECT seccion, clave, valor FROM contenido_portfolio');
+    const db = getConnection();
+    const rows: any = await db.execute('SELECT seccion, clave, valor FROM contenido_portfolio');
     res.json(rows);
   } catch (error) {
     console.error('Error al obtener contenido:', error);

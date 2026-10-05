@@ -1,34 +1,26 @@
-import mysql from 'mysql2/promise';
+import { connect } from '@tidbcloud/serverless';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-let pool: mysql.Pool;
+// Creamos una conexión única que se reutiliza entre invocaciones
+let connection: ReturnType<typeof connect> | null = null;
 
-export function getPool() {
-  if (!pool) {
-    pool = mysql.createPool({
-      host: process.env.TIDB_HOST,
-      port: parseInt(process.env.TIDB_PORT || '4000'),
-      user: process.env.TIDB_USER,
-      password: process.env.TIDB_PASSWORD,
-      database: process.env.TIDB_DB_NAME,
-      ssl: {
-        minVersion: 'TLSv1.2',
-        rejectUnauthorized: true
-      },
-      waitForConnections: true,
-      connectionLimit: 5,
-      queueLimit: 0,
-      // ⬇️ ESTAS LÍNEAS SON NUEVAS
-      enableKeepAlive: true,
-      keepAliveInitialDelay: 0,
-      connectTimeout: 30000,
-      // ⬇️ Evita que las conexiones inactivas se caigan
-      idleTimeout: 60000,
-      maxIdle: 2,
+export function getConnection() {
+  if (!connection) {
+    const url = `mysql://${process.env.TIDB_USER}:${process.env.TIDB_PASSWORD}@${process.env.TIDB_HOST}:${process.env.TIDB_PORT}/${process.env.TIDB_DB_NAME}`;
+    
+    connection = connect({
+      url: url,
     });
-    console.log('🔌 Pool de conexiones a TiDB creado.');
+    
+    console.log('🔌 Conexión serverless a TiDB creada.');
   }
-  return pool;
+  return connection;
+}
+
+// Mantenemos getPool como alias para no romper los imports existentes
+// (pero devuelve la conexión serverless)
+export function getPool() {
+  return getConnection();
 }
