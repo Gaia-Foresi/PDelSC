@@ -15,7 +15,7 @@ const pool = mysql.createPool({
   ssl,
   charset: 'utf8mb4',
   waitForConnections: true,
-  connectionLimit: 10,
+  connectionLimit: Number(process.env.DB_POOL_MAX) || 10, // en Vercel conviene un número chico (ej.: 3)
   timezone: 'Z',            // las fechas viajan en UTC
   dateStrings: ['DATE'],    // las columnas DATE vuelven como 'YYYY-MM-DD'
 });

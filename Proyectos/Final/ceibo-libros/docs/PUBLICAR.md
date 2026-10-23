@@ -1,6 +1,6 @@
-# Publicar Ceibo Libros (base en Aiven + backend en Railway + web en Netlify)
+# Publicar Ceibo Libros (base en Aiven + backend en Vercel + web en Netlify)
 
-Tres piezas, todas en internet: **la base de datos** (Aiven), **el backend** (Railway) y **la app web** (Netlify). Al final, los botones de Google/GitHub/Discord y los emails funcionan igual que en tu compu, pero con direcciones reales.
+Tres piezas, todas en internet: **la base de datos** (Aiven), **el backend** (Vercel) y **la app web** (Netlify). Al final, los botones de Google/GitHub/Discord y los emails funcionan igual que en tu compu, pero con direcciones reales.
 
 > Los nombres de los botones de cada sitio pueden cambiar un poco; si algo no coincide, buscá la opción equivalente.
 > **Nunca subas a GitHub** `backend/.env`, `mobile/.env` ni `ca.pem` (el `.gitignore` ya los excluye; verificalo antes de subir).
@@ -9,12 +9,12 @@ Tres piezas, todas en internet: **la base de datos** (Aiven), **el backend** (Ra
 
 ## Parte 1 · Base de datos: seguir con Aiven
 
-No hace falta crear otra base: la app publicada usa **la misma base de Aiven** que ya tenés (con tus usuarios, libros y reservas). Solo hay que prepararla para recibir conexiones desde Railway.
+No hace falta crear otra base: la app publicada usa **la misma base de Aiven** que ya tenés (con tus usuarios, libros y reservas). Solo hay que prepararla para recibir conexiones desde Vercel.
 
 1. Entrá a <https://console.aiven.io> → tu servicio MySQL. Verificá que esté en estado **Running** (si está apagado, encendelo).
-2. Buscá **Allowed IP addresses** (o *Network access*) y permití el acceso desde cualquier lugar: `0.0.0.0/0`. Railway no tiene una IP fija; con otra restricción la conexión se rechaza.
+2. Buscá **Allowed IP addresses** (o *Network access*) y permití el acceso desde cualquier lugar: `0.0.0.0/0`. Vercel no tiene una IP fija; con otra restricción la conexión se rechaza.
 3. En la pestaña **Overview** anotá los datos de conexión: *Host*, *Port*, *User*, *Password* y la base (`defaultdb`, salvo que hayas creado otra). Descargá el **CA certificate** (`ca.pem`).
-4. Convertí el certificado a **una sola línea** para poder pegarlo en Railway. En la terminal de VSCode, dentro de `backend`:
+4. Convertí el certificado a **una sola línea** para poder pegarlo en Vercel. En la terminal de VSCode, dentro de `backend`:
    ```bash
    node -e "console.log(require('fs').readFileSync('ca.pem','utf8').trim().replace(/\r?\n/g,'\\\\n'))"
    ```
@@ -24,15 +24,18 @@ No hace falta crear otra base: la app publicada usa **la misma base de Aiven** q
 
 ---
 
-## Parte 2 · Backend en Railway
+## Parte 2 · Backend en Vercel (gratis, sin tarjeta)
 
-1. Subí el proyecto a un repositorio **privado** de GitHub (carpeta `ceibo-libros` completa).
-2. Entrá a <https://railway.com> e iniciá sesión con GitHub. **New Project → Deploy from GitHub repo** y elegí el repositorio.
-3. En el servicio nuevo → **Settings**:
-   - **Root Directory:** `backend`
-   - **Start Command:** `npm start` (suele detectarlo solo)
-   - **Networking → Generate Domain:** te da una dirección tipo `https://ceibo-libros-production.up.railway.app`.
-4. En **Variables** del servicio, cargá:
+Railway y Render piden tarjeta de crédito. **Vercel no**: el plan *Hobby* es gratis con solo iniciar sesión con GitHub. El backend ya trae lo necesario (`backend/api/index.js` y `backend/vercel.json`).
+
+1. Entrá a <https://vercel.com> e iniciá sesión con GitHub.
+2. **Add New… → Project** y elegí el repositorio `PDelSC` (**Import**).
+3. En la pantalla de configuración:
+   - **Project Name:** `ceibo-libros-api`
+   - **Root Directory:** tocá *Edit* y elegí `Proyectos/Final/ceibo-libros/backend`
+   - **Framework Preset:** *Other*
+   - Dejá vacíos *Build Command*, *Output Directory* e *Install Command*.
+4. Desplegá **Environment Variables** y cargá estas (pegá el bloque completo en el primer campo y Vercel lo separa solo; completá con tus datos):
 
 | Variable | Valor |
 |---|---|
@@ -40,22 +43,22 @@ No hace falta crear otra base: la app publicada usa **la misma base de Aiven** q
 | `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` | los datos de Aiven (Parte 1, paso 3) |
 | `DB_SSL` | `true` |
 | `DB_SSL_CA` | el certificado en una sola línea (Parte 1, paso 4) |
+| `DB_POOL_MAX` | `3` (pocas conexiones por instancia, para no saturar la base) |
 | `JWT_ACCESS_SECRET` | un secreto nuevo: `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` |
-| `TZ_OFFSET_HORAS` | `-3` (hora de Argentina; define "hoy", vencimientos y horarios de visita) |
+| `TZ_OFFSET_HORAS` | `-3` |
 | `CORS_ORIGIN` | la dirección de tu web (Parte 3); mientras tanto `*` |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | los mismos que en tu `.env` (así llegan los códigos a cualquier Gmail) |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | los mismos que en tu `.env` |
 | `GOOGLE_CLIENT_IDS`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `DISCORD_CLIENT_ID` | los mismos que en tu `.env` |
-| `VISITA_HORA_APERTURA`, `VISITA_HORA_CIERRE`, `VISITA_DIAS`, `VISITA_PASO_MIN` | opcionales: horarios del calendario de visitas (por defecto 8 a 18, lunes a viernes, cada 30 min) |
-| `CRON_SECRET` | un texto largo (opcional, para los recordatorios) |
 
-   No hace falta definir `PORT`: Railway lo pone solo.
-5. Esperá a que termine el despliegue. Probalo desde una terminal (la API es solo POST, así que abrirla en el navegador no sirve):
+5. Tocá **Deploy**. Cuando termine te da una dirección tipo `https://ceibo-libros-api.vercel.app`. Probala desde una terminal (la API es solo POST):
    ```bash
-   curl -X POST https://TU-DIRECCION/api/salud
+   curl.exe -X POST https://TU-DIRECCION.vercel.app/api/salud
    ```
-   Debe responder `{"ok":true,"data":{"estado":"ok"}}`.
+   Debe responder `{"ok":true,"data":{"estado":"ok"}}`. La primera respuesta puede tardar unos segundos porque la función "despierta".
 
-Al arrancar, el servidor agrega solo las tablas y columnas nuevas (por ejemplo, las de día y hora de visita), así que no tenés que correr migraciones a mano. En los registros (*Deployments → View logs*) tiene que aparecer `[db] Conectado a ...aivencloud.com...`.
+Cómo funciona en Vercel: cada vez que la función se enciende actualiza la base (solo agrega lo que falta) y pone al día los avisos de devolución. No hay un proceso encendido todo el tiempo, por eso no se usa `npm start`.
+
+> **Alternativas con servidor siempre encendido** (piden tarjeta): Railway o Render. En ese caso usá *Root Directory* `Proyectos/Final/ceibo-libros/backend`, *Build Command* `npm install`, *Start Command* `npm start` y las mismas variables.
 
 ---
 
@@ -75,7 +78,7 @@ Al arrancar, el servidor agrega solo las tablas y columnas nuevas (por ejemplo, 
    ```
    Se crea la carpeta `mobile/dist`.
 3. Entrá a <https://app.netlify.com/drop> y arrastrá la carpeta `dist`. Te da una dirección tipo `https://nombre.netlify.app` (podés cambiarle el nombre en *Site settings*).
-4. Volvé a Railway y poné `CORS_ORIGIN=https://nombre.netlify.app` en el backend (sin barra al final).
+4. Volvé a Vercel (Settings → Environment Variables), poné `CORS_ORIGIN=https://nombre.netlify.app` en el backend (sin barra al final) y volvé a desplegar (Deployments → Redeploy).
 
 Cada vez que cambies algo de la app, repetí los pasos 2 y 3.
 
@@ -86,7 +89,7 @@ Cada vez que cambies algo de la app, repetí los pasos 2 y 3.
 Agregá la dirección de tu web (`https://nombre.netlify.app`) a cada servicio, **además** de `localhost`:
 
 * **Google** (credencial tipo *Aplicación web*): en *Orígenes de JavaScript autorizados* → `https://nombre.netlify.app`; en *URI de redireccionamiento* → `https://nombre.netlify.app`. Para que entre cualquier persona, en **Público** pasá la app a **En producción**.
-* **GitHub:** una OAuth App admite una sola dirección de retorno. Creá una **segunda OAuth App** con *callback* `https://nombre.netlify.app/oauth` y usá su Client ID y Secret en las variables de Railway y en `mobile/.env` de la web publicada.
+* **GitHub:** una OAuth App admite una sola dirección de retorno. Creá una **segunda OAuth App** con *callback* `https://nombre.netlify.app/oauth` y usá su Client ID y Secret en las variables de Vercel y en `mobile/.env` de la web publicada.
 * **Discord:** en *OAuth2 → Redirects* agregá `https://nombre.netlify.app/oauth`.
 
 ---
@@ -105,8 +108,8 @@ Agregá la dirección de tu web (`https://nombre.netlify.app`) a cada servicio, 
 | Síntoma | Causa y solución |
 |---|---|
 | La web dice "No pudimos conectarnos con el servidor" | `EXPO_PUBLIC_API_URL` no se cargó antes de `build:web`, o termina sin `/api`. Corregí el `.env` y volvé a construir. |
-| Error de CORS en la consola del navegador | `CORS_ORIGIN` en Railway no coincide exactamente con la dirección de la web (sin barra final). |
-| En los logs de Railway: `ETIMEDOUT`, `ECONNREFUSED` o `Access denied` | En Aiven falta permitir `0.0.0.0/0` en *Allowed IP addresses*, el servicio está apagado, o hay un dato mal copiado (host, puerto, usuario o clave). |
+| Error de CORS en la consola del navegador | `CORS_ORIGIN` en Vercel no coincide exactamente con la dirección de la web (sin barra final). |
+| En los registros de Vercel (Deployments → Logs): `ETIMEDOUT`, `ECONNREFUSED` o `Access denied` | En Aiven falta permitir `0.0.0.0/0` en *Allowed IP addresses*, el servicio está apagado, o hay un dato mal copiado (host, puerto, usuario o clave). |
 | `self-signed certificate in certificate chain` o error de SSL | `DB_SSL_CA` está mal pegado: tiene que ser el contenido de `ca.pem` en **una sola línea**, con los saltos escritos como `\n`, y `DB_SSL=true`. |
 | Al reservar no aparecen días ni horarios (404 en `/reservas/horarios`) | El backend publicado es una versión vieja. Subí la carpeta `backend` actualizada a GitHub y esperá el nuevo despliegue. |
 | Los horarios de visita salen corridos | Falta `TZ_OFFSET_HORAS=-3` en las variables del backend. |
