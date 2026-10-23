@@ -1,0 +1,55 @@
+{
+  "expo": {
+    "name": "Ceibo Libros",
+    "slug": "ceibo-libros",
+    "version": "1.0.0",
+    "scheme": "ceibolibros",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "backgroundColor": "#F3E5D8",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F3E5D8"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ceibolibros.biblioteca"
+    },
+    "android": {
+      "package": "com.ceibolibros.biblioteca",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#F3E5D8"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Ceibo Libros necesita acceder a tus fotos para que elijas tu foto de perfil."
+        }
+      ]
+    ],
+    "extra": {
+      "apiUrl": "http://10.0.2.2:4000/api",
+      "oauth": {
+        "googleWebClientId": "",
+        "googleAndroidClientId": "",
+        "googleIosClientId": "",
+        "githubClientId": "",
+        "discordClientId": ""
+      }
+    }
+  }
+}

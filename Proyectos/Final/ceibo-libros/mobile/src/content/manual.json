@@ -1,0 +1,313 @@
+{
+  "titulo": "Manual de usuario",
+  "subtitulo": "Ceibo Libros · Biblioteca",
+  "intro": "Esta guía explica cómo usar la aplicación según tu rol. La biblioteca tiene tres tipos de usuario: Usuario (lector), Bibliotecario y Dueño. Cada uno ve solo las funciones que le corresponden.",
+  "secciones": [
+    {
+      "id": "empezar",
+      "para": "todos",
+      "titulo": "Cómo empezar",
+      "items": [
+        {
+          "t": "Crear tu cuenta",
+          "p": "Tocá \"Crear cuenta\", completá nombre, apellido, email y una contraseña (mínimo 8 caracteres, con letras y números). Te enviamos un código de 6 números al email: ingresalo para activar la cuenta."
+        },
+        {
+          "t": "Ingresar",
+          "p": "Ingresá con tu email y contraseña, o tocá Google, GitHub o Discord para entrar con esa cuenta sin crear una contraseña. La sesión queda guardada: la próxima vez que abras la app seguís conectado."
+        },
+        {
+          "t": "Verificación en 2 pasos",
+          "p": "Si la activás (menú Perfil > Seguridad), al ingresar te pedimos además un código que llega a tu email. Es una protección extra para tu cuenta."
+        },
+        {
+          "t": "Olvidé mi contraseña",
+          "p": "En la pantalla de ingreso tocá \"Olvidé mi contraseña\". Te enviamos un código por email y con él elegís una contraseña nueva."
+        }
+      ]
+    },
+    {
+      "id": "navegar",
+      "para": "todos",
+      "titulo": "Moverte por la aplicación",
+      "items": [
+        {
+          "t": "Pantalla principal",
+          "p": "Muestra el nombre y logo de la biblioteca arriba y las categorías de libros (Ciencias Naturales, Historia, Ficción, etc.). Tocá una categoría para ver sus libros. También podés buscar por título o autor."
+        },
+        {
+          "t": "Botones principales (barra inferior)",
+          "p": "Abajo están los accesos principales según tu rol: Inicio, Mensajes, Reservas (libros reservados), Préstamos y Perfil. Los bibliotecarios y el dueño además ven Stock y Usuarios. Las estadísticas del dueño están en el menú lateral."
+        },
+        {
+          "t": "Menú lateral",
+          "p": "En el celular, tocá el ícono de las tres rayas (arriba a la izquierda) para abrirlo; en la computadora o con la pantalla ancha el menú está siempre visible a la izquierda. Ahí encontrás el modo claro/oscuro, seguridad, este manual y cerrar sesión. El dueño también ve \"Pedir libros\" y el \"Panel admin\"."
+        },
+        {
+          "t": "Notificaciones",
+          "p": "La campana de arriba muestra avisos: recordatorios de devolución, bloqueos y habilitaciones de cuenta. El número rojo indica cuántos no leíste."
+        },
+        {
+          "t": "Modo claro y oscuro",
+          "p": "Activalo desde el menú desplegable. Por defecto la app sigue la configuración de tu teléfono."
+        }
+      ]
+    },
+    {
+      "id": "libros",
+      "para": "todos",
+      "titulo": "Reservar y llevar libros",
+      "items": [
+        {
+          "t": "Ver los libros",
+          "p": "Dentro de cada categoría ves la portada, el título, el autor, una descripción y cuántos ejemplares hay disponibles."
+        },
+        {
+          "t": "Leer en sala",
+          "p": "Tocá \"Leer en sala\" para que la biblioteca te guarde el libro. La reserva dura 24 horas."
+        },
+        {
+          "t": "Llevar a casa",
+          "p": "Tocá \"Llevar\" para reservarlo y retirarlo. Tenés 3 días para pasar. El bibliotecario registra el préstamo cuando lo retirás (14 días de plazo por defecto)."
+        },
+        {
+          "t": "Tus datos y el código de retiro",
+          "p": "Al reservar la app te pide nombre, apellido, curso y DNI (quedan guardados para la próxima vez). Cuando terminás, te muestra un código de 6 caracteres (por ejemplo, 6JRRDV): mostralo en la biblioteca para leer o retirar el libro. Después lo ves siempre en el botón Reservas y, cuando el bibliotecario registra el préstamo, en el detalle del préstamo. También elegís el día y la hora en que vas a ir a la biblioteca: solo se ofrecen horarios disponibles. Esa fecha y hora queda guardada en tu reserva y aparece en el aviso de confirmación."
+        },
+        {
+          "t": "Límites",
+          "p": "Podés tener hasta 3 reservas activas. Si no quedan ejemplares, los botones se desactivan."
+        },
+        {
+          "t": "Libros reservados",
+          "p": "En el botón Reservas de la barra inferior ves tus reservas. Desde ahí podés cancelarlas (la app te pregunta antes de confirmar)."
+        }
+      ]
+    },
+    {
+      "id": "mensajes",
+      "para": "todos",
+      "titulo": "Mensajes y consultas",
+      "items": [
+        {
+          "t": "Consultar a la biblioteca",
+          "p": "En Mensajes tocá \"Nueva consulta\", escribí el asunto y tu pregunta. Las consultas las reciben y responden el dueño y los bibliotecarios; vas a ver la respuesta en la misma conversación."
+        },
+        {
+          "t": "Mensajes del equipo",
+          "p": "El dueño y los bibliotecarios pueden escribirse entre sí desde Mensajes > \"Mensaje al equipo\" para mantenerse informados."
+        },
+        {
+          "t": "Sin leer",
+          "p": "Un número rojo sobre el ícono de Mensajes indica conversaciones con mensajes nuevos."
+        }
+      ]
+    },
+    {
+      "id": "perfil",
+      "para": "todos",
+      "titulo": "Perfil y seguridad",
+      "items": [
+        {
+          "t": "Tu perfil",
+          "p": "Muestra tu foto y tus datos. El dueño y los bibliotecarios ven además su rol."
+        },
+        {
+          "t": "Editar datos y foto",
+          "p": "Para cambiar tu foto, tocala en Perfil y elegí una imagen de tu galería (se guarda al instante). Con \"Editar perfil\" cambiás nombre, apellido, teléfono, curso y DNI."
+        },
+        {
+          "t": "Cambiar contraseña",
+          "p": "En Perfil > Seguridad podés cambiar tu contraseña y activar la verificación en 2 pasos."
+        }
+      ]
+    },
+    {
+      "id": "bloqueo",
+      "para": "usuario",
+      "titulo": "Si tu cuenta está bloqueada",
+      "items": [
+        {
+          "t": "¿Por qué pasa?",
+          "p": "Las cuentas no se eliminan: se bloquean cuando hay libros sin devolver con el plazo vencido, o si la biblioteca lo decide. Vas a ver un aviso rojo con el mensaje de la biblioteca."
+        },
+        {
+          "t": "¿Qué no puedo hacer?",
+          "p": "No podés reservar ni pedir libros nuevos, pero sí leer tus datos y enviar consultas a la biblioteca."
+        },
+        {
+          "t": "¿Cómo se desbloquea?",
+          "p": "Devolvé los libros en la biblioteca. Cuando el bibliotecario registra la devolución de todos tus libros, la cuenta se habilita sola y recibís un aviso."
+        },
+        {
+          "t": "Avisos antes del vencimiento",
+          "p": "Dos días antes de la fecha de devolución recibís una notificación (y un email) para que no se te pase."
+        }
+      ]
+    },
+    {
+      "id": "prestamos-usuario",
+      "para": "usuario",
+      "titulo": "Mis préstamos",
+      "items": [
+        {
+          "t": "Ver mis préstamos",
+          "p": "En el botón Préstamos ves los libros que tenés, la fecha de vencimiento y cuántos días te quedan. Los vencidos se marcan en rojo."
+        },
+        {
+          "t": "Día y hora de la visita",
+          "p": "Cada reserva y cada préstamo muestran el día y el horario en que te esperan en la biblioteca (por ejemplo \"vie 23/10 · 09:30 hs\"). Lo ves en la lista y en el detalle, junto al código de retiro."
+        },
+        {
+          "t": "Código de retiro",
+          "p": "Cada préstamo muestra su código de retiro en un recuadro verde punteado. Es el mismo que recibiste al reservar. Mostralo en la biblioteca cuando vayas a retirar o devolver los libros."
+        },
+        {
+          "t": "Agregar o extender",
+          "p": "Para sumar libros a un préstamo o pedir más tiempo, acercate a la biblioteca o escribile al bibliotecario desde Mensajes."
+        }
+      ]
+    },
+    {
+      "id": "stock",
+      "para": "bibliotecario",
+      "titulo": "Stock de libros",
+      "items": [
+        {
+          "t": "Ver y buscar",
+          "p": "En Stock ves todos los libros, con alertas de stock bajo o agotado. Filtrá por categoría o buscá por título o autor."
+        },
+        {
+          "t": "Agregar y editar libros",
+          "p": "Tocá \"Agregar libro\" y completá título, autor, categoría, descripción y cantidad de ejemplares. La portada se busca sola en internet cuando escribís el título y el autor (podés ver cómo queda antes de guardar). Para corregir un libro, tocá el lápiz."
+        },
+        {
+          "t": "Portadas",
+          "p": "Si un libro no tiene portada, la app intenta encontrarla sola. Si no la encuentra, pegá el link de la imagen en el campo \"Portada\" o tocá \"Buscar portada\" para reintentar. Solo se guarda el link, no se descargan imágenes."
+        },
+        {
+          "t": "Categorías",
+          "p": "Desde Stock > Categorías podés crear y editar categorías (nombre, abreviatura, ícono y color) y agregar libros a cada una con el ícono del libro con \"+\". También podés entrar a una categoría desde Inicio y tocar \"Agregar libro\". El dueño además puede crear una categoría nueva desde Inicio con la tarjeta \"Nueva categoría\"."
+        },
+        {
+          "t": "Eliminar",
+          "p": "Solo el dueño puede eliminar libros y categorías. Un libro prestado o reservado no se puede eliminar."
+        }
+      ]
+    },
+    {
+      "id": "prestamos-staff",
+      "para": "bibliotecario",
+      "titulo": "Préstamos y reservas",
+      "items": [
+        {
+          "t": "Registrar un préstamo",
+          "p": "En Préstamos tocá \"Nuevo préstamo\", elegí al usuario, revisá sus datos (nombre, apellido, curso y DNI: si faltan, completalos), elegí hasta 5 libros y el plazo en días. Un usuario bloqueado no puede recibir libros. Al terminar, el préstamo muestra su código de retiro. Al final elegís la fecha y hora de la visita; si no elegís nada, se registra \"Ahora\"."
+        },
+        {
+          "t": "Agregar más libros",
+          "p": "Abrí el préstamo (o el perfil del usuario) y tocá \"Agregar libros\"."
+        },
+        {
+          "t": "Registrar devoluciones",
+          "p": "Dentro del préstamo, devolvé un libro o todos. Al devolver el último libro, si el usuario estaba bloqueado, se habilita automáticamente."
+        },
+        {
+          "t": "Extender el plazo",
+          "p": "Dentro del préstamo, \"Extender plazo\" suma 3, 7, 14 o 30 días."
+        },
+        {
+          "t": "Atender reservas",
+          "p": "En el botón Reservas de la barra inferior ves las reservas de todos, con curso, DNI y código de retiro. Podés buscar por código, DNI, nombre o libro. \"Atender\" una reserva para llevar crea el préstamo (con el mismo código); una reserva para sala se marca como usada."
+        },
+        {
+          "t": "Buscar por código",
+          "p": "En Préstamos y en Reservas, el buscador acepta el código de retiro que muestra el lector, su DNI, su nombre o el título del libro."
+        },
+        {
+          "t": "Vencidos",
+          "p": "Filtrá Préstamos por \"Vencidos\" para ver quién debe libros. La app bloquea sola a esos usuarios cada día."
+        }
+      ]
+    },
+    {
+      "id": "calendario-staff",
+      "para": "bibliotecario",
+      "titulo": "Calendario de visitas",
+      "items": [
+        {
+          "t": "Dónde está",
+          "p": "En el menú lateral, tocá \"Calendario de visitas\"."
+        },
+        {
+          "t": "Cómo leerlo",
+          "p": "Los días con un punto tienen reservas o préstamos agendados. Tocá un día para ver la lista ordenada por hora, con nombre y apellido de la persona, título del libro, tipo (reserva en sala, reserva para llevar o préstamo) y código de retiro."
+        },
+        {
+          "t": "Abrir el detalle",
+          "p": "Tocá un registro para ir al préstamo o a la lista de reservas. Con las flechas cambiás de mes. Todo lo que se agenda al reservar o prestar se guarda solo en el calendario."
+        }
+      ]
+    },
+    {
+      "id": "usuarios-staff",
+      "para": "bibliotecario",
+      "titulo": "Usuarios registrados",
+      "items": [
+        {
+          "t": "Perfil del usuario",
+          "p": "En Usuarios buscá a una persona y tocala: ves sus datos, préstamos y reservas."
+        },
+        {
+          "t": "Bloquear y desbloquear",
+          "p": "Desde el perfil podés bloquear al usuario escribiendo un mensaje (por ejemplo, que devuelva los libros) o desbloquearlo. La app siempre pide confirmación."
+        }
+      ]
+    },
+    {
+      "id": "dueno",
+      "para": "dueno",
+      "titulo": "Funciones del dueño",
+      "items": [
+        {
+          "t": "Estadísticas",
+          "p": "La opción Estadísticas del menú lateral muestra, arriba, cómo está la biblioteca hoy (títulos, ejemplares, usuarios, préstamos activos y vencidos, reservas y bloqueados, cada uno con su explicación). Abajo hay tres gráficos: préstamos por mes, libros más prestados y préstamos por categoría. Cada gráfico explica qué representa cada barra."
+        },
+        {
+          "t": "Pedir libros a la distribuidora",
+          "p": "En el menú, \"Pedir libros\": elegí la distribuidora, agregá los libros y las cantidades (o un título nuevo) y enviá el pedido por email. Abajo queda el historial de pedidos."
+        },
+        {
+          "t": "Distribuidoras",
+          "p": "Desde Pedir libros > Distribuidoras cargás, editás y eliminás los datos de contacto de cada distribuidora."
+        },
+        {
+          "t": "Crear una categoría nueva",
+          "p": "En Inicio, al final de las categorías, tocá \"Nueva categoría\": elegí código, nombre, ícono y color. Después tanto vos como los bibliotecarios pueden agregarle libros."
+        },
+        {
+          "t": "Panel admin",
+          "p": "En el menú desplegable, \"Panel admin\" lista a los usuarios y bibliotecarios registrados. Tocá \"Cambiar rol\" para convertir a alguien en bibliotecario o devolverlo a usuario. No podés cambiar tu propio rol."
+        },
+        {
+          "t": "Eliminar libros y categorías",
+          "p": "Solo el dueño puede hacerlo, siempre con confirmación previa."
+        }
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "No me llega el código por email",
+      "r": "Revisá la carpeta de spam y esperá unos segundos. Podés pedir un código nuevo desde la misma pantalla."
+    },
+    {
+      "q": "¿Se pierde mi sesión si cierro la app?",
+      "r": "No. La sesión queda guardada de forma segura hasta que cierres sesión o venza."
+    },
+    {
+      "q": "¿La app necesita internet?",
+      "r": "Sí, los datos están en un servidor en la nube. Si no hay conexión, la app lo avisa y permite reintentar."
+    }
+  ]
+}
