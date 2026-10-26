@@ -1,113 +1,34 @@
-// ========== INTERFACES ==========
-interface ContentRow {
-  seccion: string;
-  clave: string;
-  valor: string;
-}
+import { Content, rich, esc } from '../lib/content';
 
-// ========== COMPONENTE ==========
-export function About(): HTMLElement {
+export function About(content: Content): HTMLElement {
+  const p = content.perfil;
   const section = document.createElement('section');
   section.id = 'about';
   section.className = 'section';
 
-  // Contenido por defecto (mientras carga)
+  const paragraphs = [p.about_p1, p.about_p2, p.about_p3].filter(t => t && t.trim());
+  const stats = [
+    [p.stat_years, p.stat_years_label],
+    [p.stat_projects, p.stat_projects_label],
+    [p.stat_techs, p.stat_techs_label],
+  ].filter(([n]) => n && n.trim());
+
   section.innerHTML = `
-    <div class="about-content">
-      <h2>Sobre Mí</h2>
-      <div class="about-grid">
+    <div class="container section-grid">
+      <h2 class="section-title">Sobre mí</h2>
+      <div class="section-body about-body">
         <div class="about-text">
-          <p>
-            Hola, soy Gaia Foresi, estudiante de 7°mo año de la escuela de educacion secundaria técnica N°5
-            con especialización en la tecnicatura de Informática.
-          </p>
-          <p>
-            Actualmente estoy aprendiendo <strong>C++, Java,TypeScript, JavaScript, Node.js, React, HTML y CSS</strong>, ademas de
-            bases de datos SQL</strong>.
-          </p>
-          <p>
-            Mi objetivo es poder crear paginas y aplicaciones web tanto utiles como divertidas para diversos sectores.
-          </p>
-          <div class="about-stats">
-            <div class="stat">
-              <span class="stat-number">3</span>
-              <span class="stat-label">Años de experiencia</span>
-            </div>
-            <div class="stat">
-              <span class="stat-number">5</span>
-              <span class="stat-label">Proyectos completados</span>
-            </div>
-          </div>
+          ${paragraphs.map(t => `<p>${rich(t)}</p>`).join('')}
         </div>
-        <div class="about-image">
-          <div class="foto-container">
-            <img 
-              src="/foto-perfil.jpg" 
-              alt="Mi foto de perfil" 
-              class="foto-img"
-              onerror="this.style.display='none'; (this.nextElementSibling as HTMLElement).style.display='flex';"
-            />
-          </div>
-        </div>
+        ${
+          stats.length
+            ? `<dl class="about-stats">
+                ${stats.map(([n, label]) => `<div class="stat"><dt>${esc(label)}</dt><dd>${esc(n)}</dd></div>`).join('')}
+              </dl>`
+            : ''
+        }
       </div>
     </div>
   `;
-
-  // Cargar contenido desde TiDB
-  loadAboutContent(section);
-
-  // Observer para animación al hacer scroll
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        section.classList.add('visible');
-        observer.unobserve(entry.target);
-      }
-    });
-  }, { 
-    threshold: 0.1,
-    rootMargin: '0px 0px -50px 0px'
-  });
-
-  observer.observe(section);
-
   return section;
-}
-
-// ========== CARGAR CONTENIDO DESDE TIDB ==========
-async function loadAboutContent(section: HTMLElement): Promise<void> {
-  try {
-    const response = await fetch('/api/contenido', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    });
-
-    if (!response.ok) return;
-
-    const rows: ContentRow[] = await response.json();
-
-    // Crear mapa de búsqueda rápida
-    const map: Record<string, string> = {};
-    rows.forEach(row => {
-      map[`${row.seccion}.${row.clave}`] = row.valor;
-    });
-
-    // Actualizar los textos si existen en TiDB
-    const p1 = section.querySelector('#about-p1');
-    const p2 = section.querySelector('#about-p2');
-    const p3 = section.querySelector('#about-p3');
-    const statYears = section.querySelector('#stat-years');
-    const statProjects = section.querySelector('#stat-projects');
-    const statTechs = section.querySelector('#stat-techs');
-
-    if (p1 && map['about.p1']) p1.innerHTML = map['about.p1'];
-    if (p2 && map['about.p2']) p2.innerHTML = map['about.p2'];
-    if (p3 && map['about.p3']) p3.innerHTML = map['about.p3'];
-    if (statYears && map['stats.years']) statYears.textContent = map['stats.years'];
-    if (statProjects && map['stats.projects']) statProjects.textContent = map['stats.projects'];
-    if (statTechs && map['stats.techs']) statTechs.textContent = map['stats.techs'];
-
-  } catch (error) {
-    console.error('Error al cargar contenido de About:', error);
-  }
 }

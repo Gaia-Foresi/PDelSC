@@ -1,8 +1,10 @@
 import './styles/style.css';
 import './admin/Admin.css';
-import { themeManager } from './theme';
+import './theme';
 
+import { loadContent } from './lib/content';
 import { Header } from './components/Header';
+import { Hero } from './components/Hero';
 import { About } from './components/About';
 import { Skills } from './components/Skills';
 import { Experience } from './components/Experience';
@@ -11,33 +13,48 @@ import { Contact } from './components/Contact';
 import { Footer } from './components/Footer';
 import { renderAdmin } from './admin/Admin';
 
-document.addEventListener('DOMContentLoaded', () => {
-  const app = document.getElementById('app');
-  if (!app) {
-    console.error('❌ No se encontró el elemento #app');
-    return;
-  }
+// El panel se abre en /#admin o en /admin
+const isAdminRoute = () => location.hash === '#admin' || location.pathname.replace(/\/$/, '') === '/admin';
 
-  // ⬇️ ESTA LÍNEA TIENE QUE ESTAR
-  if (window.location.hash === '#admin') {
+async function start() {
+  const app = document.getElementById('app')!;
+
+  if (isAdminRoute()) {
+    document.body.classList.add('is-admin');
     renderAdmin(app);
     return;
   }
 
-  // Si no, renderizar el portfolio normal
-  app.appendChild(Header());
-  app.appendChild(About());
-  app.appendChild(Skills());
-  app.appendChild(Experience());
-  app.appendChild(Projects());
-  app.appendChild(Contact());
-  app.appendChild(Footer());
+  const content = await loadContent();
+  document.title = `${content.perfil.nombre} | Portfolio`;
 
-  console.log('✅ Portfolio inicializado correctamente');
-  console.log('📌 Tema actual:', themeManager.getTheme());
-});
+  const main = document.createElement('main');
+  main.append(
+    Hero(content),
+    About(content),
+    Skills(content),
+    Experience(content),
+    Projects(content),
+    Contact(content)
+  );
+  app.replaceChildren(Header(content), main, Footer(content));
+  document.body.classList.add('ready');
 
-// Detectar cambios en el hash de la URL
+  // Si se entró con un #seccion en la URL, ir ahí ahora que existe
+  if (location.hash && location.hash.length > 1) {
+    try {
+      document.querySelector(location.hash)?.scrollIntoView();
+    } catch {}
+  }
+}
+
+// Solo recargar al entrar o salir del panel (no al tocar los links del menú)
+let wasAdmin = isAdminRoute();
 window.addEventListener('hashchange', () => {
-  window.location.reload();
+  if (isAdminRoute() !== wasAdmin) {
+    wasAdmin = isAdminRoute();
+    location.reload();
+  }
 });
+
+start();

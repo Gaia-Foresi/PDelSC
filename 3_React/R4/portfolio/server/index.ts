@@ -1,29 +1,26 @@
+// Servidor para desarrollo local (npm run server) o para hostings
+// que corren un proceso Node siempre prendido (Render, Railway...).
+import path from 'node:path';
+import fs from 'node:fs';
 import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import { getPool } from './db';
-import routes from './routes';
+import app from './app.js';
+import { query } from './db.js';
 
-dotenv.config();
+const port = Number(process.env.PORT) || 3000;
 
-const app = express();
-const port = process.env.PORT || 3000;
+// Si existe la carpeta dist (después de "npm run build"), también sirve la página
+const dist = path.resolve('dist');
+if (fs.existsSync(dist)) {
+  app.use(express.static(dist));
+  app.get(/^\/(?!api\/).*/, (_req, res) => res.sendFile(path.join(dist, 'index.html')));
+}
 
-app.use(cors());
-app.use(express.json());
-
-app.use('/api', routes);
-
-app.listen(port, () => {
-  console.log(`🚀 Servidor backend corriendo en http://localhost:${port}`);
-
-  getPool()
-    .getConnection()
-    .then(conn => {
-      console.log('✅ Conexión a TiDB exitosa');
-      conn.release();
-    })
-    .catch(err => {
-      console.error('❌ Error al conectar a TiDB:', err.message);
-    });
+app.listen(port, async () => {
+  console.log(`🚀 Servidor en http://localhost:${port}  (API en /api)`);
+  try {
+    await query('SELECT 1');
+    console.log('✅ Conexión a la base de datos OK');
+  } catch (err: any) {
+    console.error('❌ No se pudo conectar a la base de datos:', err.message);
+  }
 });

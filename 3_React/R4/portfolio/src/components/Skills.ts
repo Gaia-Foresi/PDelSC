@@ -1,124 +1,44 @@
-interface Skill {
-  name: string;
-  level: number; // 1-5
-  category: 'programacion' | 'frontend' | 'backend' | 'tools' | 'soft';
-}
+import { Content, CATEGORIAS, esc } from '../lib/content';
 
-// Función para crear la sección de habilidades
-export function Skills(): HTMLElement {
-
-  // Crear el contenedor de la sección
+export function Skills(content: Content): HTMLElement {
   const section = document.createElement('section');
   section.id = 'skills';
   section.className = 'section';
 
-  // Datos de habilidades
-  const skills: Skill[] = [
-    //Programacion 
-    { name: 'C++', level: 2, category: 'programacion' },
-    { name: 'Java', level: 2, category: 'programacion' },
+  // Agrupar por categoría respetando el orden en que aparecen
+  const groups = new Map<string, typeof content.habilidades>();
+  content.habilidades.forEach(s => {
+    if (!groups.has(s.categoria)) groups.set(s.categoria, []);
+    groups.get(s.categoria)!.push(s);
+  });
 
-    // Frontend
-    { name: 'JavaScript', level: 3, category: 'frontend' },
-    { name: 'TypeScript', level: 3, category: 'frontend' },
-    { name: 'HTML5/CSS3', level: 4, category: 'frontend' },
-    { name: 'React', level: 3, category: 'frontend' },
-    
-    // Backend y Base de Datos
-    { name: 'Node.js', level: 3, category: 'backend' },
-    { name: 'MySQL', level: 4, category: 'backend' },
-    { name: 'PHP', level: 3, category: 'backend' },
+  const levelBar = (n: number) =>
+    `<span class="level" role="img" aria-label="Nivel ${n} de 5">${[1, 2, 3, 4, 5]
+      .map(i => `<i class="${i <= n ? 'on' : ''}"></i>`)
+      .join('')}</span>`;
 
-    // Herramientas
-    { name: 'GitHub', level: 3, category: 'tools' },
-    { name: 'VS Code', level: 4, category: 'tools' },
-    
-    // Habilidades blandas
-    { name: 'Trabajo en equipo', level: 5, category: 'soft' },
-    { name: 'Comunicación', level: 4, category: 'soft' },
-    { name: 'Resolución de problemas', level: 4, category: 'soft' },
-    { name: 'Aprendizaje autónomo', level: 3, category: 'soft' },
-  ];
-
-  //Define los nombres que se mostrarán visualmente para cada categoría
-  const categoryNames = {
-    programacion: '💻 Programación',
-    frontend: '🖥️ Frontend',
-    backend: '⚙️ Backend and Database',
-    tools: '🔧 Herramientas',
-    soft: '💡 Habilidades Blandas'
-  };
-
-  // Agrupar habilidades por categoría
-  const groupedSkills = skills.reduce((acc, skill) => {
-    const category = skill.category;
-    if (!acc[category]) acc[category] = [];
-    acc[category].push(skill);
-    return acc;
-  }, {} as Record<string, Skill[]>);
-
-  // Construir el HTML
-  let skillsHTML = `
-    <div class="skills-content">
-      <h2>Habilidades Técnicas</h2>
-      <div class="skills-grid">
-  `;
-
-  //Recorre cada categoría y obtiene la lista de habilidades que pertenece a ella
-  for (const [category, skillList] of Object.entries(groupedSkills)) {
-    skillsHTML += `
-      <div class="skill-category">
-        <h3>${categoryNames[category as keyof typeof categoryNames] || category}</h3>
-        <div class="skill-items">
-    `;
-
-    // Ordenar por nivel (de mayor a menor)
-    skillList.sort((a, b) => b.level - a.level);
-
-    skillList.forEach(skill => {
-      const stars = '⭐'.repeat(skill.level) + '☆'.repeat(5 - skill.level);
-      skillsHTML += `
-        <div class="skill-item">
-          <span class="skill-name">${skill.name}</span>
-          <span class="skill-level" title="Nivel ${skill.level}/5">${stars}</span>
+  section.innerHTML = `
+    <div class="container section-grid">
+      <h2 class="section-title">Habilidades</h2>
+      <div class="section-body">
+        <div class="skills-grid">
+          ${[...groups.entries()]
+            .map(
+              ([cat, list]) => `
+            <div class="skill-group">
+              <h3>${esc(CATEGORIAS[cat] || cat)}</h3>
+              <ul>
+                ${list
+                  .map(s => `<li><span>${esc(s.nombre)}</span>${levelBar(s.nivel)}</li>`)
+                  .join('')}
+              </ul>
+            </div>`
+            )
+            .join('')}
         </div>
-      `;
-    });
-
-    skillsHTML += `
-        </div>
-      </div>
-    `;
-  }
-
-  skillsHTML += `
+        <p class="skills-legend"><span><span class="level"><i class="on"></i><i></i><i></i><i></i><i></i></span> recién empiezo</span><span><span class="level"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span> lo manejo muy bien</span></p>
       </div>
     </div>
   `;
-
-  section.innerHTML = skillsHTML;
-
-  // Observer para animación al hacer scroll
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        section.classList.add('visible');
-        // Animar cada categoría con delay
-        const categories = section.querySelectorAll('.skill-category');
-        categories.forEach((cat, index) => {
-          setTimeout(() => {
-            cat.classList.add('visible');
-          }, index * 150);
-        });
-        observer.unobserve(entry.target);
-      }
-    });
-  }, { 
-    threshold: 0.1,
-    rootMargin: '0px 0px -50px 0px'
-  });
-
-  observer.observe(section);
-
   return section;
 }

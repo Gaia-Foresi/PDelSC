@@ -1,456 +1,710 @@
-// ========== INTERFACES ==========
-interface LoginResponse {
-  token: string;
-  username: string;
-}
+// ============================================================
+//  PANEL DE ADMINISTRACIÓN  (/#admin)
+// ------------------------------------------------------------
+//  - Login con usuario y contraseña (guardados en la tabla admin_usuarios)
+//  - Mensajes del formulario de contacto
+//  - Editar perfil, habilidades, experiencia y proyectos
+//  - Cambiar la contraseña
+// ============================================================
+import { CATEGORIAS, Content, esc, lines } from '../lib/content';
+import { toast } from '../lib/toast';
 
-interface ContactMessage {
+// ---------- Tipos ----------
+interface Mensaje {
   id: number;
   nombre: string;
   email: string;
   asunto: string;
   mensaje: string;
+  leido: number | boolean;
   creado_en: string;
 }
 
-// ========== ESTADO GLOBAL ==========
-let currentToken: string | null = null;
-let currentUsername: string | null = null;
+type FieldDef = {
+  name: string;
+  label: string;
+  type?: 'text' | 'textarea' | 'select' | 'url';
+  options?: Array<[string, string]>;
+  hint?: string;
+  required?: boolean;
+  rows?: number;
+};
 
-// ========== FUNCIÓN PRINCIPAL ==========
-export function renderAdmin(container: HTMLElement): void {
-  container.innerHTML = '';
+type ResourceKey = 'habilidades' | 'experiencias' | 'proyectos';
 
-  const savedToken = localStorage.getItem('adminToken');
-  const savedUsername = localStorage.getItem('adminUsername');
+const RESOURCES: Record<
+  ResourceKey,
+  { title: string; singular: string; intro: string; fields: FieldDef[]; summary: (r: any) => [string, string] }
+> = {
+  habilidades: {
+    title: 'Habilidades',
+    singular: 'habilidad',
+    intro: 'Se muestran agrupadas por categoría, en el orden de esta lista.',
+    fields: [
+      { name: 'nombre', label: 'Nombre', required: true },
+      {
+        name: 'nivel',
+        label: 'Nivel',
+        type: 'select',
+        options: [
+          ['1', '1 · Recién empiezo'],
+          ['2', '2 · Lo básico'],
+          ['3', '3 · Me defiendo'],
+          ['4', '4 · Lo uso seguido'],
+          ['5', '5 · Lo manejo muy bien'],
+        ],
+      },
+      { name: 'categoria', label: 'Categoría', type: 'select', options: Object.entries(CATEGORIAS) },
+    ],
+    summary: r => [r.nombre, `${CATEGORIAS[r.categoria] || r.categoria} · nivel ${r.nivel}/5`],
+  },
+  experiencias: {
+    title: 'Experiencia',
+    singular: 'experiencia',
+    intro: 'Aparecen en la línea de tiempo en este orden. Poné la más reciente arriba.',
+    fields: [
+      { name: 'titulo', label: 'Título', required: true },
+      { name: 'lugar', label: 'Dónde o en qué contexto', hint: 'Ej.: Proyecto escolar de 5° año' },
+      { name: 'fecha', label: 'Fecha', hint: 'Ej.: 2025 - presente' },
+      { name: 'descripcion', label: 'Qué hiciste', type: 'textarea', rows: 4, hint: 'Una cosa por línea.' },
+      { name: 'tecnologias', label: 'Tecnologías', hint: 'Separadas por coma: HTML, CSS, JavaScript' },
+    ],
+    summary: r => [r.titulo, [r.lugar, r.fecha].filter(Boolean).join(' · ')],
+  },
+  proyectos: {
+    title: 'Proyectos',
+    singular: 'proyecto',
+    intro: 'Cada proyecto es una tarjeta en la página, en este orden.',
+    fields: [
+      { name: 'nombre', label: 'Nombre', required: true },
+      { name: 'fecha', label: 'Fecha', hint: 'Ej.: 2026' },
+      { name: 'descripcion', label: 'Descripción corta', type: 'textarea', rows: 2 },
+      { name: 'caracteristicas', label: 'Qué tiene', type: 'textarea', rows: 4, hint: 'Una característica por línea.' },
+      { name: 'tecnologias', label: 'Tecnologías', hint: 'Separadas por coma.' },
+      { name: 'github', label: 'Link al código (GitHub)', type: 'url', hint: 'Opcional. Empieza con https://' },
+      { name: 'link', label: 'Link a la demo', type: 'url', hint: 'Opcional. Empieza con https://' },
+    ],
+    summary: r => [r.nombre, [r.fecha, r.tecnologias].filter(Boolean).join(' · ')],
+  },
+};
 
-  if (savedToken && savedUsername) {
-    currentToken = savedToken;
-    currentUsername = savedUsername;
-    renderDashboard(container);
-  } else {
-    renderLogin(container);
+const PERFIL_GROUPS: Array<{ title: string; hint?: string; fields: FieldDef[] }> = [
+  {
+    title: 'Portada',
+    fields: [
+      { name: 'nombre', label: 'Nombre' },
+      { name: 'rol', label: 'Qué hacés', hint: 'Aparece arriba de tu nombre.' },
+      { name: 'intro', label: 'Frase de presentación', type: 'textarea', rows: 2 },
+    ],
+  },
+  {
+    title: 'Sobre mí',
+    hint: 'Para poner algo en negrita, escribilo entre dobles asteriscos: **así**. Si dejás un párrafo vacío, no se muestra.',
+    fields: [
+      { name: 'about_p1', label: 'Párrafo 1', type: 'textarea', rows: 3 },
+      { name: 'about_p2', label: 'Párrafo 2', type: 'textarea', rows: 3 },
+      { name: 'about_p3', label: 'Párrafo 3', type: 'textarea', rows: 3 },
+    ],
+  },
+  {
+    title: 'Números',
+    hint: 'Si dejás el número vacío, ese dato no se muestra.',
+    fields: [
+      { name: 'stat_years', label: 'Número 1' },
+      { name: 'stat_years_label', label: 'Texto 1' },
+      { name: 'stat_projects', label: 'Número 2' },
+      { name: 'stat_projects_label', label: 'Texto 2' },
+      { name: 'stat_techs', label: 'Número 3' },
+      { name: 'stat_techs_label', label: 'Texto 3' },
+    ],
+  },
+  {
+    title: 'Contacto',
+    fields: [
+      { name: 'email', label: 'Email' },
+      { name: 'ubicacion', label: 'Ubicación' },
+      { name: 'github', label: 'GitHub', type: 'url' },
+      { name: 'linkedin', label: 'LinkedIn', type: 'url', hint: 'Opcional.' },
+    ],
+  },
+];
+
+type View = 'mensajes' | 'perfil' | ResourceKey | 'cuenta';
+
+const NAV: Array<[View, string]> = [
+  ['mensajes', 'Mensajes'],
+  ['perfil', 'Perfil'],
+  ['habilidades', 'Habilidades'],
+  ['experiencias', 'Experiencia'],
+  ['proyectos', 'Proyectos'],
+  ['cuenta', 'Cuenta'],
+];
+
+// ---------- Estado ----------
+let root: HTMLElement;
+let token: string | null = null;
+let username = '';
+
+const storage = {
+  get: (k: string) => {
+    try {
+      return localStorage.getItem(k);
+    } catch {
+      return null;
+    }
+  },
+  set: (k: string, v: string) => {
+    try {
+      localStorage.setItem(k, v);
+    } catch {}
+  },
+  del: (k: string) => {
+    try {
+      localStorage.removeItem(k);
+    } catch {}
+  },
+};
+
+// ---------- Llamadas a la API ----------
+class SessionError extends Error {}
+
+async function api<T = any>(path: string, method = 'GET', body?: unknown): Promise<T> {
+  const res = await fetch(`/api${path}`, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.status === 401 && path !== '/admin/login') {
+    logout('Tu sesión expiró. Iniciá sesión de nuevo.');
+    throw new SessionError();
   }
+  if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+  return data as T;
 }
 
-// ========== LOGIN ==========
-function renderLogin(container: HTMLElement): void {
-  const loginDiv = document.createElement('div');
-  loginDiv.className = 'admin-login';
+function fail(err: unknown) {
+  if (err instanceof SessionError) return;
+  toast(err instanceof Error ? err.message : 'Algo salió mal.', 'error');
+}
 
-  loginDiv.innerHTML = `
-    <h1>🔐 Panel de Admin</h1>
-    <form id="adminLoginForm">
+// ============================================================
+//  ENTRADA
+// ============================================================
+export function renderAdmin(container: HTMLElement): void {
+  root = container;
+  token = storage.get('adminToken');
+  username = storage.get('adminUsername') || '';
+  if (token) renderShell();
+  else renderLogin();
+}
+
+function logout(message?: string) {
+  token = null;
+  storage.del('adminToken');
+  storage.del('adminUsername');
+  renderLogin(message);
+}
+
+// ============================================================
+//  LOGIN
+// ============================================================
+function renderLogin(message?: string) {
+  root.innerHTML = `
+    <div class="adm-login-wrap">
+      <form class="adm-login" novalidate>
+        <h1>Panel de admin</h1>
+        <p class="adm-muted">Entrá para editar tu portfolio y leer los mensajes.</p>
+        ${message ? `<p class="adm-alert">${esc(message)}</p>` : ''}
+        <label class="adm-field">
+          <span>Usuario</span>
+          <input name="username" autocomplete="username" required />
+        </label>
+        <label class="adm-field">
+          <span>Contraseña</span>
+          <input name="password" type="password" autocomplete="current-password" required />
+        </label>
+        <p class="adm-error" aria-live="polite"></p>
+        <button class="btn btn-primary" type="submit">Iniciar sesión</button>
+        <a class="adm-back" href="/">Volver al portfolio</a>
+      </form>
+    </div>
+  `;
+
+  const form = root.querySelector('form') as HTMLFormElement;
+  const error = root.querySelector('.adm-error') as HTMLElement;
+  const btn = form.querySelector('button') as HTMLButtonElement;
+  (form.elements.namedItem('username') as HTMLInputElement).focus();
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    const u = String(fd.get('username') || '').trim();
+    const p = String(fd.get('password') || '');
+    if (!u || !p) {
+      error.textContent = 'Completá usuario y contraseña.';
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Entrando...';
+    error.textContent = '';
+    try {
+      const data = await api<{ token: string; username: string }>('/admin/login', 'POST', {
+        username: u,
+        password: p,
+      });
+      token = data.token;
+      username = data.username;
+      storage.set('adminToken', token);
+      storage.set('adminUsername', username);
+      renderShell();
+    } catch (err: any) {
+      error.textContent =
+        err?.message === 'Failed to fetch'
+          ? 'No se pudo conectar con el servidor. ¿Está corriendo la API?'
+          : err?.message || 'No se pudo iniciar sesión.';
+      btn.disabled = false;
+      btn.textContent = 'Iniciar sesión';
+    }
+  });
+}
+
+// ============================================================
+//  ESTRUCTURA DEL PANEL
+// ============================================================
+let currentView: View = 'mensajes';
+
+function renderShell() {
+  root.innerHTML = `
+    <div class="adm">
+      <aside class="adm-side">
+        <div class="adm-brand">
+          <strong>Panel</strong>
+          <span>${esc(username)}</span>
+        </div>
+        <nav class="adm-nav">
+          ${NAV.map(
+            ([v, label]) =>
+              `<button data-view="${v}">${label}${v === 'mensajes' ? '<span class="adm-badge" hidden></span>' : ''}</button>`
+          ).join('')}
+        </nav>
+        <div class="adm-side-foot">
+          <a href="/" target="_blank" rel="noopener">Ver portfolio</a>
+          <button class="adm-logout">Cerrar sesión</button>
+        </div>
+      </aside>
+      <main class="adm-main" tabindex="-1"></main>
+    </div>
+    <dialog class="adm-dialog"></dialog>
+  `;
+
+  root.querySelectorAll<HTMLButtonElement>('.adm-nav button').forEach(b =>
+    b.addEventListener('click', () => show(b.dataset.view as View))
+  );
+  root.querySelector('.adm-logout')!.addEventListener('click', () => logout());
+
+  // Verificar que el token guardado siga siendo válido
+  api('/admin/me').catch(fail);
+  show(currentView);
+}
+
+function show(view: View) {
+  currentView = view;
+  root.querySelectorAll<HTMLButtonElement>('.adm-nav button').forEach(b =>
+    b.classList.toggle('active', b.dataset.view === view)
+  );
+  const main = root.querySelector('.adm-main') as HTMLElement;
+  main.innerHTML = `<p class="adm-loading">Cargando...</p>`;
+
+  if (view === 'mensajes') renderMensajes(main);
+  else if (view === 'perfil') renderPerfil(main);
+  else if (view === 'cuenta') renderCuenta(main);
+  else renderResource(main, view);
+}
+
+function updateBadge(unread: number) {
+  const badge = root.querySelector('.adm-badge') as HTMLElement | null;
+  if (!badge) return;
+  badge.hidden = unread === 0;
+  badge.textContent = String(unread);
+}
+
+// ============================================================
+//  MENSAJES
+// ============================================================
+let soloSinLeer = false;
+
+async function renderMensajes(main: HTMLElement) {
+  let msgs: Mensaje[];
+  try {
+    msgs = await api<Mensaje[]>('/admin/contactos');
+  } catch (err) {
+    main.innerHTML = `<p class="adm-alert">No se pudieron cargar los mensajes. Revisá la conexión con la base de datos.</p>`;
+    return fail(err);
+  }
+  const unread = msgs.filter(m => !m.leido).length;
+  updateBadge(unread);
+  const list = soloSinLeer ? msgs.filter(m => !m.leido) : msgs;
+
+  main.innerHTML = `
+    <header class="adm-head">
       <div>
-        <label for="username">Usuario</label>
-        <input type="text" id="username" name="username" required placeholder="admin" />
+        <h1>Mensajes</h1>
+        <p class="adm-muted">${msgs.length} en total, ${unread} sin leer.</p>
       </div>
+      <label class="adm-switch"><input type="checkbox" ${soloSinLeer ? 'checked' : ''} /> Solo sin leer</label>
+    </header>
+    ${
+      list.length === 0
+        ? `<div class="adm-empty">
+            <h2>${msgs.length ? 'No hay mensajes sin leer' : 'Todavía no llegó ningún mensaje'}</h2>
+            <p>Cuando alguien complete el formulario de contacto del portfolio, lo vas a ver acá.</p>
+          </div>`
+        : `<ul class="adm-msgs">
+            ${list
+              .map(
+                m => `
+              <li class="adm-msg ${m.leido ? '' : 'unread'}" data-id="${m.id}">
+                <div class="adm-msg-head">
+                  <h3>${esc(m.asunto)}</h3>
+                  <time>${formatDate(m.creado_en)}</time>
+                </div>
+                <p class="adm-msg-from">${esc(m.nombre)} &lt;${esc(m.email)}&gt;</p>
+                <p class="adm-msg-body">${esc(m.mensaje)}</p>
+                <div class="adm-actions">
+                  <a class="btn btn-small" href="mailto:${esc(m.email)}?subject=${encodeURIComponent('Re: ' + m.asunto)}">Responder</a>
+                  <button class="btn btn-small btn-ghost" data-act="read">${m.leido ? 'Marcar sin leer' : 'Marcar leído'}</button>
+                  <button class="btn btn-small btn-danger" data-act="delete">Eliminar</button>
+                </div>
+              </li>`
+              )
+              .join('')}
+          </ul>`
+    }
+  `;
+
+  main.querySelector('.adm-switch input')!.addEventListener('change', e => {
+    soloSinLeer = (e.target as HTMLInputElement).checked;
+    renderMensajes(main);
+  });
+
+  main.querySelectorAll<HTMLButtonElement>('[data-act]').forEach(btn =>
+    btn.addEventListener('click', async () => {
+      const li = btn.closest('li') as HTMLElement;
+      const id = Number(li.dataset.id);
+      const msg = msgs.find(m => m.id === id)!;
+      try {
+        if (btn.dataset.act === 'read') {
+          await api(`/admin/contactos/${id}`, 'PATCH', { leido: !msg.leido });
+        } else {
+          if (!(await confirmDialog(`¿Eliminar el mensaje de ${msg.nombre}?`, 'Eliminar mensaje'))) return;
+          await api(`/admin/contactos/${id}`, 'DELETE');
+          toast('Mensaje eliminado.');
+        }
+        renderMensajes(main);
+      } catch (err) {
+        fail(err);
+      }
+    })
+  );
+}
+
+// ============================================================
+//  PERFIL
+// ============================================================
+async function renderPerfil(main: HTMLElement) {
+  let content: Content;
+  try {
+    content = await api<Content>('/admin/contenido');
+  } catch (err) {
+    main.innerHTML = `<p class="adm-alert">No se pudo cargar el perfil.</p>`;
+    return fail(err);
+  }
+  const p = content.perfil;
+
+  main.innerHTML = `
+    <header class="adm-head">
       <div>
-        <label for="password">Contraseña</label>
-        <input type="password" id="password" name="password" required placeholder="••••••••" />
+        <h1>Perfil</h1>
+        <p class="adm-muted">Los textos generales de tu portfolio.</p>
       </div>
-      <div id="loginError"></div>
-      <button type="submit" id="loginBtn">Iniciar sesión</button>
+    </header>
+    <form class="adm-form">
+      ${PERFIL_GROUPS.map(
+        g => `
+        <fieldset class="adm-card">
+          <legend>${g.title}</legend>
+          ${g.hint ? `<p class="adm-muted">${esc(g.hint)}</p>` : ''}
+          <div class="adm-fields ${g.title === 'Números' || g.title === 'Contacto' ? 'cols-2' : ''}">
+            ${g.fields.map(f => fieldHTML(f, p[f.name] ?? '')).join('')}
+          </div>
+        </fieldset>`
+      ).join('')}
+      <div class="adm-savebar">
+        <button class="btn btn-primary" type="submit">Guardar perfil</button>
+      </div>
     </form>
   `;
 
-  container.appendChild(loginDiv);
-
-  const form = loginDiv.querySelector('#adminLoginForm') as HTMLFormElement;
-  const errorDiv = loginDiv.querySelector('#loginError') as HTMLDivElement;
-  const submitBtn = loginDiv.querySelector('#loginBtn') as HTMLButtonElement;
-
-  form.addEventListener('submit', async (e) => {
+  const form = main.querySelector('form') as HTMLFormElement;
+  form.addEventListener('submit', async e => {
     e.preventDefault();
-
-    const formData = new FormData(form);
-    const username = formData.get('username') as string;
-    const password = formData.get('password') as string;
-
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Verificando...';
-    errorDiv.innerHTML = '';
-
+    const btn = form.querySelector('button[type=submit]') as HTMLButtonElement;
+    btn.disabled = true;
+    btn.textContent = 'Guardando...';
     try {
-      const response = await fetch('/api/admin/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Credenciales inválidas');
-      }
-
-      const data: LoginResponse = await response.json();
-      
-      localStorage.setItem('adminToken', data.token);
-      localStorage.setItem('adminUsername', data.username);
-
-      currentToken = data.token;
-      currentUsername = data.username;
-
-      container.innerHTML = '';
-      renderDashboard(container);
-
-    } catch (error) {
-      errorDiv.innerHTML = `<div class="admin-error">❌ Usuario o contraseña incorrectos</div>`;
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Iniciar sesión';
+      await api('/admin/perfil', 'PUT', Object.fromEntries(new FormData(form).entries()));
+      toast('Perfil guardado.');
+    } catch (err) {
+      fail(err);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Guardar perfil';
     }
   });
 }
 
-// ========== DASHBOARD ==========
-function renderDashboard(container: HTMLElement): void {
-  const dashboard = document.createElement('div');
-  dashboard.className = 'admin-container';
+// ============================================================
+//  HABILIDADES / EXPERIENCIA / PROYECTOS
+// ============================================================
+async function renderResource(main: HTMLElement, key: ResourceKey) {
+  const cfg = RESOURCES[key];
+  let rows: any[];
+  try {
+    rows = (await api<Content>('/admin/contenido'))[key] as any[];
+  } catch (err) {
+    main.innerHTML = `<p class="adm-alert">No se pudo cargar la lista.</p>`;
+    return fail(err);
+  }
 
-  dashboard.innerHTML = `
-    <div class="admin-header">
-      <h1>🚀 Panel de Admin</h1>
+  main.innerHTML = `
+    <header class="adm-head">
       <div>
-        <span class="admin-user">👤 ${currentUsername}</span>
-        <button class="admin-logout" id="logoutBtn">Cerrar sesión</button>
+        <h1>${cfg.title}</h1>
+        <p class="adm-muted">${cfg.intro}</p>
       </div>
-    </div>
-
-    <div class="admin-dashboard">
-      <div class="admin-tabs">
-        <button class="admin-tab active" data-tab="messages">📬 Mensajes de Contacto</button>
-        <button class="admin-tab" data-tab="content">📝 Editar Contenido</button>
-      </div>
-
-      <div class="admin-tab-content" id="tabContent"></div>
-    </div>
+      <button class="btn btn-primary" data-act="add">Agregar ${cfg.singular}</button>
+    </header>
+    ${
+      rows.length === 0
+        ? `<div class="adm-empty"><h2>La lista está vacía</h2><p>Agregá la primera ${cfg.singular} con el botón de arriba.</p></div>`
+        : `<ol class="adm-list">
+            ${rows
+              .map((r, i) => {
+                const [title, sub] = cfg.summary(r);
+                return `
+              <li data-id="${r.id}">
+                <div class="adm-list-text">
+                  <strong>${esc(title)}</strong>
+                  <span>${esc(sub)}</span>
+                </div>
+                <div class="adm-actions">
+                  <button class="btn-icon" data-act="up" aria-label="Subir" ${i === 0 ? 'disabled' : ''}>↑</button>
+                  <button class="btn-icon" data-act="down" aria-label="Bajar" ${i === rows.length - 1 ? 'disabled' : ''}>↓</button>
+                  <button class="btn btn-small btn-ghost" data-act="edit">Editar</button>
+                  <button class="btn btn-small btn-danger" data-act="delete">Eliminar</button>
+                </div>
+              </li>`;
+              })
+              .join('')}
+          </ol>`
+    }
   `;
 
-  container.appendChild(dashboard);
+  const reload = () => renderResource(main, key);
 
-  const logoutBtn = dashboard.querySelector('#logoutBtn') as HTMLButtonElement;
-  logoutBtn.addEventListener('click', () => {
-    localStorage.removeItem('adminToken');
-    localStorage.removeItem('adminUsername');
-    currentToken = null;
-    currentUsername = null;
-    container.innerHTML = '';
-    renderLogin(container);
+  main.querySelector('[data-act=add]')!.addEventListener('click', async () => {
+    const values = await formDialog(`Agregar ${cfg.singular}`, cfg.fields, {}, `Agregar ${cfg.singular}`);
+    if (!values) return;
+    try {
+      await api(`/admin/${key}`, 'POST', values);
+      toast(key === 'proyectos' ? 'Proyecto agregado.' : `${capitalize(cfg.singular)} agregada.`);
+      reload();
+    } catch (err) {
+      fail(err);
+    }
   });
 
-  const tabs = dashboard.querySelectorAll('.admin-tab');
-  tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      tabs.forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      
-      const tabName = tab.getAttribute('data-tab');
-      if (tabName === 'messages') {
-        loadMessages(dashboard);
-      } else if (tabName === 'content') {
-        loadContentEditor(dashboard);
+  main.querySelectorAll<HTMLButtonElement>('.adm-list [data-act]').forEach(btn =>
+    btn.addEventListener('click', async () => {
+      const id = Number((btn.closest('li') as HTMLElement).dataset.id);
+      const index = rows.findIndex(r => r.id === id);
+      const row = rows[index];
+      try {
+        switch (btn.dataset.act) {
+          case 'edit': {
+            const values = await formDialog(`Editar ${cfg.singular}`, cfg.fields, row, 'Guardar cambios');
+            if (!values) return;
+            await api(`/admin/${key}/${id}`, 'PUT', values);
+            toast('Cambios guardados.');
+            break;
+          }
+          case 'delete': {
+            const [title] = cfg.summary(row);
+            if (!(await confirmDialog(`¿Eliminar "${title}"? No se puede deshacer.`, `Eliminar ${cfg.singular}`))) return;
+            await api(`/admin/${key}/${id}`, 'DELETE');
+            toast('Eliminado.');
+            break;
+          }
+          case 'up':
+          case 'down': {
+            const to = btn.dataset.act === 'up' ? index - 1 : index + 1;
+            const ids = rows.map(r => r.id);
+            [ids[index], ids[to]] = [ids[to], ids[index]];
+            await api(`/admin/${key}/orden`, 'PUT', { ids });
+            break;
+          }
+        }
+        reload();
+      } catch (err) {
+        fail(err);
       }
-    });
-  });
-
-  loadMessages(dashboard);
+    })
+  );
 }
 
-// ========== CARGAR MENSAJES ==========
-async function loadMessages(dashboard: HTMLElement): Promise<void> {
-  const tabContent = dashboard.querySelector('#tabContent') as HTMLDivElement;
-  tabContent.innerHTML = '<p style="text-align:center;padding:40px;">Cargando mensajes...</p>';
-
-  try {
-    const response = await fetch('/api/admin/contactos', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${currentToken}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Error al cargar mensajes');
-    }
-
-    const messages: ContactMessage[] = await response.json();
-
-    if (messages.length === 0) {
-      tabContent.innerHTML = `
-        <div class="admin-empty">
-          <div class="admin-empty-icon">📭</div>
-          <h3>No hay mensajes todavía</h3>
-          <p>Cuando alguien complete el formulario de contacto, aparecerá acá.</p>
-        </div>
-      `;
-      return;
-    }
-
-    const messagesHTML = messages.map(msg => `
-      <div class="admin-message">
-        <div class="admin-message-header">
-          <h3>${escapeHtml(msg.asunto)}</h3>
-          <span class="admin-message-date">${formatDate(msg.creado_en)}</span>
-        </div>
-        <div class="admin-message-info">
-          📧 ${escapeHtml(msg.email)} &nbsp;|&nbsp; 👤 ${escapeHtml(msg.nombre)}
-        </div>
-        <div class="admin-message-body">${escapeHtml(msg.mensaje)}</div>
+// ============================================================
+//  CUENTA
+// ============================================================
+function renderCuenta(main: HTMLElement) {
+  main.innerHTML = `
+    <header class="adm-head">
+      <div>
+        <h1>Cuenta</h1>
+        <p class="adm-muted">Entraste como <strong>${esc(username)}</strong>.</p>
       </div>
-    `).join('');
-
-    tabContent.innerHTML = `<div class="admin-messages">${messagesHTML}</div>`;
-
-  } catch (error) {
-    tabContent.innerHTML = `<div class="admin-error">❌ Error al cargar los mensajes. Cerrá sesión y volvé a entrar.</div>`;
-  }
-}
-
-// ========== EDITOR DE CONTENIDO ==========
-function loadContentEditor(dashboard: HTMLElement): void {
-  const tabContent = dashboard.querySelector('#tabContent') as HTMLDivElement;
-  
-  tabContent.innerHTML = `
-    <div class="admin-editor">
-      <div class="admin-editor-section">
-        <h2>📝 Sobre Mí</h2>
-        <p class="admin-editor-hint">Editá el texto que aparece en la sección "Sobre Mí" del portfolio.</p>
-        <div class="admin-form-group">
-          <label>Párrafo 1</label>
-          <textarea id="about-p1" rows="3" placeholder="Soy estudiante de..."></textarea>
-        </div>
-        <div class="admin-form-group">
-          <label>Párrafo 2</label>
-          <textarea id="about-p2" rows="3" placeholder="Actualmente me especializo en..."></textarea>
-        </div>
-        <div class="admin-form-group">
-          <label>Párrafo 3</label>
-          <textarea id="about-p3" rows="3" placeholder="Mi objetivo es..."></textarea>
-        </div>
-        <button class="admin-save-btn" id="saveAbout">Guardar Sobre Mí</button>
-      </div>
-
-      <div class="admin-editor-section">
-        <h2>📊 Estadísticas</h2>
-        <p class="admin-editor-hint">Los 3 números que aparecen en "Sobre Mí".</p>
-        <div class="admin-form-row">
-          <div class="admin-form-group">
-            <label>Años de experiencia</label>
-            <input type="text" id="stat-years" placeholder="2+" />
-          </div>
-          <div class="admin-form-group">
-            <label>Proyectos completados</label>
-            <input type="text" id="stat-projects" placeholder="10+" />
-          </div>
-          <div class="admin-form-group">
-            <label>Tecnologías dominadas</label>
-            <input type="text" id="stat-techs" placeholder="5" />
-          </div>
-        </div>
-        <button class="admin-save-btn" id="saveStats">Guardar Estadísticas</button>
-      </div>
-
-      <div class="admin-editor-section">
-        <h2>🛠️ Habilidades</h2>
-        <p class="admin-editor-hint">Una habilidad por línea, con formato: <code>Nombre | Nivel(1-5) | Categoría</code></p>
-        <p class="admin-editor-hint">Categorías válidas: <code>frontend</code>, <code>backend</code>, <code>database</code>, <code>tools</code>, <code>soft</code></p>
-        <div class="admin-form-group">
-          <textarea id="skills-list" rows="10" placeholder="JavaScript | 5 | frontend&#10;TypeScript | 4 | frontend&#10;Node.js | 4 | backend"></textarea>
-        </div>
-        <button class="admin-save-btn" id="saveSkills">Guardar Habilidades</button>
-      </div>
-
-      <div class="admin-editor-section">
-        <h2>💼 Experiencia</h2>
-        <p class="admin-editor-hint">Una experiencia por línea, con formato: <code>Título | Empresa | Fecha | Descripción</code></p>
-        <div class="admin-form-group">
-          <textarea id="experience-list" rows="8" placeholder="Desarrollador Freelance | Independiente | 2024 - Presente | Desarrollo de apps web"></textarea>
-        </div>
-        <button class="admin-save-btn" id="saveExperience">Guardar Experiencia</button>
-      </div>
-
-      <div class="admin-editor-section">
-        <h2>🚀 Proyectos</h2>
-        <p class="admin-editor-hint">Un proyecto por línea, con formato: <code>Nombre | Fecha | Descripción | Tecnologías (separadas por coma)</code></p>
-        <div class="admin-form-group">
-          <textarea id="projects-list" rows="8" placeholder="E-commerce | 2024 | Tienda online completa | React,Node.js,PostgreSQL"></textarea>
-        </div>
-        <button class="admin-save-btn" id="saveProjects">Guardar Proyectos</button>
-      </div>
-    </div>
+    </header>
+    <form class="adm-card adm-form narrow" novalidate>
+      <h2>Cambiar contraseña</h2>
+      <label class="adm-field"><span>Contraseña actual</span>
+        <input name="actual" type="password" autocomplete="current-password" required /></label>
+      <label class="adm-field"><span>Contraseña nueva</span>
+        <input name="nueva" type="password" autocomplete="new-password" minlength="8" required />
+        <small>Al menos 8 caracteres.</small></label>
+      <label class="adm-field"><span>Repetí la contraseña nueva</span>
+        <input name="repetir" type="password" autocomplete="new-password" required /></label>
+      <p class="adm-error" aria-live="polite"></p>
+      <button class="btn btn-primary" type="submit">Cambiar contraseña</button>
+    </form>
   `;
-
-  // Cargar los datos actuales
-  loadCurrentContent(dashboard);
-
-  // Asignar eventos a los botones de guardar
-  const saveAbout = dashboard.querySelector('#saveAbout') as HTMLButtonElement;
-  const saveStats = dashboard.querySelector('#saveStats') as HTMLButtonElement;
-  const saveSkills = dashboard.querySelector('#saveSkills') as HTMLButtonElement;
-  const saveExperience = dashboard.querySelector('#saveExperience') as HTMLButtonElement;
-  const saveProjects = dashboard.querySelector('#saveProjects') as HTMLButtonElement;
-
-  saveAbout.addEventListener('click', () => saveAboutContent(dashboard));
-  saveStats.addEventListener('click', () => saveStatsContent(dashboard));
-  saveSkills.addEventListener('click', () => saveSkillsContent(dashboard));
-  saveExperience.addEventListener('click', () => saveExperienceContent(dashboard));
-  saveProjects.addEventListener('click', () => saveProjectsContent(dashboard));
-}
-
-// ========== CARGAR CONTENIDO ACTUAL ==========
-async function loadCurrentContent(dashboard: HTMLElement): Promise<void> {
-  try {
-    const response = await fetch('/api/admin/contenido/listar', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${currentToken}`,
-      },
-    });
-
-    if (!response.ok) return;
-
-    const rows: Array<{ seccion: string; clave: string; valor: string }> = await response.json();
-
-    // Crear un mapa para buscar fácil
-    const contentMap: Record<string, string> = {};
-    rows.forEach(row => {
-      contentMap[`${row.seccion}.${row.clave}`] = row.valor;
-    });
-
-    // Rellenar los campos
-    const aboutP1 = dashboard.querySelector('#about-p1') as HTMLTextAreaElement;
-    const aboutP2 = dashboard.querySelector('#about-p2') as HTMLTextAreaElement;
-    const aboutP3 = dashboard.querySelector('#about-p3') as HTMLTextAreaElement;
-    const statYears = dashboard.querySelector('#stat-years') as HTMLInputElement;
-    const statProjects = dashboard.querySelector('#stat-projects') as HTMLInputElement;
-    const statTechs = dashboard.querySelector('#stat-techs') as HTMLInputElement;
-    const skillsList = dashboard.querySelector('#skills-list') as HTMLTextAreaElement;
-    const experienceList = dashboard.querySelector('#experience-list') as HTMLTextAreaElement;
-    const projectsList = dashboard.querySelector('#projects-list') as HTMLTextAreaElement;
-
-    if (aboutP1 && contentMap['about.p1']) aboutP1.value = contentMap['about.p1'];
-    if (aboutP2 && contentMap['about.p2']) aboutP2.value = contentMap['about.p2'];
-    if (aboutP3 && contentMap['about.p3']) aboutP3.value = contentMap['about.p3'];
-    if (statYears && contentMap['stats.years']) statYears.value = contentMap['stats.years'];
-    if (statProjects && contentMap['stats.projects']) statProjects.value = contentMap['stats.projects'];
-    if (statTechs && contentMap['stats.techs']) statTechs.value = contentMap['stats.techs'];
-    if (skillsList && contentMap['skills.list']) skillsList.value = contentMap['skills.list'];
-    if (experienceList && contentMap['experience.list']) experienceList.value = contentMap['experience.list'];
-    if (projectsList && contentMap['projects.list']) projectsList.value = contentMap['projects.list'];
-
-  } catch (error) {
-    console.error('Error al cargar contenido:', error);
-  }
-}
-
-// ========== GUARDAR: SOBRE MÍ ==========
-async function saveAboutContent(dashboard: HTMLElement): Promise<void> {
-  const p1 = (dashboard.querySelector('#about-p1') as HTMLTextAreaElement).value;
-  const p2 = (dashboard.querySelector('#about-p2') as HTMLTextAreaElement).value;
-  const p3 = (dashboard.querySelector('#about-p3') as HTMLTextAreaElement).value;
-
-  await saveContent('about', 'p1', p1);
-  await saveContent('about', 'p2', p2);
-  await saveContent('about', 'p3', p3);
-
-  showAdminNotification('✅ Sobre Mí guardado');
-}
-
-// ========== GUARDAR: ESTADÍSTICAS ==========
-async function saveStatsContent(dashboard: HTMLElement): Promise<void> {
-  const years = (dashboard.querySelector('#stat-years') as HTMLInputElement).value;
-  const projects = (dashboard.querySelector('#stat-projects') as HTMLInputElement).value;
-  const techs = (dashboard.querySelector('#stat-techs') as HTMLInputElement).value;
-
-  await saveContent('stats', 'years', years);
-  await saveContent('stats', 'projects', projects);
-  await saveContent('stats', 'techs', techs);
-
-  showAdminNotification('✅ Estadísticas guardadas');
-}
-
-// ========== GUARDAR: HABILIDADES ==========
-async function saveSkillsContent(dashboard: HTMLElement): Promise<void> {
-  const value = (dashboard.querySelector('#skills-list') as HTMLTextAreaElement).value;
-  await saveContent('skills', 'list', value);
-  showAdminNotification('✅ Habilidades guardadas');
-}
-
-// ========== GUARDAR: EXPERIENCIA ==========
-async function saveExperienceContent(dashboard: HTMLElement): Promise<void> {
-  const value = (dashboard.querySelector('#experience-list') as HTMLTextAreaElement).value;
-  await saveContent('experience', 'list', value);
-  showAdminNotification('✅ Experiencia guardada');
-}
-
-// ========== GUARDAR: PROYECTOS ==========
-async function saveProjectsContent(dashboard: HTMLElement): Promise<void> {
-  const value = (dashboard.querySelector('#projects-list') as HTMLTextAreaElement).value;
-  await saveContent('projects', 'list', value);
-  showAdminNotification('✅ Proyectos guardados');
-}
-
-// ========== FUNCIÓN GENÉRICA: GUARDAR CONTENIDO ==========
-async function saveContent(seccion: string, clave: string, valor: string): Promise<boolean> {
-  try {
-    const response = await fetch('/api/admin/contenido', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${currentToken}`,
-      },
-      body: JSON.stringify({ seccion, clave, valor }),
-    });
-
-    return response.ok;
-  } catch (error) {
-    console.error('Error al guardar:', error);
-    return false;
-  }
-}
-
-// ========== NOTIFICACIÓN EN EL PANEL ==========
-function showAdminNotification(message: string): void {
-  const notification = document.createElement('div');
-  notification.textContent = message;
-  Object.assign(notification.style, {
-    position: 'fixed',
-    bottom: '20px',
-    right: '20px',
-    padding: '14px 24px',
-    borderRadius: '10px',
-    background: '#10b981',
-    color: 'white',
-    fontWeight: '600',
-    boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
-    zIndex: '9999',
-    opacity: '0',
-    transition: 'opacity 0.3s ease',
+  const form = main.querySelector('form') as HTMLFormElement;
+  const error = form.querySelector('.adm-error') as HTMLElement;
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    const nueva = String(fd.get('nueva'));
+    error.textContent = '';
+    if (nueva.length < 8) return void (error.textContent = 'La contraseña nueva necesita al menos 8 caracteres.');
+    if (nueva !== fd.get('repetir')) return void (error.textContent = 'Las contraseñas nuevas no coinciden.');
+    try {
+      await api('/admin/password', 'PUT', { actual: fd.get('actual'), nueva });
+      form.reset();
+      toast('Contraseña cambiada.');
+    } catch (err: any) {
+      if (!(err instanceof SessionError)) error.textContent = err.message;
+    }
   });
-
-  document.body.appendChild(notification);
-  setTimeout(() => notification.style.opacity = '1', 10);
-  setTimeout(() => {
-    notification.style.opacity = '0';
-    setTimeout(() => document.body.removeChild(notification), 300);
-  }, 2500);
 }
 
-// ========== UTILIDADES ==========
-function escapeHtml(text: string): string {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
+// ============================================================
+//  DIÁLOGOS
+// ============================================================
+function fieldHTML(f: FieldDef, value: unknown): string {
+  const v = esc(value ?? '');
+  const id = `f-${f.name}-${Math.random().toString(36).slice(2, 7)}`;
+  let control: string;
+  if (f.type === 'textarea') {
+    control = `<textarea id="${id}" name="${f.name}" rows="${f.rows || 3}" ${f.required ? 'required' : ''}>${v}</textarea>`;
+  } else if (f.type === 'select') {
+    control = `<select id="${id}" name="${f.name}">${(f.options || [])
+      .map(([val, label]) => `<option value="${esc(val)}" ${String(value) === val ? 'selected' : ''}>${esc(label)}</option>`)
+      .join('')}</select>`;
+  } else {
+    control = `<input id="${id}" name="${f.name}" type="${f.type === 'url' ? 'url' : 'text'}" value="${v}" ${
+      f.type === 'url' ? 'placeholder="https://"' : ''
+    } ${f.required ? 'required' : ''} />`;
+  }
+  return `
+    <div class="adm-field">
+      <label for="${id}">${esc(f.label)}</label>
+      ${control}
+      ${f.hint ? `<small>${esc(f.hint)}</small>` : ''}
+    </div>`;
 }
 
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleString('es-AR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+function formDialog(
+  title: string,
+  fields: FieldDef[],
+  values: Record<string, any>,
+  submitLabel: string
+): Promise<Record<string, string> | null> {
+  const dialog = root.querySelector('.adm-dialog') as HTMLDialogElement;
+  dialog.innerHTML = `
+    <form method="dialog" class="adm-dialog-form" novalidate>
+      <h2>${esc(title)}</h2>
+      <div class="adm-fields">${fields.map(f => fieldHTML(f, values[f.name] ?? (f.type === 'select' ? f.options?.[0]?.[0] : ''))).join('')}</div>
+      <p class="adm-error" aria-live="polite"></p>
+      <div class="adm-dialog-actions">
+        <button type="button" class="btn btn-ghost" value="cancel">Cancelar</button>
+        <button type="submit" class="btn btn-primary">${esc(submitLabel)}</button>
+      </div>
+    </form>`;
+
+  return new Promise(resolve => {
+    const form = dialog.querySelector('form') as HTMLFormElement;
+    const error = dialog.querySelector('.adm-error') as HTMLElement;
+    let result: Record<string, string> | null = null;
+
+    dialog.querySelector('[value=cancel]')!.addEventListener('click', () => dialog.close());
+    form.addEventListener('submit', e => {
+      const data = Object.fromEntries(new FormData(form).entries()) as Record<string, string>;
+      const missing = fields.find(f => f.required && !String(data[f.name] || '').trim());
+      if (missing) {
+        e.preventDefault();
+        error.textContent = `Completá "${missing.label}".`;
+        return;
+      }
+      const badUrl = fields.find(f => f.type === 'url' && data[f.name] && !/^https?:\/\//.test(data[f.name].trim()));
+      if (badUrl) {
+        e.preventDefault();
+        error.textContent = `"${badUrl.label}" tiene que empezar con https://`;
+        return;
+      }
+      // Limpiar líneas vacías de los textarea
+      fields.filter(f => f.type === 'textarea').forEach(f => (data[f.name] = lines(data[f.name]).join('\n')));
+      result = data;
+    });
+    dialog.addEventListener('close', () => resolve(result), { once: true });
+    dialog.showModal();
+    (dialog.querySelector('input, textarea, select') as HTMLElement)?.focus();
   });
+}
+
+function confirmDialog(message: string, confirmLabel: string): Promise<boolean> {
+  const dialog = root.querySelector('.adm-dialog') as HTMLDialogElement;
+  dialog.innerHTML = `
+    <form method="dialog" class="adm-dialog-form small">
+      <p>${esc(message)}</p>
+      <div class="adm-dialog-actions">
+        <button value="no" class="btn btn-ghost">Cancelar</button>
+        <button value="yes" class="btn btn-danger">${esc(confirmLabel)}</button>
+      </div>
+    </form>`;
+  return new Promise(resolve => {
+    dialog.addEventListener('close', () => resolve(dialog.returnValue === 'yes'), { once: true });
+    dialog.returnValue = '';
+    dialog.showModal();
+  });
+}
+
+// ---------- Utilidades ----------
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+function formatDate(value: string): string {
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }

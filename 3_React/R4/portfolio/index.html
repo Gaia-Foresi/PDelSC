@@ -1,13 +1,28 @@
 <!doctype html>
-<html lang="es" data-theme="light">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mi Portfolio - Estudiante Técnico</title>
+    <title>Gaia Foresi | Portfolio</title>
+    <meta name="description" content="Portfolio de Gaia Foresi, estudiante de la Tecnicatura en Informática. Proyectos web, juegos y aplicaciones." />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23D62839'/%3E%3Ctext x='16' y='23' font-family='Arial' font-weight='700' font-size='18' text-anchor='middle' fill='white'%3EG%3C/text%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Caveat:wght@600&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      // Aplica el tema antes de pintar para que no "parpadee"
+      try {
+        var t = localStorage.getItem('theme');
+        if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {}
+    </script>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app"><div class="boot" aria-label="Cargando"></div></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

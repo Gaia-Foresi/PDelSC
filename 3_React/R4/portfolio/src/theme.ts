@@ -1,24 +1,33 @@
+type Theme = 'light' | 'dark';
+
 class ThemeManager {
-  private currentTheme: 'light' | 'dark';
+  private currentTheme: Theme;
 
   constructor() {
-    const storedTheme = localStorage.getItem('theme');
-    this.currentTheme = storedTheme === 'dark' ? 'dark' : 'light';
-    this.applyTheme(this.currentTheme);
+    let stored: string | null = null;
+    try {
+      stored = localStorage.getItem('theme');
+    } catch {}
+    const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+    this.currentTheme = stored === 'dark' || stored === 'light' ? stored : prefersDark ? 'dark' : 'light';
+    this.applyTheme(this.currentTheme, false);
   }
 
-  private applyTheme(theme: 'light' | 'dark'): void {
+  private applyTheme(theme: Theme, save = true): void {
     document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('theme', theme);
+    if (save) {
+      try {
+        localStorage.setItem('theme', theme);
+      } catch {}
+    }
     this.currentTheme = theme;
   }
 
   public toggleTheme(): void {
-    const newTheme = this.currentTheme === 'light' ? 'dark' : 'light';
-    this.applyTheme(newTheme);
+    this.applyTheme(this.currentTheme === 'light' ? 'dark' : 'light');
   }
 
-  public getTheme(): 'light' | 'dark' {
+  public getTheme(): Theme {
     return this.currentTheme;
   }
 }

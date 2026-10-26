@@ -1,61 +1,21 @@
-//Crea un elemento <footer> y le asigna la clase footer para aplicar sus estilos
-export function Footer(): HTMLElement {
-  const footer = document.createElement('footer');
-  footer.className = 'footer';
+import { Content, esc, safeUrl } from '../lib/content';
 
-  const currentYear = new Date().getFullYear();
+export function Footer(content: Content): HTMLElement {
+  const p = content.perfil;
+  const footer = document.createElement('footer');
+  footer.className = 'site-footer';
+  const github = safeUrl(p.github);
+  const linkedin = safeUrl(p.linkedin);
 
   footer.innerHTML = `
-    <div class="footer-content">
-      <div class="footer-top">
-        <div class="footer-brand">
-          <h3>Mi Portfolio</h3>
-          <p>Estudiante de secundaria técnica apasionado por el desarrollo web.</p>
-        </div>
-        <div class="footer-links">
-          <h4>Navegación</h4>
-          <a href="#about">Sobre mí</a>
-          <a href="#skills">Habilidades</a>
-          <a href="#experience">Experiencia</a>
-          <a href="#projects">Proyectos</a>
-          <a href="#contact">Contacto</a>
-        </div>
-        <div class="footer-social">
-          <h4>Redes</h4>
-          <a href="https://github.com/Gaia-Foresi" target="_blank" rel="noopener noreferrer">🐙 GitHub</a>
-        </div>
-      </div>
-      <div class="footer-bottom">
-        <p>© ${currentYear} - Realizado por Gaia Foresi.</p>
-        <button id="backToTop" class="back-to-top" aria-label="Volver arriba">
-          ↑ Volver arriba
-        </button>
+    <div class="container footer-inner">
+      <p>© ${new Date().getFullYear()} ${esc(p.nombre)}. Hecho a mano con TypeScript y CSS.</p>
+      <div class="footer-links">
+        ${github ? `<a href="${esc(github)}" target="_blank" rel="noopener">GitHub</a>` : ''}
+        ${linkedin ? `<a href="${esc(linkedin)}" target="_blank" rel="noopener">LinkedIn</a>` : ''}
+        <a href="#top">Volver arriba</a>
       </div>
     </div>
   `;
-
-  //Crea un botón que permite regresar rápidamente al inicio de la página
-  const backToTopBtn = footer.querySelector('#backToTop');
-  if (backToTopBtn) {
-    backToTopBtn.addEventListener('click', () => {
-      window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-      });
-    });
-  }
-
-  //Detecta cada vez que el usuario se desplaza por la página
-  window.addEventListener('scroll', () => {
-    const btn = document.getElementById('backToTop');
-    if (!btn) return;
-    
-    if (window.scrollY > 300) {
-      btn.classList.add('visible');
-    } else {
-      btn.classList.remove('visible');
-    }
-  });
-
   return footer;
 }

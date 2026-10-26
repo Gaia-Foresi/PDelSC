@@ -5,10 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "server": "tsx watch server/index.ts",
+    "dev:full": "concurrently -n web,api -c magenta,cyan \"npm run dev\" \"npm run server\"",
+    "build": "tsc && tsc -p tsconfig.server.json && vite build",
     "preview": "vite preview",
-    "server": "tsx server/index.ts",
-    "dev:full": "concurrently \"npm run dev\" \"npm run server\""
+    "db:setup": "tsx server/scripts/setup-db.ts",
+    "admin:crear": "tsx server/scripts/crear-admin.ts",
+    "start": "tsx server/index.ts"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -18,15 +21,11 @@
     "@types/node": "^20.19.43",
     "@vercel/node": "^20.0.0",
     "concurrently": "^8.2.2",
-    "nodemon": "^3.1.14",
-    "ts-node": "^10.9.2",
     "tsx": "^4.23.15",
     "typescript": "^5.0.2",
     "vite": "^4.4.5"
   },
   "dependencies": {
-    "@react-spring/web": "^9.7.3",
-    "@tidbcloud/serverless": "^0.3.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.6",
     "dotenv": "^16.6.1",
