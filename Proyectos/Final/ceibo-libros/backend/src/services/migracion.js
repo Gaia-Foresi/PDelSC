@@ -56,6 +56,29 @@ const existeIndice = async (tabla, indice) => {
     if (!(await existeIndice(tabla, indice))) await pool.query(`ALTER TABLE ${tabla} ADD INDEX ${indice} (visita_en)`);
   }
 
+  // Conversaciones que el personal puede ocultar
+  await agregar('hilo_participantes', 'oculto', 'TINYINT(1) NOT NULL DEFAULT 0');
+
+  // Libros en más de una categoría
+  await pool.query(`CREATE TABLE IF NOT EXISTS libro_categorias (
+    libro_id INT UNSIGNED NOT NULL, categoria_id INT UNSIGNED NOT NULL,
+    PRIMARY KEY (libro_id, categoria_id),
+    CONSTRAINT fk_lc_libro FOREIGN KEY (libro_id) REFERENCES libros(id) ON DELETE CASCADE,
+    CONSTRAINT fk_lc_categoria FOREIGN KEY (categoria_id) REFERENCES categorias(id)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+
+  // Historial de ediciones de préstamos (extensiones de plazo)
+  await pool.query(`CREATE TABLE IF NOT EXISTS prestamo_ediciones (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    prestamo_id INT UNSIGNED NOT NULL, usuario_id INT UNSIGNED NOT NULL,
+    accion VARCHAR(30) NOT NULL, detalle VARCHAR(255) NOT NULL,
+    vencimiento_anterior DATE NULL, vencimiento_nuevo DATE NULL,
+    creado_en DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_ediciones_prestamo (prestamo_id, id),
+    CONSTRAINT fk_ediciones_prestamo FOREIGN KEY (prestamo_id) REFERENCES prestamos(id) ON DELETE CASCADE,
+    CONSTRAINT fk_ediciones_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+
   return hechos;
 }
 

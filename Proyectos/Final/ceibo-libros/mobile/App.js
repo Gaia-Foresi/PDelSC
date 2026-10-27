@@ -20,6 +20,25 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
   document.head.appendChild(estilo);
 }
 
+// Celular (web): como el navegador no deja "tirar para recargar" (la app ocupa toda la pantalla y scrollea por dentro),
+// se hace a mano: tirar hacia abajo desde arriba del todo recarga la página.
+if (Platform.OS === 'web' && typeof document !== 'undefined') {
+  let inicio = null;
+  const arriba = (el) => {
+    for (let n = el; n && n !== document.body; n = n.parentElement) {
+      if (n.scrollHeight > n.clientHeight + 1 && n.scrollTop > 0) return false;
+    }
+    return true;
+  };
+  document.addEventListener('touchstart', (e) => {
+    inicio = e.touches.length === 1 && arriba(e.target) ? e.touches[0].clientY : null;
+  }, { passive: true });
+  document.addEventListener('touchend', (e) => {
+    if (inicio !== null && e.changedTouches[0].clientY - inicio > 140) window.location.reload();
+    inicio = null;
+  }, { passive: true });
+}
+
 function Contenido() {
   const { isDark } = useTheme();
   return (
@@ -36,15 +55,15 @@ export default function App() {
       <SafeAreaProvider>
         <ThemeProvider>
           <AuthProvider>
-            <BadgesProvider>
-              <ToastProvider>
+            <ToastProvider>
+              <BadgesProvider>
                 <ConfirmProvider>
                   <DatosLectorProvider>
                     <Contenido />
                   </DatosLectorProvider>
                 </ConfirmProvider>
-              </ToastProvider>
-            </BadgesProvider>
+              </BadgesProvider>
+            </ToastProvider>
           </AuthProvider>
         </ThemeProvider>
       </SafeAreaProvider>

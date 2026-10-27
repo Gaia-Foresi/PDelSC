@@ -1,4 +1,4 @@
-// Formulario "datos del lector" que se pide al reservar o pedir un préstamo (nombre, apellido, curso y DNI)
+// Formulario "datos del lector" que se pide al reservar o pedir un préstamo (nombre, apellido y DNI)
 // y diálogo que muestra el código de retiro. Uso:
 //   const { pedirDatos, mostrarCodigo } = useDatosLector();
 //   const datos = await pedirDatos({ titulo, mensaje, confirmText, visitaTipo: 'sala' | 'retiro' });   // null si cancela
@@ -20,18 +20,15 @@ const Ctx = createContext(null);
 export const useDatosLector = () => useContext(Ctx);
 
 export const limpiarDni = (v) => String(v || '').replace(/\D/g, '');
-// Nombre y apellido: solo letras (con acentos), espacios, apóstrofe y guion. Curso: letras, números y ° º ª / . - (ej.: 5° B, 3ro 2da).
+// Nombre y apellido: solo letras (con acentos), espacios, apóstrofe y guion. DNI: solo números.
 export const limpiarNombre = (v) => String(v || '').replace(/[^\p{L}\s'’-]/gu, '').replace(/\s{2,}/g, ' ');
-export const limpiarCurso = (v) => String(v || '').replace(/[^\p{L}\d\s°ºª/.-]/gu, '').replace(/\s{2,}/g, ' ');
 const NOMBRE_OK = /^\p{L}[\p{L}\s'’-]*$/u;
-const CURSO_OK = /^[\p{L}\d\s°ºª/.-]+$/u;
 
 /** Campos de datos del lector reutilizables (también los usa el préstamo directo del personal). */
 export function validarDatosLector(f) {
   return {
     nombre: !f.nombre.trim() ? 'Escribí el nombre' : (f.nombre.trim().length < 2 || !NOMBRE_OK.test(f.nombre.trim())) ? 'El nombre solo puede tener letras' : '',
     apellido: !f.apellido.trim() ? 'Escribí el apellido' : (f.apellido.trim().length < 2 || !NOMBRE_OK.test(f.apellido.trim())) ? 'El apellido solo puede tener letras' : '',
-    curso: !f.curso.trim() ? 'Escribí el curso (ej.: 5° B)' : (!CURSO_OK.test(f.curso.trim()) || !/[\p{L}\d]/u.test(f.curso)) ? 'El curso solo puede tener letras y números (ej.: 5° B)' : '',
     dni: /^\d{6,9}$/.test(limpiarDni(f.dni)) ? '' : 'El DNI debe tener entre 6 y 9 números',
   };
 }
@@ -41,13 +38,12 @@ export function CamposDatosLector({ form, setCampo, errores }) {
     <View>
       <Input label="Nombre" icon="account-outline" value={form.nombre} onChangeText={(t) => setCampo('nombre')(limpiarNombre(t))} error={errores.nombre} autoCapitalize="words" maxLength={60} />
       <Input label="Apellido" icon="account-outline" value={form.apellido} onChangeText={(t) => setCampo('apellido')(limpiarNombre(t))} error={errores.apellido} autoCapitalize="words" maxLength={60} />
-      <Input label="Curso" icon="school-outline" value={form.curso} onChangeText={(t) => setCampo('curso')(limpiarCurso(t))} error={errores.curso} maxLength={40} placeholder="Ej.: 5° B" />
       <Input label="DNI" icon="card-account-details-outline" value={form.dni} onChangeText={(t) => setCampo('dni')(limpiarDni(t))} error={errores.dni} keyboardType="number-pad" maxLength={9} placeholder="Solo números" />
     </View>
   );
 }
 
-export const formDesde = (u) => ({ nombre: u?.nombre || '', apellido: u?.apellido || '', curso: u?.curso || '', dni: u?.dni || '' });
+export const formDesde = (u) => ({ nombre: u?.nombre || '', apellido: u?.apellido || '', dni: u?.dni || '' });
 
 export function DatosLectorProvider({ children }) {
   const { colors } = useTheme();
@@ -93,7 +89,7 @@ export function DatosLectorProvider({ children }) {
     if (opts?.visitaTipo && !visita) setErrorVisita('Elegí el día y la hora en que vas a ir.');
     if (Object.values(e).some(Boolean) || (opts?.visitaTipo && !visita)) return;
     cerrar({
-      nombre: form.nombre.trim(), apellido: form.apellido.trim(), curso: form.curso.trim(), dni: limpiarDni(form.dni),
+      nombre: form.nombre.trim(), apellido: form.apellido.trim(), dni: limpiarDni(form.dni),
       ...(opts?.visitaTipo ? { visita } : {}),
     });
   };
@@ -126,9 +122,10 @@ export function DatosLectorProvider({ children }) {
             {codigo?.visita ? (
               <View style={[styles.visita, { backgroundColor: colors.card, borderColor: colors.border }]}>
                 <MaterialCommunityIcons name="calendar-clock" size={20} color={colors.primary} />
-                <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15, marginLeft: 8 }}>Te esperamos el {visitaTexto(codigo.visita)}</Text>
+                <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15, marginLeft: 8, flex: 1 }}>Te esperamos el {visitaTexto(codigo.visita)}</Text>
               </View>
             ) : null}
+            {codigo?.vigencia ? <Text style={[styles.mensaje, { color: colors.textMuted }]}>{codigo.vigencia}</Text> : null}
             <Text style={[styles.mensaje, { color: colors.textMuted, fontSize: 13, marginTop: spacing.md }]}>
               También lo ves siempre en “Libros reservados” y en el detalle del préstamo.
             </Text>

@@ -22,9 +22,11 @@ DROP TABLE IF EXISTS distribuidoras;
 DROP TABLE IF EXISTS mensajes;
 DROP TABLE IF EXISTS hilo_participantes;
 DROP TABLE IF EXISTS hilos;
+DROP TABLE IF EXISTS prestamo_ediciones;
 DROP TABLE IF EXISTS prestamo_items;
 DROP TABLE IF EXISTS prestamos;
 DROP TABLE IF EXISTS reservas;
+DROP TABLE IF EXISTS libro_categorias;
 DROP TABLE IF EXISTS libros;
 DROP TABLE IF EXISTS autores;
 DROP TABLE IF EXISTS categorias;
@@ -139,6 +141,15 @@ CREATE TABLE libros (
   FULLTEXT KEY ft_libros_titulo (titulo)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Categorías ADICIONALES de un libro (la principal sigue en libros.categoria_id)
+CREATE TABLE libro_categorias (
+  libro_id      INT UNSIGNED NOT NULL,
+  categoria_id  INT UNSIGNED NOT NULL,
+  PRIMARY KEY (libro_id, categoria_id),
+  CONSTRAINT fk_lc_libro     FOREIGN KEY (libro_id)     REFERENCES libros(id) ON DELETE CASCADE,
+  CONSTRAINT fk_lc_categoria FOREIGN KEY (categoria_id) REFERENCES categorias(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- ---------------------------------------------------------------------
 -- Reservas y préstamos
 -- ---------------------------------------------------------------------
@@ -189,6 +200,21 @@ CREATE TABLE prestamo_items (
   INDEX idx_items_libro (libro_id, devuelto_en)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Historial de cambios de un préstamo (quién lo extendió y cuándo)
+CREATE TABLE prestamo_ediciones (
+  id           INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  prestamo_id  INT UNSIGNED NOT NULL,
+  usuario_id   INT UNSIGNED NOT NULL,             -- quién hizo el cambio
+  accion       VARCHAR(30)  NOT NULL,             -- 'extension'
+  detalle      VARCHAR(255) NOT NULL,
+  vencimiento_anterior DATE NULL,
+  vencimiento_nuevo    DATE NULL,
+  creado_en    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_ediciones_prestamo (prestamo_id, id),
+  CONSTRAINT fk_ediciones_prestamo FOREIGN KEY (prestamo_id) REFERENCES prestamos(id) ON DELETE CASCADE,
+  CONSTRAINT fk_ediciones_usuario  FOREIGN KEY (usuario_id)  REFERENCES usuarios(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- ---------------------------------------------------------------------
 -- Mensajería (consultas usuario→biblioteca y mensajes internos dueño↔bibliotecario)
 -- ---------------------------------------------------------------------
@@ -207,6 +233,7 @@ CREATE TABLE hilo_participantes (
   hilo_id          INT UNSIGNED NOT NULL,
   usuario_id       INT UNSIGNED NOT NULL,
   ultimo_leido_id  INT UNSIGNED NULL,
+  oculto           TINYINT(1) NOT NULL DEFAULT 0,   -- el personal puede ocultar una conversación; vuelve a aparecer si llega un mensaje nuevo
   PRIMARY KEY (hilo_id, usuario_id),
   CONSTRAINT fk_hp_hilo    FOREIGN KEY (hilo_id)    REFERENCES hilos(id)    ON DELETE CASCADE,
   CONSTRAINT fk_hp_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE

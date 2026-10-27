@@ -8,6 +8,7 @@ import { api } from '../api';
 import { useTheme } from '../theme/ThemeContext';
 import { MIN_TAP, radius, spacing } from '../theme/tokens';
 import { MESES_LARGO, diaLargo, diaSemana } from '../utils/format';
+import HorarioAtencion from './HorarioAtencion';
 
 export const AHORA = 'ahora';
 const SEMANA = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
@@ -68,6 +69,7 @@ export default function SelectorVisita({ tipo = 'retiro', value, onChange, error
   return (
     <View style={{ marginTop: spacing.sm }}>
       <Text style={[styles.titulo, { color: colors.text }]}>{titulo}</Text>
+      <HorarioAtencion compacto />
       {dias === null && !fallo ? <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing.md }} /> : null}
       {fallo ? <Text style={{ color: colors.danger, fontSize: 14 }}>No pudimos cargar los horarios. Cerrá esta ventana y probá de nuevo.</Text> : null}
       {dias && !dias.length ? <Text style={{ color: colors.textMuted, fontSize: 14 }}>Por ahora no hay horarios disponibles.</Text> : null}

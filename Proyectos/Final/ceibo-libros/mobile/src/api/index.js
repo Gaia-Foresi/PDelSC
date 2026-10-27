@@ -37,6 +37,7 @@ export const api = {
   libros: {
     listar: privado('/libros/listar'),
     detalle: privado('/libros/detalle'),
+    historial: privado('/libros/historial'),
     crear: privado('/libros/crear'),
     actualizar: privado('/libros/actualizar'),
     buscarPortada: privado('/libros/buscar-portada'),

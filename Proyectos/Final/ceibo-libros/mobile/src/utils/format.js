@@ -81,3 +81,13 @@ export function diaLargo(fechaIso) {
   const [, m, d] = fechaIso.split('-').map(Number);
   return `${DIAS_LARGO[diaSemana(fechaIso)]} ${d} de ${MESES_LARGO[m - 1]}`;
 }
+
+/** Cantidad de días entre dos fechas (ISO con o sin hora), redondeada hacia arriba. */
+export function diasEntre(desde, hasta) {
+  const a = new Date(desde).getTime();
+  const b = new Date(hasta).getTime();
+  if (Number.isNaN(a) || Number.isNaN(b)) return null;
+  return Math.max(1, Math.ceil((b - a) / 86400000));
+}
+
+export const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;

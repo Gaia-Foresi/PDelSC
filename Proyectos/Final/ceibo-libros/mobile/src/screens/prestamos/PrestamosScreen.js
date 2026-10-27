@@ -6,7 +6,7 @@ import { api } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../theme/ThemeContext';
 import { spacing } from '../../theme/tokens';
-import { diasTexto, fecha, visitaTexto } from '../../utils/format';
+import { diasEntre, diasTexto, fecha, plural, visitaTexto } from '../../utils/format';
 import { useAsync } from '../../hooks/useAsync';
 import { useRefreshOnFocus } from '../../hooks/useFocus';
 import Badge from '../../components/Badge';
@@ -46,7 +46,7 @@ function PrestamoCard({ prestamo, staff, onPress }) {
         <View style={{ flex: 1 }}>
           {staff ? <Text style={{ color: colors.text, fontSize: 16, fontWeight: '700' }}>{prestamo.usuario.nombre}</Text> : <Text style={{ color: colors.text, fontSize: 16, fontWeight: '700' }}>Préstamo #{prestamo.id}</Text>}
           <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 2 }}>
-            Desde {fecha(prestamo.fecha_inicio)} · {cerrado ? 'cerrado' : `vence ${fecha(prestamo.fecha_vencimiento)}`}
+            Desde {fecha(prestamo.fecha_inicio)} · {cerrado ? 'cerrado' : `vence ${fecha(prestamo.fecha_vencimiento)}`} · {plural(diasEntre(prestamo.fecha_inicio, prestamo.fecha_vencimiento), 'día', 'días')} de plazo
           </Text>
           {prestamo.visita ? <Text style={{ color: colors.text, fontSize: 13, fontWeight: '600', marginTop: 2 }}>Visita: {visitaTexto(prestamo.visita)}</Text> : null}
         </View>

@@ -1,6 +1,6 @@
 // Avisos breves (reemplazan a los alert). useToast() -> { success, error, info, fromError }
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { Animated, Pressable, StyleSheet, Text } from 'react-native';
+import { Animated, Platform, Pressable, StyleSheet, Text } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
@@ -17,13 +17,13 @@ export function ToastProvider({ children }) {
   const timer = useRef(null);
 
   const hide = useCallback(() => {
-    Animated.timing(op, { toValue: 0, duration: 180, useNativeDriver: true }).start(() => setToast(null));
+    Animated.timing(op, { toValue: 0, duration: 180, useNativeDriver: Platform.OS !== 'web' }).start(() => setToast(null));
   }, [op]);
 
   const show = useCallback((mensaje, tipo = 'info') => {
     clearTimeout(timer.current);
     setToast({ mensaje, tipo });
-    Animated.timing(op, { toValue: 1, duration: 180, useNativeDriver: true }).start();
+    Animated.timing(op, { toValue: 1, duration: 180, useNativeDriver: Platform.OS !== 'web' }).start();
     timer.current = setTimeout(hide, tipo === 'error' ? 5000 : 3500);
   }, [op, hide]);
 

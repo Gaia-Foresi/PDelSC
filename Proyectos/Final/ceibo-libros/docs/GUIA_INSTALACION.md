@@ -70,7 +70,7 @@ Comprobá que anda: `curl -X POST http://localhost:4000/api/salud` → `{"ok":tr
 
 ### Si ya tenías la base creada con una versión anterior
 
-No hace falta borrar nada. Esto agrega las columnas nuevas (curso y DNI del lector, código de retiro) y deja todo lo demás como está:
+No hace falta borrar nada. Esto agrega las columnas nuevas (DNI del lector, código de retiro) y deja todo lo demás como está:
 
 ```bash
 npm run db:migrar     # se puede ejecutar varias veces

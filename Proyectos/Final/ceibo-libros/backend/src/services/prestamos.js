@@ -50,6 +50,16 @@ async function obtenerPrestamo(id, conn = pool) {
   return p || null;
 }
 
+/** Historial de cambios del préstamo: quién lo editó y cuándo (lo más reciente primero). */
+async function ediciones(prestamoId, conn = pool) {
+  const [filas] = await conn.query(
+    `SELECT e.id, e.accion, e.detalle, e.vencimiento_anterior, e.vencimiento_nuevo, e.creado_en,
+            CONCAT(u.nombre, ' ', u.apellido) AS por
+     FROM prestamo_ediciones e JOIN usuarios u ON u.id = e.usuario_id
+     WHERE e.prestamo_id = ? ORDER BY e.id DESC`, [prestamoId]);
+  return filas;
+}
+
 /**
  * Verifica (con bloqueo de filas) que cada libro exista, esté activo y tenga ejemplares libres.
  * Debe llamarse dentro de una transacción.
@@ -78,7 +88,7 @@ async function validarUsuarioParaPrestamo(conn, usuarioId) {
 }
 
 /**
- * Guarda los datos del lector (nombre, apellido, curso, DNI) y, si `exigir`, verifica que no falte ninguno.
+ * Guarda los datos del lector (nombre, apellido, DNI) y, si `exigir`, verifica que no falte ninguno.
  * Son los datos que se piden en cada reserva o préstamo.
  */
 async function guardarDatosLector(conn, usuarioId, datos = {}, exigir = true) {
@@ -89,9 +99,8 @@ async function guardarDatosLector(conn, usuarioId, datos = {}, exigir = true) {
   const [[u]] = await conn.query('SELECT nombre, apellido, curso, dni FROM usuarios WHERE id = ?', [usuarioId]);
   const faltan = {};
   if (!u.apellido) faltan.apellido = 'Obligatorio';
-  if (!u.curso) faltan.curso = 'Obligatorio';
   if (!u.dni) faltan.dni = 'Obligatorio';
-  if (Object.keys(faltan).length) throw err.validacion('Faltan datos del lector: completá apellido, curso y DNI.', faltan);
+  if (Object.keys(faltan).length) throw err.validacion('Faltan datos del lector: completá apellido y DNI.', faltan);
 }
 
 /** Crea un préstamo con uno o más libros. `codigo` permite conservar el de la reserva de origen. */
@@ -186,4 +195,5 @@ async function desbloquearSiNoDebe(conn, usuarioId) {
   return true;
 }
 
-module.exports = { guardarDatosLector, cargarPrestamos, obtenerPrestamo, crearPrestamo, agregarLibros, devolver, desbloquearSiNoDebe };
+module.exports = {
+  ediciones, guardarDatosLector, cargarPrestamos, obtenerPrestamo, crearPrestamo, agregarLibros, devolver, desbloquearSiNoDebe };

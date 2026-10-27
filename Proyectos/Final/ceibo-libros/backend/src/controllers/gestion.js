@@ -148,7 +148,7 @@ exports.resumen = async (req, res) => {
      GROUP BY l.id, l.titulo ORDER BY total DESC, l.titulo LIMIT 5`);
   const porCategoria = await consultar(
     `SELECT c.nombre AS categoria, COUNT(pi.id) AS total
-     FROM categorias c LEFT JOIN libros l ON l.categoria_id = c.id LEFT JOIN prestamo_items pi ON pi.libro_id = l.id
+     FROM categorias c LEFT JOIN libros l ON (l.categoria_id = c.id OR EXISTS (SELECT 1 FROM libro_categorias lc WHERE lc.libro_id = l.id AND lc.categoria_id = c.id)) LEFT JOIN prestamo_items pi ON pi.libro_id = l.id
      GROUP BY c.id, c.nombre ORDER BY total DESC, c.nombre`);
 
   const num = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, Number(v)]));

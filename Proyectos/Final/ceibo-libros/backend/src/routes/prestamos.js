@@ -31,7 +31,7 @@ const S = {
   extender: z.object({ prestamo_id: id, dias: dias(30) }),
   reservaCrear: z.object({
     libro_id: id, tipo: z.enum(['sala', 'retiro'], { message: 'Tipo inválido' }),
-    nombre: texto(60), apellido: texto(60), curso, dni, visita: fechaHora,
+    nombre: texto(60), apellido: texto(60), curso: curso.optional(), dni, visita: fechaHora,
   }),
   horarios: z.object({ tipo: z.enum(['sala', 'retiro']) }),
   reservaEstado: z.object({ estado: z.enum(['activa', 'cumplida', 'cancelada', 'vencida']).optional() }),

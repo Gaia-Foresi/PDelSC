@@ -24,8 +24,15 @@ const FILTROS = [
   { value: true, label: 'Solo disponibles' },
 ];
 
-export default function LibrosCategoriaScreen({ navigation, route }) {
-  const { categoria } = route.params;
+// Si se recarga la página, la categoría (que viaja en memoria) se pierde: se vuelve al inicio.
+export default function LibrosCategoriaScreen(props) {
+  const { navigation, route } = props;
+  const categoria = route.params?.categoria;
+  useEffect(() => { if (!categoria) navigation.navigate('Tabs'); }, [categoria, navigation]);
+  return categoria ? <ListaCategoria {...props} categoria={categoria} /> : null;
+}
+
+function ListaCategoria({ navigation, categoria }) {
   const { bloqueado, usuario, esStaff, esDueno } = useAuth();
   const confirm = useConfirm();
   const toast = useToast();

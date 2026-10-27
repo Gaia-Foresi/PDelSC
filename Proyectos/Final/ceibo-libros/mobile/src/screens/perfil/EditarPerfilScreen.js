@@ -13,9 +13,9 @@ import ScreenContainer from '../../components/ScreenContainer';
 import { useToast } from '../../components/Toast';
 
 export default function EditarPerfilScreen({ navigation }) {
-  const { usuario, esStaff, actualizarUsuario } = useAuth();
   const toast = useToast();
-  const [form, setForm] = useState({ nombre: usuario.nombre || '', apellido: usuario.apellido || '', telefono: usuario.telefono || '', curso: usuario.curso || '', dni: usuario.dni || '' });
+  const { usuario, actualizarUsuario } = useAuth();
+  const [form, setForm] = useState({ nombre: usuario.nombre || '', apellido: usuario.apellido || '', telefono: usuario.telefono || '', dni: usuario.dni || '' });
   const [foto, setFoto] = useState(usuario.foto_url || null); // null = sin foto; texto = URL o data URI
   const [errores, setErrores] = useState({});
   const [cargando, setCargando] = useState(false);
@@ -41,7 +41,7 @@ export default function EditarPerfilScreen({ navigation }) {
     try {
       const data = await api.usuarios.actualizarPerfil({
         nombre: form.nombre.trim(), apellido: form.apellido.trim(), telefono: form.telefono.trim(), foto_url: foto || '',
-        ...(form.curso.trim() ? { curso: form.curso.trim() } : {}), ...(form.dni.trim() ? { dni: form.dni.replace(/\D/g, '') } : {}),
+        ...(form.dni.trim() ? { dni: form.dni.replace(/\D/g, '') } : {}),
       });
       await actualizarUsuario(data.usuario);
       toast.success('Perfil actualizado.');
@@ -66,7 +66,6 @@ export default function EditarPerfilScreen({ navigation }) {
       <Input label="Nombre" icon="account-outline" value={form.nombre} onChangeText={set('nombre')} error={errores.nombre} autoCapitalize="words" maxLength={60} />
       <Input label="Apellido" icon="account-outline" value={form.apellido} onChangeText={set('apellido')} error={errores.apellido} autoCapitalize="words" maxLength={60} />
       <Input label="Teléfono" icon="phone-outline" value={form.telefono} onChangeText={set('telefono')} error={errores.telefono} keyboardType="phone-pad" maxLength={30} placeholder="Opcional" />
-      {!esStaff ? <Input label="Curso" icon="school-outline" value={form.curso} onChangeText={set('curso')} error={errores.curso} maxLength={40} placeholder="Ej.: 5° B (opcional)" /> : null}
       <Input label="DNI" icon="card-account-details-outline" value={form.dni} onChangeText={(t) => set('dni')(t.replace(/\D/g, ''))} error={errores.dni} keyboardType="number-pad" maxLength={9} placeholder="Opcional" />
       <Input label="Email" icon="email-outline" value={usuario.email} editable={false} hint="El email no se puede cambiar." onChangeText={() => {}} />
       <Button title="Guardar cambios" onPress={guardar} loading={cargando} style={{ marginTop: spacing.sm }} />

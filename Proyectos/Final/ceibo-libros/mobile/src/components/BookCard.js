@@ -43,7 +43,11 @@ export default function BookCard({ libro, color, onReservar, bloqueado, motivoBl
         <View style={styles.info}>
           <Text style={[styles.titulo, { color: colors.text, fontFamily: font.title }]}>{libro.titulo}</Text>
           <Text style={[styles.autor, { color: colors.textMuted }]}>{libro.autor}</Text>
-          {mostrarCategoria && libro.categoria ? <Badge text={libro.categoria} tone="primary" style={{ marginTop: 6 }} /> : null}
+          {mostrarCategoria && libro.categoria ? (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+              {(libro.categorias?.length ? libro.categorias.map((c) => c.nombre) : [libro.categoria]).map((n) => <Badge key={n} text={n} tone="primary" />)}
+            </View>
+          ) : null}
           <View style={{ marginTop: 6 }}>
             <Badge
               text={sinStock ? 'Sin ejemplares disponibles' : `${libro.disponibles} de ${libro.stock_total} disponible${libro.disponibles === 1 ? '' : 's'}`}

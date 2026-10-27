@@ -17,6 +17,7 @@ import ScreenContainer from '../../components/ScreenContainer';
 import SearchBar from '../../components/SearchBar';
 import { Skeleton } from '../../components/Skeleton';
 import BloqueoBanner from '../../components/BloqueoBanner';
+import HorarioAtencion from '../../components/HorarioAtencion';
 
 export function iconoSeguro(nombre) {
   return MaterialCommunityIcons.glyphMap[nombre] ? nombre : 'book-open-page-variant';
@@ -86,6 +87,7 @@ export default function HomeScreen({ navigation }) {
       <Text style={[styles.hola, { color: colors.text, fontFamily: font.title }]}>Hola, {usuario?.nombre} 👋</Text>
       <Text style={{ color: colors.textMuted, marginBottom: spacing.md }}>¿Qué querés leer hoy?</Text>
       <SearchBar value={q} onChangeText={setQ} placeholder="Buscar por título o autor" />
+      <HorarioAtencion />
       {!buscando ? <Text style={[styles.seccion, { color: colors.text }]}>Categorías</Text> : null}
     </View>
   );

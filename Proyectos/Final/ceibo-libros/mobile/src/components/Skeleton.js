@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, View } from 'react-native';
+import { Animated, Platform, View } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { radius, spacing } from '../theme/tokens';
 
@@ -9,8 +9,8 @@ export function Skeleton({ height = 16, width = '100%', style }) {
   const op = useRef(new Animated.Value(0.5)).current;
   useEffect(() => {
     const anim = Animated.loop(Animated.sequence([
-      Animated.timing(op, { toValue: 1, duration: 700, useNativeDriver: true }),
-      Animated.timing(op, { toValue: 0.5, duration: 700, useNativeDriver: true }),
+      Animated.timing(op, { toValue: 1, duration: 700, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(op, { toValue: 0.5, duration: 700, useNativeDriver: Platform.OS !== 'web' }),
     ]));
     anim.start();
     return () => anim.stop();

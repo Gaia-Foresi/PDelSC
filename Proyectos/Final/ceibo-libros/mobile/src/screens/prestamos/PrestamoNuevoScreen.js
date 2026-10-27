@@ -90,7 +90,7 @@ export default function PrestamoNuevoScreen({ navigation, route }) {
   const [erroresDatos, setErroresDatos] = useState({});
   const setCampo = (k) => (t) => { setDatos((d) => ({ ...d, [k]: t })); setErroresDatos((e) => ({ ...e, [k]: '' })); };
 
-  // Al elegir al lector se cargan sus datos guardados (nombre, apellido, curso y DNI) para completarlos si hace falta
+  // Al elegir al lector se cargan sus datos guardados (nombre, apellido y DNI) para completarlos si hace falta
   useEffect(() => {
     if (!usuario) { setDatos(formDesde(null)); return undefined; }
     let activo = true;
@@ -129,7 +129,7 @@ export default function PrestamoNuevoScreen({ navigation, route }) {
       const { prestamo } = await api.prestamos.crear({
         usuario_id: usuario.id, libro_ids: libroIds, dias,
         ...(visita && visita !== AHORA ? { visita } : {}),
-        nombre: datos.nombre.trim(), apellido: datos.apellido.trim(), curso: datos.curso.trim(), dni: limpiarDni(datos.dni),
+        nombre: datos.nombre.trim(), apellido: datos.apellido.trim(), dni: limpiarDni(datos.dni),
       });
       toast.success(`Préstamo registrado. Código de retiro: ${prestamo.codigo_retiro}`);
       navigation.replace('PrestamoDetalle', { id: prestamo.id });

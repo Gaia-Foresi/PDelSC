@@ -1,6 +1,6 @@
 # Publicar Ceibo Libros (base en Aiven + backend en Vercel + web en Netlify)
 
-Tres piezas, todas en internet: **la base de datos** (Aiven), **el backend** (Vercel) y **la app web** (Netlify). Al final, los botones de Google/GitHub/Discord y los emails funcionan igual que en tu compu, pero con direcciones reales.
+Tres piezas, todas en internet: **la base de datos** (Aiven, la que ya usás), **el backend** (Vercel) y **la app web** (Netlify). Al final, los botones de Google/GitHub/Discord y los emails funcionan igual que en tu compu, pero con direcciones reales.
 
 > Los nombres de los botones de cada sitio pueden cambiar un poco; si algo no coincide, buscá la opción equivalente.
 > **Nunca subas a GitHub** `backend/.env`, `mobile/.env` ni `ca.pem` (el `.gitignore` ya los excluye; verificalo antes de subir).
@@ -101,7 +101,7 @@ Agregá la dirección de tu web (`https://nombre.netlify.app`) a cada servicio, 
 - [ ] Te registrás con un email nuevo y **llega** el código a tu Gmail.
 - [ ] Los botones de Google, GitHub y Discord abren la ventana del servicio y vuelven a la app.
 - [ ] Una reserva te deja elegir día y hora en el mini calendario y muestra su código de retiro.
-- [ ] El gerente y el bibliotecario ven esa visita en el **Calendario de visitas** (menú lateral).
+- [ ] El gerente y el bibliotecario ven esa visita en el **Calendario de visitas** (ícono del calendario en la barra superior).
 
 ## Problemas frecuentes
 

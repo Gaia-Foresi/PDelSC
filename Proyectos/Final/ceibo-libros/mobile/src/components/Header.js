@@ -1,14 +1,16 @@
 // Barra superior. En pantallas principales: menú ☰ + logo y nombre; en las demás: botón volver.
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
 import { MIN_TAP, font, spacing } from '../theme/tokens';
-import { useBadges } from '../context/BadgesContext';
 import { useMenuFijo } from '../utils/useResponsive';
+import { useBadges } from '../context/BadgesContext';
+import { useAuth } from '../context/AuthContext';
 import Logo from './Logo';
+import NavAcciones from './NavAcciones';
 
 export function IconButton({ icon, onPress, label, badge, color }) {
   const { colors } = useTheme();
@@ -29,12 +31,14 @@ export default function Header({ title, brand, menu, back, right, showBell = tru
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { notificaciones } = useBadges();
-  const menuFijo = useMenuFijo(); // con el menú siempre visible no hace falta el botón ☰
+  const { esDueno } = useAuth();
+  const angosto = useWindowDimensions().width < 420;
+  const menuFijo = useMenuFijo(); // compu: sin menú lateral ni botón ☰; los accesos van en esta barra
 
   return (
     <View style={[styles.bar, { paddingTop: insets.top, backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
       <View style={styles.row}>
-        {menu && menuFijo ? (
+        {menu && (menuFijo || !esDueno) ? (
           <View style={{ width: spacing.md }} />
         ) : menu ? (
           <IconButton icon="menu" label="Abrir menú" onPress={() => navigation.dispatch(DrawerActions.openDrawer())} />
@@ -44,8 +48,8 @@ export default function Header({ title, brand, menu, back, right, showBell = tru
 
         {brand ? (
           <View style={styles.brand} accessibilityRole="header">
-            <Logo size={36} />
-            <Text style={[styles.brandText, { color: colors.primary, fontFamily: font.title }]} numberOfLines={1}>Ceibo Libros</Text>
+            <Logo size={angosto ? 30 : 36} />
+            <Text style={[styles.brandText, { color: colors.primary, fontFamily: font.title }, angosto && { fontSize: 18 }]} numberOfLines={1}>Ceibo Libros</Text>
           </View>
         ) : (
           <Text style={[styles.title, { color: colors.text, fontFamily: font.title }]} numberOfLines={1} accessibilityRole="header">{title}</Text>
@@ -53,8 +57,11 @@ export default function Header({ title, brand, menu, back, right, showBell = tru
 
         <View style={styles.right}>
           {right}
-          {showBell ? (
-            <IconButton icon="bell-outline" label={`Notificaciones${notificaciones ? `, ${notificaciones} nuevas` : ''}`} badge={notificaciones} onPress={() => navigation.navigate('Notificaciones')} />
+          {/* Pantallas principales y compu: accesos completos; detalles en celular: solo la campana */}
+          {menu || menuFijo ? (
+            <NavAcciones showBell={showBell} />
+          ) : showBell ? (
+            <IconButton icon="bell-outline" label="Notificaciones" badge={notificaciones} onPress={() => navigation.navigate('Notificaciones')} />
           ) : null}
         </View>
       </View>

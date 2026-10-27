@@ -47,3 +47,25 @@ Para que la dirección no cambie de puerto, arrancá siempre con `npx expo start
 * La primera vez que alguien entra con una red social queda registrado como **Usuario**. Si ya existía una cuenta con ese email, se vincula a ella.
 * El servidor valida todo con el proveedor (nunca confía en lo que manda la app) y exige que el email esté verificado.
 * Si un botón dice que "todavía no está activado", falta su variable en `mobile/.env`. Si al tocarlo se abre el servicio y vuelve con error, casi siempre es que la dirección de redirección registrada no es exactamente la de la tabla de arriba.
+
+---
+
+## Con la app publicada en Vercel (https://ceibo-libros.vercel.app)
+
+El login social falla en producción si las direcciones no están registradas **exactamente** igual.
+
+**Google** (Google Cloud → APIs y servicios → Credenciales → tu "ID de cliente de OAuth" tipo *Aplicación web*)
+- *Orígenes autorizados de JavaScript*: `https://ceibo-libros.vercel.app`
+- *URI de redireccionamiento autorizados*: `https://ceibo-libros.vercel.app` (y también `https://ceibo-libros.vercel.app/`)
+- Pantalla de consentimiento → **Publicar la app** ("En producción"); si queda en "Prueba", solo entran los usuarios de prueba.
+- Si aparece `redirect_uri_mismatch`, tocá "detalles del error": ahí Google muestra la dirección exacta que recibió; copiala tal cual en la lista.
+
+**GitHub** (Settings → Developer settings → OAuth Apps)
+- GitHub permite una sola dirección por app: creá una **segunda OAuth App** para producción con *Authorization callback URL* = `https://ceibo-libros.vercel.app/oauth`.
+- Su Client ID va en el proyecto web de Vercel (`EXPO_PUBLIC_GITHUB_CLIENT_ID`); Client ID y Secret en el proyecto del backend (`GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`).
+
+**Discord** (Developer Portal → OAuth2 → Redirects)
+- Agregá `https://ceibo-libros.vercel.app/oauth`.
+
+**Backend en Vercel**: `CORS_ORIGIN=https://ceibo-libros.vercel.app`.
+Después de cambiar variables, en Vercel hacé **Redeploy** de ambos proyectos (las `EXPO_PUBLIC_*` se incorporan al compilar).

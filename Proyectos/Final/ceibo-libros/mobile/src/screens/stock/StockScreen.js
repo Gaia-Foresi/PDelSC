@@ -54,7 +54,7 @@ export default function StockScreen({ navigation }) {
     const texto = q.trim().toLowerCase();
     return todos.filter((l) => {
       if (filtro === 'agotados' && l.disponibles > 0) return false;
-      if (typeof filtro === 'number' && l.categoria_id !== filtro) return false;
+      if (typeof filtro === 'number' && !(l.categorias || []).some((c) => c.id === filtro) && l.categoria_id !== filtro) return false;
       return !texto || l.titulo.toLowerCase().includes(texto) || l.autor.toLowerCase().includes(texto);
     });
   }, [todos, q, filtro]);

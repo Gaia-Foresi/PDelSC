@@ -34,7 +34,8 @@ const S = {
   libroCrear: z.object({
     titulo: texto(160),
     autor: texto(120),
-    categoria_id: id,
+    categoria_id: id.optional(),
+    categoria_ids: z.array(id).min(1, 'Elegí al menos una categoría').max(6, 'Máximo 6 categorías').optional(),
     descripcion: textoOpc(2000),
     stock_total: z.coerce.number({ invalid_type_error: 'Debe ser un número' }).int('Debe ser entero').min(0, 'No puede ser negativo').max(1000, 'Máximo 1000'),
     portada_url: urlOpc,
@@ -44,6 +45,7 @@ const S = {
     titulo: texto(160).optional(),
     autor: texto(120).optional(),
     categoria_id: id.optional(),
+    categoria_ids: z.array(id).min(1, 'Elegí al menos una categoría').max(6, 'Máximo 6 categorías').optional(),
     descripcion: textoOpc(2000),
     stock_total: z.coerce.number().int('Debe ser entero').min(0, 'No puede ser negativo').max(1000, 'Máximo 1000').optional(),
     portada_url: urlOpc,
@@ -61,6 +63,7 @@ const libros = Router();
 libros.use(autenticar);
 libros.post('/listar', validar(S.libroListar), asyncHandler(ctl.librosListar));
 libros.post('/detalle', validar(soloId), asyncHandler(ctl.librosDetalle));
+libros.post('/historial', requiereRol(...STAFF), validar(soloId), asyncHandler(ctl.librosHistorial));
 libros.post('/crear', requiereRol(...STAFF), validar(S.libroCrear), asyncHandler(ctl.librosCrear));
 libros.post('/actualizar', requiereRol(...STAFF), validar(S.libroActualizar), asyncHandler(ctl.librosActualizar));
 libros.post('/buscar-portada', requiereRol(...STAFF), validar(z.object({ titulo: texto(160), autor: textoOpc(120) })), asyncHandler(ctl.librosBuscarPortada));

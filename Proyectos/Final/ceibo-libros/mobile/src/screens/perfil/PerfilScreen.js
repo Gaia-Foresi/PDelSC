@@ -85,7 +85,6 @@ export default function PerfilScreen({ navigation }) {
       <Card>
         <Linea icon="email-outline" label="Email" value={usuario.email} />
         <Linea icon="phone-outline" label="Teléfono" value={usuario.telefono || 'No cargado'} />
-        {!esStaff ? <Linea icon="school-outline" label="Curso" value={usuario.curso || 'No cargado'} /> : null}
         <Linea icon="card-account-details-outline" label="DNI" value={usuario.dni || 'No cargado'} />
         {esStaff ? <Linea icon="shield-account-outline" label="Rol" value={ROL_TEXTO[usuario.rol]} /> : null}
         <Linea icon="calendar-account-outline" label="Miembro desde" value={fecha(usuario.creado_en)} />

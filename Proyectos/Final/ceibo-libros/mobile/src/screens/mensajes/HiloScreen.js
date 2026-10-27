@@ -2,7 +2,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api } from '../../api';
 import { useBadges } from '../../context/BadgesContext';
 import { useTheme } from '../../theme/ThemeContext';
@@ -20,7 +19,6 @@ export default function HiloScreen({ route }) {
   const { id, asunto } = route.params;
   const { colors } = useTheme();
   const toast = useToast();
-  const insets = useSafeAreaInsets();
   const { maxWidth } = useResponsive();
   const { refrescar } = useBadges();
   const lista = useRef(null);
@@ -56,12 +54,17 @@ export default function HiloScreen({ route }) {
   const con = hilo.data?.hilo?.con;
 
   return (
-    <ScreenContainer title={asunto || hilo.data?.hilo?.asunto || 'Conversación'} back scroll={false} showBell={false}>
+    <ScreenContainer
+      title={asunto || hilo.data?.hilo?.asunto || 'Conversación'}
+      back
+      scroll={false}
+      showBell={false}
+    >
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         {con ? (
-          <Text style={{ color: colors.textMuted, fontSize: 13, paddingHorizontal: spacing.lg, paddingTop: spacing.sm }} numberOfLines={1}>
-            Conversación con {con.nombre}
-          </Text>
+          <View style={{ flexShrink: 0, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }}>
+            <Text style={{ color: colors.textMuted, fontSize: 13, lineHeight: 18 }} numberOfLines={1}>Conversación con {con.nombre}</Text>
+          </View>
         ) : null}
         {hilo.loading && !hilo.data ? (
           <View style={{ padding: spacing.lg }}>
@@ -73,6 +76,7 @@ export default function HiloScreen({ route }) {
         ) : (
           <FlatList
             ref={lista}
+            style={{ flex: 1 }}
             data={hilo.data?.mensajes || []}
             keyExtractor={(m) => String(m.id)}
             contentContainerStyle={{ padding: spacing.lg, width: '100%', maxWidth, alignSelf: 'center' }}
@@ -100,7 +104,7 @@ export default function HiloScreen({ route }) {
             }}
           />
         )}
-        <View style={[styles.barra, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
+        <View style={[styles.barra, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingBottom: spacing.sm }]}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-end', width: '100%', maxWidth, alignSelf: 'center' }}>
             <TextInput
               value={texto}

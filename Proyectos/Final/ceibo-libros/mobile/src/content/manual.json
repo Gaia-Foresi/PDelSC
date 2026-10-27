@@ -40,8 +40,8 @@
           "p": "Abajo están los accesos principales según tu rol: Inicio, Mensajes, Reservas (libros reservados), Préstamos y Perfil. Los bibliotecarios y el dueño además ven Stock y Usuarios. Las estadísticas del dueño están en el menú lateral."
         },
         {
-          "t": "Menú lateral",
-          "p": "En el celular, tocá el ícono de las tres rayas (arriba a la izquierda) para abrirlo; en la computadora o con la pantalla ancha el menú está siempre visible a la izquierda. Ahí encontrás el modo claro/oscuro, seguridad, este manual y cerrar sesión. El dueño también ve \"Pedir libros\" y el \"Panel admin\"."
+          "t": "Barra superior y menú",
+          "p": "Arriba a la derecha están el botón de modo claro/oscuro (sol/luna), el calendario de visitas (personal), la campana de notificaciones y tu perfil: al tocar tu nombre o foto se abre un menú con Mi perfil, Seguridad de la cuenta y Cerrar sesión. El ícono del libro abre este manual. Solo el dueño tiene, en el celular, el menú de las tres rayas (arriba a la izquierda) con Estadísticas, Panel admin y Pedir libros. En la computadora no hay menú lateral: los accesos del dueño aparecen como íconos en la barra de arriba (pasá el mouse para ver el nombre). Tu perfil se abre desde tu foto, no desde la barra de abajo."
         },
         {
           "t": "Notificaciones",
@@ -49,7 +49,7 @@
         },
         {
           "t": "Modo claro y oscuro",
-          "p": "Activalo desde el menú desplegable. Por defecto la app sigue la configuración de tu teléfono."
+          "p": "Tocá el ícono de sol/luna de la barra superior. Por defecto la app sigue la configuración de tu teléfono."
         }
       ]
     },
@@ -72,7 +72,7 @@
         },
         {
           "t": "Tus datos y el código de retiro",
-          "p": "Al reservar la app te pide nombre, apellido, curso y DNI (quedan guardados para la próxima vez). Cuando terminás, te muestra un código de 6 caracteres (por ejemplo, 6JRRDV): mostralo en la biblioteca para leer o retirar el libro. Después lo ves siempre en el botón Reservas y, cuando el bibliotecario registra el préstamo, en el detalle del préstamo. También elegís el día y la hora en que vas a ir a la biblioteca: solo se ofrecen horarios disponibles. Esa fecha y hora queda guardada en tu reserva y aparece en el aviso de confirmación."
+          "p": "Al reservar la app te pide nombre, apellido y DNI (quedan guardados para la próxima vez). Cuando terminás, te muestra un código de 6 caracteres (por ejemplo, 6JRRDV): mostralo en la biblioteca para leer o retirar el libro. Después lo ves siempre en el botón Reservas y, cuando el bibliotecario registra el préstamo, en el detalle del préstamo. También elegís el día y la hora en que vas a ir a la biblioteca: solo se ofrecen horarios disponibles. Esa fecha y hora queda guardada en tu reserva y aparece en el aviso de confirmación."
         },
         {
           "t": "Límites",
@@ -95,11 +95,11 @@
         },
         {
           "t": "Mensajes del equipo",
-          "p": "El dueño y los bibliotecarios pueden escribirse entre sí desde Mensajes > \"Mensaje al equipo\" para mantenerse informados."
+          "p": "El dueño y los bibliotecarios pueden escribirse entre sí desde Mensajes > \"Mensaje al equipo\" para mantenerse informados. Cuando respondés una consulta, la conversación pasa sola al filtro \"Respondidos\" y vuelve a la lista principal cuando el usuario escribe de nuevo."
         },
         {
           "t": "Sin leer",
-          "p": "Un número rojo sobre el ícono de Mensajes indica conversaciones con mensajes nuevos."
+          "p": "Un número rojo sobre el ícono de Mensajes indica conversaciones con mensajes nuevos. Además, cuando llega un mensaje nuevo la app muestra el aviso \"Hay un nuevo mensaje\" y lo guarda en las notificaciones (la campana); en la versión web, si aceptás los avisos del navegador, también te llega aunque tengas la pestaña en segundo plano."
         }
       ]
     },
@@ -114,7 +114,7 @@
         },
         {
           "t": "Editar datos y foto",
-          "p": "Para cambiar tu foto, tocala en Perfil y elegí una imagen de tu galería (se guarda al instante). Con \"Editar perfil\" cambiás nombre, apellido, teléfono, curso y DNI."
+          "p": "Para cambiar tu foto, tocala en Perfil y elegí una imagen de tu galería (se guarda al instante). Con \"Editar perfil\" cambiás nombre, apellido, teléfono y DNI."
         },
         {
           "t": "Cambiar contraseña",
@@ -156,7 +156,7 @@
         },
         {
           "t": "Día y hora de la visita",
-          "p": "Cada reserva y cada préstamo muestran el día y el horario en que te esperan en la biblioteca (por ejemplo \"vie 23/10 · 09:30 hs\"). Lo ves en la lista y en el detalle, junto al código de retiro."
+          "p": "Cada reserva y cada préstamo muestran el día y el horario en que te esperan en la biblioteca (por ejemplo \"vie 23/10 · 09:30 hs\"). Lo ves en la lista y en el detalle, junto al código de retiro. También ves cuántos días dura la reserva o el préstamo hasta el día de devolución. La biblioteca atiende de lunes a sábados de 08:00 a 18:00 hs; los domingos está cerrada y no se puede reservar."
         },
         {
           "t": "Código de retiro",
@@ -175,11 +175,11 @@
       "items": [
         {
           "t": "Ver y buscar",
-          "p": "En Stock ves todos los libros, con alertas de stock bajo o agotado. Filtrá por categoría o buscá por título o autor."
+          "p": "En Stock ves todos los libros, con alertas de stock bajo o agotado. Filtrá por categoría o buscá por título o autor. Al editar un libro ves las últimas 10 personas que lo usaron, con la fecha de retiro y de devolución."
         },
         {
           "t": "Agregar y editar libros",
-          "p": "Tocá \"Agregar libro\" y completá título, autor, categoría, descripción y cantidad de ejemplares. La portada se busca sola en internet cuando escribís el título y el autor (podés ver cómo queda antes de guardar). Para corregir un libro, tocá el lápiz."
+          "p": "Tocá \"Agregar libro\" y completá título, autor, categorías (podés elegir más de una), descripción y cantidad de ejemplares. La portada se busca sola en internet cuando escribís el título y el autor (podés ver cómo queda antes de guardar). Para corregir un libro, tocá el lápiz."
         },
         {
           "t": "Portadas",
@@ -202,7 +202,7 @@
       "items": [
         {
           "t": "Registrar un préstamo",
-          "p": "En Préstamos tocá \"Nuevo préstamo\", elegí al usuario, revisá sus datos (nombre, apellido, curso y DNI: si faltan, completalos), elegí hasta 5 libros y el plazo en días. Un usuario bloqueado no puede recibir libros. Al terminar, el préstamo muestra su código de retiro. Al final elegís la fecha y hora de la visita; si no elegís nada, se registra \"Ahora\"."
+          "p": "En Préstamos tocá \"Nuevo préstamo\", elegí al usuario, revisá sus datos (nombre, apellido y DNI: si faltan, completalos), elegí hasta 5 libros y el plazo en días. Un usuario bloqueado no puede recibir libros. Al terminar, el préstamo muestra su código de retiro. Al final elegís la fecha y hora de la visita; si no elegís nada, se registra \"Ahora\"."
         },
         {
           "t": "Agregar más libros",
@@ -214,11 +214,11 @@
         },
         {
           "t": "Extender el plazo",
-          "p": "Dentro del préstamo, \"Extender plazo\" suma 3, 7, 14 o 30 días."
+          "p": "Dentro del préstamo, \"Extender plazo\" suma 3, 7, 14 o 30 días. Abajo queda el \"Historial de ediciones\": quién extendió el plazo y cuándo."
         },
         {
           "t": "Atender reservas",
-          "p": "En el botón Reservas de la barra inferior ves las reservas de todos, con curso, DNI y código de retiro. Podés buscar por código, DNI, nombre o libro. \"Atender\" una reserva para llevar crea el préstamo (con el mismo código); una reserva para sala se marca como usada."
+          "p": "En el botón Reservas de la barra inferior ves las reservas de todos, con DNI y código de retiro. Podés buscar por código, DNI, nombre o libro. \"Atender\" una reserva para llevar crea el préstamo (con el mismo código); una reserva para sala se marca como usada."
         },
         {
           "t": "Buscar por código",
@@ -237,7 +237,7 @@
       "items": [
         {
           "t": "Dónde está",
-          "p": "En el menú lateral, tocá \"Calendario de visitas\"."
+          "p": "Tocá el ícono del calendario en la barra superior."
         },
         {
           "t": "Cómo leerlo",
@@ -271,11 +271,11 @@
       "items": [
         {
           "t": "Estadísticas",
-          "p": "La opción Estadísticas del menú lateral muestra, arriba, cómo está la biblioteca hoy (títulos, ejemplares, usuarios, préstamos activos y vencidos, reservas y bloqueados, cada uno con su explicación). Abajo hay tres gráficos: préstamos por mes, libros más prestados y préstamos por categoría. Cada gráfico explica qué representa cada barra."
+          "p": "El ícono de Estadísticas de la barra superior (en el celular, la opción del menú de las tres rayas) muestra, arriba, cómo está la biblioteca hoy (títulos, ejemplares, usuarios, préstamos activos y vencidos, reservas y bloqueados, cada uno con su explicación). Abajo hay tres gráficos: préstamos por mes, libros más prestados y préstamos por categoría. Cada gráfico explica qué representa cada barra."
         },
         {
           "t": "Pedir libros a la distribuidora",
-          "p": "En el menú, \"Pedir libros\": elegí la distribuidora, agregá los libros y las cantidades (o un título nuevo) y enviá el pedido por email. Abajo queda el historial de pedidos."
+          "p": "En el ícono del camión de la barra superior (en el celular, el menú de las tres rayas), \"Pedir libros\": elegí la distribuidora, agregá los libros y las cantidades (o un título nuevo) y enviá el pedido por email. Abajo queda el historial de pedidos."
         },
         {
           "t": "Distribuidoras",
@@ -287,7 +287,7 @@
         },
         {
           "t": "Panel admin",
-          "p": "En el menú desplegable, \"Panel admin\" lista a los usuarios y bibliotecarios registrados. Tocá \"Cambiar rol\" para convertir a alguien en bibliotecario o devolverlo a usuario. No podés cambiar tu propio rol."
+          "p": "En el ícono del escudo de la barra superior (en el celular, el menú de las tres rayas), \"Panel admin\" lista a los usuarios y bibliotecarios registrados. Tocá \"Cambiar rol\" para convertir a alguien en bibliotecario o devolverlo a usuario. No podés cambiar tu propio rol."
         },
         {
           "t": "Eliminar libros y categorías",

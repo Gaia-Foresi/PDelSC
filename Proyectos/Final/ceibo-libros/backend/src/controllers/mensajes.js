@@ -3,6 +3,7 @@
 //   interno : entre el dueño y un bibliotecario; solo lo ven sus dos participantes.
 const { pool, consultar, transaccion } = require('../config/db');
 const { err } = require('../utils/httpError');
+const { crearNotificacion } = require('../services/notificaciones');
 const { esStaff } = require('../middlewares/roles');
 
 const BIBLIOTECA = { id: null, nombre: 'Biblioteca Ceibo Libros', rol: 'biblioteca' };
@@ -61,9 +62,12 @@ exports.hilos = async (req, res) => {
   const filas = await consultar(
     `SELECT h.id, h.tipo, h.asunto, h.creado_por,
             lm.cuerpo AS ultimo_mensaje, lm.creado_en AS ultimo_en,
+            (h.tipo = 'consulta' AND lr.nombre IN ('dueno', 'bibliotecario')) AS es_respondido,
             (SELECT COUNT(*) FROM mensajes m
               WHERE m.hilo_id = h.id AND m.remitente_id <> ? AND m.id > COALESCE(hp.ultimo_leido_id, 0)) AS no_leidos
-     ${SQL_VISIBLES.replace('FROM hilos h', 'FROM hilos h JOIN mensajes lm ON lm.id = (SELECT MAX(id) FROM mensajes WHERE hilo_id = h.id)')}
+     ${SQL_VISIBLES.replace('FROM hilos h', `FROM hilos h JOIN mensajes lm ON lm.id = (SELECT MAX(id) FROM mensajes WHERE hilo_id = h.id)
+       JOIN usuarios lu ON lu.id = lm.remitente_id JOIN roles lr ON lr.id = lu.rol_id`)}
+       ${staff ? `AND ((h.tipo = 'consulta' AND lr.nombre IN ('dueno', 'bibliotecario')) = ${req.body.respondidos ? 'TRUE' : 'FALSE'})` : ''}
      ORDER BY lm.id DESC LIMIT 200`,
     [req.usuario.id, req.usuario.id, staff]);
 
@@ -74,7 +78,7 @@ exports.hilos = async (req, res) => {
       hilos: filas.map((h) => ({
         id: h.id, tipo: h.tipo, asunto: h.asunto,
         ultimo_mensaje: h.ultimo_mensaje, ultimo_en: h.ultimo_en,
-        no_leidos: Number(h.no_leidos), con: contrapartes.get(h.id),
+        no_leidos: Number(h.no_leidos), con: contrapartes.get(h.id), respondido: !!staff && !!Number(h.es_respondido),
       })),
     },
   });
@@ -114,6 +118,29 @@ exports.hilo = async (req, res) => {
   });
 };
 
+/** Avisa en la app ("Hay un nuevo mensaje") a quienes tienen que leerlo. Nunca hace fallar el envío. */
+async function avisarMensaje(hilo, req, cuerpo) {
+  try {
+    const staffRemitente = esStaff(req.usuario);
+    let destinos;
+    if (hilo.tipo === 'consulta' && !staffRemitente) {
+      destinos = await consultar(
+        `SELECT u.id FROM usuarios u JOIN roles r ON r.id = u.rol_id
+         WHERE r.nombre IN ('dueno','bibliotecario') AND u.estado = 'activo' AND u.id <> ?`, [req.usuario.id]);
+    } else if (hilo.tipo === 'consulta') {
+      destinos = await consultar('SELECT creado_por AS id FROM hilos WHERE id = ? AND creado_por <> ?', [hilo.id, req.usuario.id]);
+    } else {
+      destinos = await consultar('SELECT usuario_id AS id FROM hilo_participantes WHERE hilo_id = ? AND usuario_id <> ?', [hilo.id, req.usuario.id]);
+    }
+    const [u] = await consultar('SELECT nombre, apellido FROM usuarios WHERE id = ?', [req.usuario.id]);
+    const quien = `${u?.nombre || ''} ${u?.apellido || ''}`.trim() || 'Alguien';
+    const resumen = `${quien}: ${String(cuerpo).replace(/\s+/g, ' ').slice(0, 120)}`;
+    await Promise.all(destinos.map((d) => crearNotificacion({ usuarioId: d.id, tipo: 'sistema', titulo: 'Hay un nuevo mensaje', cuerpo: resumen })));
+  } catch (e) {
+    console.error('[mensajes] no se pudo crear la notificación:', e.message);
+  }
+}
+
 exports.crear = async (req, res) => {
   const { tipo, asunto, cuerpo, destinatario_id } = req.body;
   const staff = esStaff(req.usuario);
@@ -139,6 +166,7 @@ exports.crear = async (req, res) => {
     }
     return h.insertId;
   });
+  await avisarMensaje({ id: hiloId, tipo }, req, `${asunto} — ${cuerpo}`);
   res.status(201).json({ ok: true, data: { hilo: { id: hiloId, tipo, asunto } } });
 };
 
@@ -149,8 +177,9 @@ exports.enviar = async (req, res) => {
     await conn.query(
       `INSERT INTO hilo_participantes (hilo_id, usuario_id, ultimo_leido_id) VALUES (?, ?, ?)
        ON DUPLICATE KEY UPDATE ultimo_leido_id = VALUES(ultimo_leido_id)`, [h.id, req.usuario.id, m.insertId]);
-    return { id: m.insertId, hilo_id: h.id };
+    return { id: m.insertId, hilo_id: h.id, tipo: h.tipo };
   });
+  await avisarMensaje({ id: mensaje.hilo_id, tipo: mensaje.tipo }, req, req.body.cuerpo);
   const [m] = await consultar(
     `SELECT m.id, m.cuerpo, m.creado_en, m.remitente_id, u.nombre, u.apellido, r.nombre AS rol
      FROM mensajes m JOIN usuarios u ON u.id = m.remitente_id JOIN roles r ON r.id = u.rol_id WHERE m.id = ?`, [mensaje.id]);
@@ -172,8 +201,11 @@ exports.noLeidos = async (req, res) => {
      JOIN hilos h ON h.id = m.hilo_id
      LEFT JOIN hilo_participantes hp ON hp.hilo_id = h.id AND hp.usuario_id = ?
      WHERE (hp.usuario_id IS NOT NULL OR (h.tipo = 'consulta' AND ?))
+       AND NOT (h.tipo = 'consulta' AND ? AND EXISTS (
+             SELECT 1 FROM mensajes lm JOIN usuarios lu ON lu.id = lm.remitente_id JOIN roles lr ON lr.id = lu.rol_id
+             WHERE lm.id = (SELECT MAX(id) FROM mensajes WHERE hilo_id = h.id) AND lr.nombre IN ('dueno', 'bibliotecario')))
        AND m.remitente_id <> ? AND m.id > COALESCE(hp.ultimo_leido_id, 0)`,
-    [req.usuario.id, staff, req.usuario.id]);
+    [req.usuario.id, staff, staff, req.usuario.id]);
   res.json({ ok: true, data: { total: Number(total) } });
 };
 

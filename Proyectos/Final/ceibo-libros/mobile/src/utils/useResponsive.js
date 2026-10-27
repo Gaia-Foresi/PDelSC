@@ -2,7 +2,7 @@
 import { useWindowDimensions } from 'react-native';
 import { CONTENT_MAX_WIDTH } from '../theme/tokens';
 
-// En pantallas anchas (compu / tablet horizontal) el menú lateral queda siempre visible
+// En pantallas anchas (compu / tablet horizontal) no hay menú lateral: los accesos van como íconos en la barra superior
 export const ANCHO_MENU_FIJO = 900;
 export function useMenuFijo() {
   const { width } = useWindowDimensions();

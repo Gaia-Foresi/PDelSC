@@ -14,7 +14,7 @@ const w = asyncHandler;
 // ------------------------------------------------------------------- mensajes
 const mensajesRouter = Router();
 mensajesRouter.use(autenticar);
-mensajesRouter.post('/hilos', validar(vacio), w(mensajes.hilos));
+mensajesRouter.post('/hilos', validar(z.object({ respondidos: z.boolean().optional() })), w(mensajes.hilos));
 mensajesRouter.post('/hilo', validar(z.object({ hilo_id: id })), w(mensajes.hilo));
 mensajesRouter.post('/crear', validar(z.object({
   tipo: z.enum(['consulta', 'interno'], { message: 'Tipo inválido' }),

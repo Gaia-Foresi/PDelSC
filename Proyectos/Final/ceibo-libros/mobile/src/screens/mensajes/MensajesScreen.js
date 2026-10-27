@@ -22,6 +22,7 @@ const FILTROS = [
   { value: 'todos', label: 'Todos' },
   { value: 'consulta', label: 'Consultas' },
   { value: 'interno', label: 'Internos' },
+  { value: 'respondidos', label: 'Respondidos' },
 ];
 
 export default function MensajesScreen({ navigation }) {
@@ -31,15 +32,20 @@ export default function MensajesScreen({ navigation }) {
   const contenido = useListContentStyle(true);
   const [filtro, setFiltro] = useState('todos');
 
-  const hilos = useAsync(() => api.mensajes.hilos(), []);
+  const verRespondidos = esStaff && filtro === 'respondidos';
+  const hilos = useAsync(() => api.mensajes.hilos(verRespondidos ? { respondidos: true } : {}), [verRespondidos]);
   useRefreshOnFocus(hilos.refresh);
   usePolling(hilos.refresh, 20000);
   // Cuando llegan los datos, se actualiza el globito del menú inferior
   useEffect(() => { if (hilos.data) refrescar(); }, [hilos.data, refrescar]);
 
   const lista = useMemo(
-    () => (hilos.data?.hilos || []).filter((h) => filtro === 'todos' || h.tipo === filtro),
-    [hilos.data, filtro],
+    () => (hilos.data?.hilos || []).filter((h) => {
+      if (!esStaff) return true;
+      if (filtro === 'respondidos') return h.respondido === true; // solo las que de verdad ya respondió el personal
+      return !h.respondido && (filtro === 'todos' || h.tipo === filtro);
+    }),
+    [hilos.data, filtro, esStaff],
   );
 
   const encabezado = (
@@ -101,8 +107,8 @@ export default function MensajesScreen({ navigation }) {
           hilos.error ? <ErrorState error={hilos.error} onRetry={hilos.reload} /> :
           <EmptyState
             icon="message-outline"
-            title="Todavía no hay conversaciones"
-            text={esStaff ? 'Cuando un usuario te escriba o le escribas al equipo, lo vas a ver acá.' : 'Si tenés una duda, escribile a la biblioteca con una nueva consulta.'}
+            title={verRespondidos ? 'No hay conversaciones respondidas' : 'Todavía no hay conversaciones'}
+            text={verRespondidos ? 'Las consultas que ya respondiste se guardan acá y vuelven a la lista cuando el usuario escribe de nuevo.' : esStaff ? 'Cuando un usuario te escriba o le escribas al equipo, lo vas a ver acá.' : 'Si tenés una duda, escribile a la biblioteca con una nueva consulta.'}
           />
         }
       />

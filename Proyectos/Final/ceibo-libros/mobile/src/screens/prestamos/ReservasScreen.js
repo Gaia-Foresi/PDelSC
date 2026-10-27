@@ -5,7 +5,7 @@ import { api } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../theme/ThemeContext';
 import { font, spacing } from '../../theme/tokens';
-import { fechaHora, visitaTexto } from '../../utils/format';
+import { diasEntre, fechaHora, plural, visitaTexto } from '../../utils/format';
 import { useAsync } from '../../hooks/useAsync';
 import { useRefreshOnFocus } from '../../hooks/useFocus';
 import Badge from '../../components/Badge';
@@ -140,7 +140,6 @@ export default function ReservasScreen({ navigation, route }) {
             {esStaff ? (
               <Text style={{ color: colors.text, fontSize: 14, marginTop: spacing.sm }}>
                 Reservó: <Text style={{ fontWeight: '700' }}>{r.usuario.nombre}</Text>
-                {r.usuario.curso ? <Text style={{ color: colors.textMuted }}> · {r.usuario.curso}</Text> : null}
                 {r.usuario.dni ? <Text style={{ color: colors.textMuted }}> · DNI {r.usuario.dni}</Text> : null}
               </Text>
             ) : null}
@@ -151,7 +150,7 @@ export default function ReservasScreen({ navigation, route }) {
               </Text>
             ) : null}
             <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: spacing.xs }}>
-              {r.estado === 'activa' ? `Vence el ${fechaHora(r.fecha_limite)}` : `Reservado el ${fechaHora(r.creada_en)}`}
+              {r.estado === 'activa' ? `Vence el ${fechaHora(r.fecha_limite)} (${plural(diasEntre(r.creada_en, r.fecha_limite), 'día', 'días')} desde que se reservó)` : `Reservado el ${fechaHora(r.creada_en)}`}
             </Text>
             {r.estado === 'activa' ? (
               <View style={[styles.fila, { marginTop: spacing.md, gap: spacing.sm }]}>

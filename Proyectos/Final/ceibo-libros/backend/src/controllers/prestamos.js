@@ -47,6 +47,7 @@ exports.prestamosDetalle = async (req, res) => {
   const prestamo = await P.obtenerPrestamo(req.body.id);
   if (!prestamo) throw err.noEncontrado('El préstamo');
   if (!esStaff(req.usuario) && prestamo.usuario.id !== req.usuario.id) throw err.noEncontrado('El préstamo'); // no revela que existe
+  if (esStaff(req.usuario)) prestamo.ediciones = await P.ediciones(prestamo.id);
   res.json({ ok: true, data: { prestamo } });
 };
 
@@ -66,8 +67,16 @@ exports.prestamosExtender = async (req, res) => {
   if (!antes) throw err.noEncontrado('El préstamo');
   if (antes.estado !== 'activo') throw err.estado('El préstamo ya está cerrado.');
 
-  await consultar('UPDATE prestamos SET fecha_vencimiento = ? WHERE id = ?', [sumarDias(antes.fecha_vencimiento, dias), prestamo_id]);
+  const nuevoVenc = sumarDias(antes.fecha_vencimiento, dias);
+  await transaccion(async (conn) => {
+    await conn.query('UPDATE prestamos SET fecha_vencimiento = ? WHERE id = ?', [nuevoVenc, prestamo_id]);
+    await conn.query(
+      `INSERT INTO prestamo_ediciones (prestamo_id, usuario_id, accion, detalle, vencimiento_anterior, vencimiento_nuevo)
+       VALUES (?, ?, 'extension', ?, ?, ?)`,
+      [prestamo_id, req.usuario.id, `Extendió el plazo ${dias} ${dias === 1 ? 'día' : 'días'}`, antes.fecha_vencimiento, nuevoVenc]);
+  });
   const prestamo = await P.obtenerPrestamo(prestamo_id);
+  prestamo.ediciones = await P.ediciones(prestamo_id);
 
   // Si estaba vencido y la prórroga lo regulariza, se levanta el bloqueo (siempre que no tenga otro vencido)
   if (antes.vencido && !prestamo.vencido) {

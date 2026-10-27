@@ -1,9 +1,9 @@
 // Estructura de navegación:
 //   sin sesión  -> Auth (Login, Registro, Código, Olvidé)
 //   con sesión  -> Menú desplegable (Drawer) > Pila (Main) > Botones principales (Tabs, según el rol)
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, useWindowDimensions } from 'react-native';
-import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createDrawerNavigator } from '@react-navigation/drawer';
@@ -11,7 +11,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
 import { Skeleton } from '../components/Skeleton';
-import BottomBar from '../components/BottomBar';
+import BottomBar, { pantallaActual } from '../components/BottomBar';
 import DrawerContent from './DrawerContent';
 import { ANCHO_MENU_FIJO } from '../utils/useResponsive';
 
@@ -51,6 +51,34 @@ const AuthStack = createNativeStackNavigator();
 const Drawer = createDrawerNavigator();
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+const navRef = createNavigationContainerRef();
+
+// Direcciones (URL) de cada pantalla en la versión web: permiten recargar la página y usar la flecha "atrás".
+// Las pantallas que necesitan datos armados en memoria (formularios) no tienen dirección propia.
+const numero = { parse: { id: Number }, stringify: { id: String } };
+const linking = {
+  prefixes: ['ceibolibros://'],
+  config: {
+    screens: {
+      Login: 'ingresar', Registro: 'registro', Olvide: 'olvide',
+      Main: {
+        path: '',
+        screens: {
+          Tabs: {
+            path: '',
+            screens: { Inicio: 'inicio', Mensajes: 'mensajes', Stock: 'stock', ReservasTab: 'reservas', Prestamos: 'prestamos', Usuarios: 'usuarios', Perfil: 'perfil' },
+          },
+          Hilo: { path: 'mensajes/:id', ...numero },
+          PrestamoDetalle: { path: 'prestamos/:id', ...numero },
+          UsuarioDetalle: { path: 'usuarios/:id', ...numero },
+          Reservas: 'libros-reservados', Calendario: 'calendario', Estadisticas: 'estadisticas',
+          Categorias: 'categorias', EditarPerfil: 'perfil/editar', Seguridad: 'perfil/seguridad', Admin: 'administracion',
+          PedirLibros: 'pedir-libros', Distribuidoras: 'distribuidoras', Notificaciones: 'notificaciones', Manual: 'manual',
+        },
+      },
+    },
+  },
+};
 
 function AuthNavigator() {
   return (
@@ -71,7 +99,7 @@ function Tabs() {
   const { usuario } = useAuth();
   const staff = usuario.rol !== 'usuario';
   return (
-    <Tab.Navigator key={usuario.rol} tabBar={(props) => <BottomBar {...props} />} screenOptions={{ headerShown: false }}>
+    <Tab.Navigator key={usuario.rol} tabBar={() => null} screenOptions={{ headerShown: false }}>
       <Tab.Screen name="Inicio" component={HomeScreen} />
       <Tab.Screen name="Mensajes" component={MensajesScreen} />
       {staff ? <Tab.Screen name="Stock" component={StockScreen} /> : null}
@@ -84,6 +112,32 @@ function Tabs() {
 }
 
 function MainStack() {
+  return (
+    <View style={{ flex: 1 }}>
+      <View style={{ flex: 1 }}>
+        <PilaPrincipal />
+      </View>
+      <BarraFija />
+    </View>
+  );
+}
+
+// La barra de botones principales vive fuera de la pila: aparece siempre, vayas a la pantalla que vayas
+function BarraFija() {
+  const [actual, setActual] = useState(null);
+  useEffect(() => {
+    const leer = () => setActual(pantallaActual(navRef.getRootState()));
+    leer();
+    return navRef.addListener('state', leer);
+  }, []);
+  const ir = (nombre) => {
+    if (!navRef.isReady()) return;
+    navRef.navigate('Main', { screen: 'Tabs', params: { screen: nombre } });
+  };
+  return <BottomBar actual={actual} onIr={ir} />;
+}
+
+function PilaPrincipal() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
       <Stack.Screen name="Tabs" component={Tabs} />
@@ -110,16 +164,18 @@ function MainStack() {
 }
 
 function AppNavigator() {
-  // Celular: menú que se abre con ☰. Compu / pantalla ancha: menú lateral siempre visible.
+  // Celular: menú que se abre con ☰. Compu / pantalla ancha: sin menú lateral (accesos en la barra superior).
   const { width } = useWindowDimensions();
   const fijo = width >= ANCHO_MENU_FIJO;
+  const { esDueno } = useAuth(); // solo el dueño tiene menú desplegable (Estadísticas, Panel admin, Pedir libros)
   return (
     <Drawer.Navigator
       drawerContent={(props) => <DrawerContent {...props} />}
       screenOptions={{
         headerShown: false,
-        drawerType: fijo ? 'permanent' : 'front',
-        drawerStyle: fijo ? { width: 280 } : { width: '78%', maxWidth: 340 },
+        drawerType: 'front',
+        swipeEnabled: !fijo && esDueno,
+        drawerStyle: { width: '78%', maxWidth: 340 },
       }}
     >
       <Drawer.Screen name="Main" component={MainStack} />
@@ -147,7 +203,7 @@ export default function RootNavigator() {
   }
 
   return (
-    <NavigationContainer theme={tema}>
+    <NavigationContainer ref={navRef} theme={tema} linking={linking} documentTitle={{ formatter: () => 'Ceibo Libros' }}>
       {usuario ? <AppNavigator /> : <AuthNavigator />}
     </NavigationContainer>
   );

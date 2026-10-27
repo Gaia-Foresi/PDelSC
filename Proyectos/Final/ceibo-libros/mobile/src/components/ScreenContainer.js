@@ -1,17 +1,15 @@
 // Estructura común de pantalla: encabezado + contenido centrado (maxWidth en tablets) + pull-to-refresh.
 import React from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
 import { spacing } from '../theme/tokens';
 import { useResponsive } from '../utils/useResponsive';
 import Header from './Header';
 
-export default function ScreenContainer({ title, brand, menu, back, right, showBell, tab, scroll = true, refreshing, onRefresh, children, padded = true, header = true }) {
+export default function ScreenContainer({ title, brand, menu, back, right, showBell, scroll = true, refreshing, onRefresh, children, padded = true, header = true }) {
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
   const { maxWidth } = useResponsive();
-  const bottom = tab ? spacing.lg : insets.bottom + spacing.lg;
+  const bottom = spacing.lg; // la barra de abajo (fija) ya cubre el área segura
 
   const contenido = { width: '100%', maxWidth, alignSelf: 'center' };
 
@@ -36,10 +34,9 @@ export default function ScreenContainer({ title, brand, menu, back, right, showB
 }
 
 // Estilo para el contenido de un FlatList (centrado y con el mismo padding)
-export function useListContentStyle(tab = true) {
-  const insets = useSafeAreaInsets();
+export function useListContentStyle() {
   const { maxWidth } = useResponsive();
-  return { width: '100%', maxWidth, alignSelf: 'center', padding: spacing.lg, paddingBottom: tab ? spacing.xl : insets.bottom + spacing.xl };
+  return { width: '100%', maxWidth, alignSelf: 'center', padding: spacing.lg, paddingBottom: spacing.xl };
 }
 
 const styles = StyleSheet.create({ flex: { flex: 1 } });

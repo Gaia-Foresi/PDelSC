@@ -7,7 +7,7 @@ import { api } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../theme/ThemeContext';
 import { font, spacing } from '../../theme/tokens';
-import { diasTexto, fecha, fechaHora, visitaTexto } from '../../utils/format';
+import { diasEntre, diasTexto, fecha, fechaHora, plural, visitaTexto } from '../../utils/format';
 import { useAsync } from '../../hooks/useAsync';
 import Badge from '../../components/Badge';
 import Button from '../../components/Button';
@@ -121,10 +121,8 @@ export default function PrestamoDetalleScreen({ navigation, route }) {
                 <View style={{ flex: 1, marginLeft: spacing.md }}>
                   <Text style={{ color: colors.text, fontSize: 17, fontWeight: '700', fontFamily: font.title }}>{prestamo.usuario.nombre}</Text>
                   <Text style={{ color: colors.textMuted, fontSize: 13 }}>{prestamo.usuario.email}</Text>
-                  {prestamo.usuario.curso || prestamo.usuario.dni ? (
-                    <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 2 }}>
-                      {prestamo.usuario.curso ? `Curso ${prestamo.usuario.curso}` : ''}{prestamo.usuario.curso && prestamo.usuario.dni ? ' · ' : ''}{prestamo.usuario.dni ? `DNI ${prestamo.usuario.dni}` : ''}
-                    </Text>
+                  {prestamo.usuario.dni ? (
+                    <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 2 }}>DNI {prestamo.usuario.dni}</Text>
                   ) : null}
                 </View>
                 {esStaff ? <MaterialCommunityIcons name="chevron-right" size={24} color={colors.textMuted} /> : null}
@@ -136,6 +134,7 @@ export default function PrestamoDetalleScreen({ navigation, route }) {
               {prestamo.visita ? <Fila etiqueta="Visita a la biblioteca" valor={visitaTexto(prestamo.visita)} /> : null}
               <Fila etiqueta="Inicio" valor={fecha(prestamo.fecha_inicio)} />
               <Fila etiqueta="Vencimiento" valor={fecha(prestamo.fecha_vencimiento)} />
+              <Fila etiqueta="Duración del préstamo" valor={`${plural(diasEntre(prestamo.fecha_inicio, prestamo.fecha_vencimiento), 'día', 'días')} (hasta el día de devolución)`} />
               <Fila etiqueta="Estado" valor={prestamo.estado === 'cerrado' ? 'Cerrado (todo devuelto)' : prestamo.vencido ? 'Vencido' : 'Activo'} />
               {prestamo.registrado_por ? <Fila etiqueta="Registrado por" valor={prestamo.registrado_por} /> : null}
               <CodigoRetiro codigo={prestamo.codigo_retiro} />
@@ -155,6 +154,26 @@ export default function PrestamoDetalleScreen({ navigation, route }) {
                 </View>
               </Card>
             ))}
+
+            {esStaff && prestamo.ediciones?.length ? (
+              <View>
+                <Text style={[styles.seccion, { color: colors.text }]}>Historial de ediciones</Text>
+                {prestamo.ediciones.map((e) => (
+                  <Card key={e.id}>
+                    <View style={styles.fila}>
+                      <MaterialCommunityIcons name="history" size={24} color={colors.primary} />
+                      <View style={{ flex: 1, marginLeft: spacing.md }}>
+                        <Text style={{ color: colors.text, fontSize: 14, fontWeight: '700' }}>{e.detalle}</Text>
+                        {e.vencimiento_anterior && e.vencimiento_nuevo ? (
+                          <Text style={{ color: colors.textMuted, fontSize: 13 }}>Vencimiento: {fecha(e.vencimiento_anterior)} → {fecha(e.vencimiento_nuevo)}</Text>
+                        ) : null}
+                        <Text style={{ color: colors.textMuted, fontSize: 13 }}>Lo editó {e.por} · {fechaHora(e.creado_en)}</Text>
+                      </View>
+                    </View>
+                  </Card>
+                ))}
+              </View>
+            ) : null}
 
             {esStaff && activo ? (
               <View style={{ marginTop: spacing.sm }}>

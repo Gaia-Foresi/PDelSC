@@ -2,7 +2,7 @@
 // Cada proveedor es un componente aparte: si falta el Client ID se muestra el botón igual,
 // pero al tocarlo avisa qué falta configurar (sin romper la app).
 import React, { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as AuthSession from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
@@ -42,7 +42,7 @@ function ProviderButton({ nombre, icon, onPress, loading, disabled }) {
       style={({ pressed }) => [styles.btn, { backgroundColor: colors.card, borderColor: colors.border, opacity: loading || disabled ? 0.6 : pressed ? 0.85 : 1 }]}
     >
       <MaterialCommunityIcons name={icon} size={22} color={colors.text} />
-      <Text style={[styles.text, { color: colors.text }]}>{nombre}</Text>
+      <Text style={[styles.text, { color: colors.text }]}>Continuar con {nombre}</Text>
     </Pressable>
   );
 }
@@ -138,10 +138,13 @@ function SinConfigurar({ nombre, icon, variable }) {
 }
 
 export default function SocialButtons() {
-  const googleOk = !!(OAUTH.googleWebClientId || OAUTH.googleAndroidClientId || OAUTH.googleIosClientId);
+  // Google pide el Client ID de la plataforma donde corre la app; si falta el de esta plataforma, solo se avisa
+  // (antes la app se rompía en el celular con "androidClientId must be defined").
+  const googleId = Platform.select({ web: OAUTH.googleWebClientId, android: OAUTH.googleAndroidClientId, ios: OAUTH.googleIosClientId });
+  const googleOk = !!googleId;
   return (
     <View style={styles.row}>
-      {googleOk ? <GoogleReal /> : <SinConfigurar nombre="Google" icon="google" variable="EXPO_PUBLIC_GOOGLE_*_CLIENT_ID" />}
+      {googleOk ? <GoogleReal /> : <SinConfigurar nombre="Google" icon="google" variable={Platform.OS === 'web' ? 'EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID' : Platform.OS === 'android' ? 'EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID' : 'EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID'} />}
       {OAUTH.githubClientId ? <GitHubReal /> : <SinConfigurar nombre="GitHub" icon="github" variable="EXPO_PUBLIC_GITHUB_CLIENT_ID" />}
       {OAUTH.discordClientId ? <DiscordReal /> : <SinConfigurar nombre="Discord" icon="controller-classic" variable="EXPO_PUBLIC_DISCORD_CLIENT_ID" />}
     </View>
@@ -149,7 +152,7 @@ export default function SocialButtons() {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: spacing.sm },
-  btn: { flex: 1, minHeight: MIN_TAP + 4, borderRadius: radius.md, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, paddingHorizontal: 4 },
-  text: { fontSize: 13.5, fontWeight: '700' },
+  row: { gap: spacing.sm },
+  btn: { width: '100%', minHeight: MIN_TAP + 6, borderRadius: radius.md, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 10, paddingHorizontal: 12 },
+  text: { fontSize: 15, fontWeight: '700' },
 });

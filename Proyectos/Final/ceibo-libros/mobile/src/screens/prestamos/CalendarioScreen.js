@@ -109,7 +109,6 @@ export default function CalendarioScreen({ navigation }) {
               <Text style={{ color: colors.primary, fontSize: 20, fontWeight: '800', width: 62 }}>{e.visita.hora}</Text>
               <View style={{ flex: 1 }}>
                 <Text style={{ color: colors.text, fontSize: 16, fontWeight: '700' }}>{e.usuario.nombre} {e.usuario.apellido}</Text>
-                {e.usuario.curso ? <Text style={{ color: colors.textMuted, fontSize: 12 }}>Curso {e.usuario.curso}</Text> : null}
                 {e.libros.map((t, i) => (
                   <Text key={i} style={{ color: colors.text, fontSize: 14, marginTop: 2 }}>📖 {t}</Text>
                 ))}

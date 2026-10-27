@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
 import { MIN_TAP } from '../theme/tokens';
 import { useBadges } from '../context/BadgesContext';
+import { useAuth } from '../context/AuthContext';
 
 export const TAB_INFO = {
   Inicio: { label: 'Inicio', icon: 'home-variant-outline', iconOn: 'home-variant' },
@@ -17,26 +18,50 @@ export const TAB_INFO = {
   Perfil: { label: 'Perfil', icon: 'account-circle-outline', iconOn: 'account-circle' },
 };
 
-export default function BottomBar({ state, navigation }) {
+// Qué botón se resalta según la pantalla donde estés (las pantallas de detalle pertenecen a un botón)
+const PERTENECE = {
+  Inicio: 'Inicio', LibrosCategoria: 'Inicio',
+  Mensajes: 'Mensajes', Hilo: 'Mensajes', NuevoMensaje: 'Mensajes',
+  Stock: 'Stock', LibroForm: 'Stock', Categorias: 'Stock', PedirLibros: 'Stock', Distribuidoras: 'Stock',
+  ReservasTab: 'ReservasTab', Reservas: 'ReservasTab', Calendario: 'ReservasTab',
+  Prestamos: 'Prestamos', PrestamoDetalle: 'Prestamos', PrestamoNuevo: 'Prestamos',
+  Usuarios: 'Usuarios', UsuarioDetalle: 'Usuarios', Admin: 'Usuarios',
+  Perfil: 'Perfil', EditarPerfil: 'Perfil', Seguridad: 'Perfil',
+};
+
+// Nombre de la pantalla que se está viendo (la más profunda del estado de navegación)
+export function pantallaActual(state) {
+  let r = state;
+  let nombre = null;
+  while (r && r.routes) {
+    const ruta = r.routes[r.index ?? 0];
+    nombre = ruta?.name ?? nombre;
+    r = ruta?.state;
+  }
+  return nombre;
+}
+
+// Barra fija: se ve en TODAS las pantallas de la app (listas, detalles, formularios, manual...)
+export default function BottomBar({ actual, onIr }) {
   const { colors } = useTheme();
+  const { usuario } = useAuth();
   const insets = useSafeAreaInsets();
   const { mensajes } = useBadges();
+  const staff = usuario?.rol !== 'usuario';
+  const botones = ['Inicio', 'Mensajes', ...(staff ? ['Stock'] : []), 'ReservasTab', 'Prestamos', ...(staff ? ['Usuarios'] : [])];
+  const resaltado = PERTENECE[actual] || null;
 
   return (
     <View style={[styles.bar, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 6) }]} accessibilityRole="tablist">
-      {state.routes.map((route, index) => {
-        const info = TAB_INFO[route.name];
-        const activo = state.index === index;
+      {botones.map((nombre) => {
+        const info = TAB_INFO[nombre];
+        const activo = resaltado === nombre;
         const color = activo ? colors.primary : colors.textMuted;
-        const onPress = () => {
-          const evento = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-          if (!activo && !evento.defaultPrevented) navigation.navigate(route.name);
-        };
         return (
-          <Pressable key={route.key} onPress={onPress} accessibilityRole="tab" accessibilityState={{ selected: activo }} accessibilityLabel={info.label} style={styles.item}>
+          <Pressable key={nombre} onPress={() => onIr(nombre)} accessibilityRole="tab" accessibilityState={{ selected: activo }} accessibilityLabel={info.label} style={styles.item}>
             <View style={[styles.pill, activo && { backgroundColor: colors.primarySoft }]}>
               <MaterialCommunityIcons name={activo ? info.iconOn : info.icon} size={23} color={color} />
-              {route.name === 'Mensajes' && mensajes > 0 ? (
+              {nombre === 'Mensajes' && mensajes > 0 ? (
                 <View style={[styles.badge, { backgroundColor: colors.danger }]}>
                   <Text style={[styles.badgeText, { color: colors.onDanger }]}>{mensajes > 9 ? '9+' : mensajes}</Text>
                 </View>

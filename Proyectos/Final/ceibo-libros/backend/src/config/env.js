@@ -79,7 +79,7 @@ module.exports = {
     horaApertura: numero('VISITA_HORA_APERTURA', 8),
     horaCierre: numero('VISITA_HORA_CIERRE', 18),
     // días de atención: 1 = lunes ... 7 = domingo
-    dias: (process.env.VISITA_DIAS || '1,2,3,4,5').split(',').map((s) => Number(s.trim())).filter((n) => n >= 1 && n <= 7),
+    dias: (process.env.VISITA_DIAS || '1,2,3,4,5,6').split(',').map((s) => Number(s.trim())).filter((n) => n >= 1 && n <= 7),
     pasoMin: numero('VISITA_PASO_MIN', 30),
     graciaHoras: numero('VISITA_GRACIA_HORAS', 2), // la reserva se mantiene hasta 2 h después de la hora elegida
   },

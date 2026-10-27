@@ -13,7 +13,7 @@ const { ejecutarRecordatorios } = require('../src/services/recordatorios');
 const BASE = process.env.API_URL || `http://localhost:${puerto}/api`;
 const CLAVES = { dueno: ['dueno@ceibolibros.com', 'Dueno2026'], biblio: ['biblioteca@ceibolibros.com', 'Biblio2026'], lucia: ['lucia@ejemplo.com', 'Lector2026'], tomas: ['tomas@ejemplo.com', 'Lector2026'] };
 
-const DATOS = { nombre: 'Lucía', apellido: 'Lectora', curso: '5° B', dni: '40.123.456' };
+const DATOS = { nombre: 'Lucía', apellido: 'Lectora', dni: '40.123.456' };
 
 let ok = 0;
 const fallos = [];
@@ -125,6 +125,11 @@ async function main() {
   const lid = nuevoLibro.data.libro.id;
   check('Stock negativo rechazado', (await post('/libros/actualizar', { id: lid, stock_total: -1 }, biblio.token)).status === 400);
   check('Actualizar stock', (await post('/libros/actualizar', { id: lid, stock_total: 3 }, biblio.token)).data?.libro?.stock_total === 3);
+  const misterio = cats.data.categorias.find((c) => c.codigo === 'M') || cats.data.categorias.find((c) => c.id !== ficc.id);
+  const multi = await post('/libros/actualizar', { id: lid, categoria_ids: [ficc.id, misterio.id] }, biblio.token);
+  check('Un libro puede estar en más de una categoría', multi.status === 200 && multi.data.libro.categorias.length === 2 && multi.data.libro.categoria_id === ficc.id);
+  check('Aparece en la otra categoría también', (await post('/libros/listar', { categoria_id: misterio.id }, lucia.token)).data.libros.some((l) => l.id === lid));
+  check('Categoría inexistente rechazada', (await post('/libros/actualizar', { id: lid, categoria_ids: [ficc.id, 99999] }, biblio.token)).status === 400);
 
   console.log('\n# Reservas');
   const hz = await post('/reservas/horarios', { tipo: 'retiro' }, lucia.token);
@@ -141,9 +146,9 @@ async function main() {
   check('La reserva guarda la fecha y hora de la visita', res1.data.reserva.visita?.en === VS.retiro && /^\d{4}-\d{2}-\d{2}$/.test(res1.data.reserva.visita.fecha) && /^\d{2}:\d{2}$/.test(res1.data.reserva.visita.hora));
   const codigoReserva = res1.data.reserva.codigo_retiro;
   check('La reserva devuelve un código de retiro de 6 caracteres', /^[A-Z2-9]{6}$/.test(codigoReserva));
-  check('La reserva guarda curso y DNI del lector (DNI sin puntos)', res1.data.reserva.usuario.curso === '5° B' && res1.data.reserva.usuario.dni === '40123456');
+  check('La reserva guarda el DNI del lector (sin puntos)', res1.data.reserva.usuario.dni === '40123456');
   const perf = await post('/usuarios/perfil', {}, lucia.token);
-  check('Los datos quedan en el perfil', perf.data.usuario.curso === '5° B' && perf.data.usuario.dni === '40123456');
+  check('Los datos quedan en el perfil', perf.data.usuario.dni === '40123456');
   check('El personal encuentra la reserva por su código', (await post('/reservas/listar', { q: codigoReserva.toLowerCase() }, biblio.token)).data.reservas.some((r) => r.id === res1.data.reserva.id));
   check('La reserva descuenta stock', (await post('/libros/detalle', { id: lid }, lucia.token)).data.libro.disponibles === 2);
   check('No se reserva dos veces el mismo libro', (await post('/reservas/crear', { libro_id: lid, tipo: 'sala', ...DATOS, visita: VS.sala }, lucia.token)).error?.codigo === 'YA_RESERVADO');
@@ -156,7 +161,7 @@ async function main() {
   check('Bibliotecario atiende reserva de retiro → crea préstamo', atend.data?.prestamo?.items?.[0]?.libro_id === lid && atend.data.reserva.estado === 'cumplida');
   const pid = atend.data.prestamo.id;
   check('El préstamo conserva el código de retiro de la reserva', atend.data.prestamo.codigo_retiro === codigoReserva);
-  check('El préstamo muestra los datos del lector', atend.data.prestamo.usuario.curso === '5° B' && atend.data.prestamo.usuario.dni === '40123456');
+  check('El préstamo muestra los datos del lector', atend.data.prestamo.usuario.dni === '40123456');
   const res2 = await post('/reservas/crear', { libro_id: lid, tipo: 'sala', ...DATOS, visita: VS.sala }, lucia.token);
   check('Reserva para sala', res2.status === 201);
   check('Cancelar reserva', (await post('/reservas/cancelar', { id: res2.data.reserva.id }, lucia.token)).data?.reserva?.estado === 'cancelada');
@@ -164,8 +169,8 @@ async function main() {
 
   console.log('\n# Préstamos');
   const sinDatos = await post('/prestamos/crear', { usuario_id: nuevo.id, libro_ids: [lid] }, biblio.token);
-  check('Préstamo directo a un lector sin curso/DNI → 400 con detalle', sinDatos.status === 400 && !!sinDatos.error.detalles?.dni);
-  const conDatos = await post('/prestamos/crear', { usuario_id: nuevo.id, libro_ids: [lid], nombre: 'Prueba', apellido: 'Test', curso: '3° A', dni: '30111222' }, biblio.token);
+  check('Préstamo directo a un lector sin DNI → 400 con detalle', sinDatos.status === 400 && !!sinDatos.error.detalles?.dni);
+  const conDatos = await post('/prestamos/crear', { usuario_id: nuevo.id, libro_ids: [lid], nombre: 'Prueba', apellido: 'Test', dni: '30111222' }, biblio.token);
   check('Préstamo directo con datos del lector genera su propio código', conDatos.status === 201 && /^[A-Z2-9]{6}$/.test(conDatos.data.prestamo.codigo_retiro) && conDatos.data.prestamo.codigo_retiro !== codigoReserva);
   check('Se encuentra un préstamo por su código', (await post('/prestamos/listar', { q: conDatos.data.prestamo.codigo_retiro }, biblio.token)).data.prestamos.length === 1);
   await post('/prestamos/devolver', { prestamo_id: conDatos.data.prestamo.id }, biblio.token);
@@ -181,6 +186,9 @@ async function main() {
   check('Usuario no puede crear préstamos (403)', (await post('/prestamos/crear', { usuario_id: lucia.usuario.id, libro_ids: [oid] }, lucia.token)).status === 403);
   const ext = await post('/prestamos/extender', { prestamo_id: pid, dias: 5 }, biblio.token);
   check('Extender plazo', ext.status === 200 && ext.data.prestamo.dias_restantes === 12);
+  const detE = await post('/prestamos/detalle', { id: pid }, biblio.token);
+  check('El historial de edición dice quién y cuándo extendió', detE.data.prestamo.ediciones?.length === 1 && detE.data.prestamo.ediciones[0].detalle.includes('5 días') && !!detE.data.prestamo.ediciones[0].por && !!detE.data.prestamo.ediciones[0].creado_en);
+  check('El usuario no ve el historial de edición', (await post('/prestamos/detalle', { id: pid }, lucia.token)).data.prestamo.ediciones === undefined);
   const misP = await post('/prestamos/mis', {}, lucia.token);
   check('"Mis préstamos" incluye el nuevo', misP.data.prestamos.some((p) => p.id === pid));
   check('Otro usuario no ve mi préstamo (404)', (await post('/prestamos/detalle', { id: pid }, nuevoTok)).status === 404);
@@ -188,6 +196,9 @@ async function main() {
   check('Devolver un libro deja el préstamo abierto', dev1.data?.prestamo?.estado === 'activo');
   const dev2 = await post('/prestamos/devolver', { prestamo_id: pid }, biblio.token);
   check('Devolver el resto cierra el préstamo', dev2.data?.prestamo?.estado === 'cerrado');
+  const hist = await post('/libros/historial', { id: lid }, biblio.token);
+  check('Historial del libro: persona, retiro y devolución', hist.status === 200 && hist.data.historial.length >= 1 && hist.data.historial.length <= 10 && !!hist.data.historial[0].persona && !!hist.data.historial[0].retirado && !!hist.data.historial[0].devuelto);
+  check('Usuario no ve el historial del libro (403)', (await post('/libros/historial', { id: lid }, lucia.token)).status === 403);
   check('No se devuelve dos veces (422)', (await post('/prestamos/devolver', { prestamo_id: pid }, biblio.token)).status === 422);
   check('El dueño elimina un libro sin uso (baja lógica)', (await post('/libros/eliminar', { id: oid }, dueno.token)).data?.eliminado === true);
   check('Ya no aparece en el listado', !(await post('/libros/listar', {}, lucia.token)).data.libros.some((l) => l.id === oid));
@@ -253,6 +264,10 @@ async function main() {
   const resp = await post('/mensajes/enviar', { hilo_id: nueva.data.hilo.id, cuerpo: 'Sí, tenemos 2 ejemplares.' }, dueno.token);
   check('El dueño responde una consulta', resp.status === 201 && resp.data.mensaje.mio);
   const ver2 = await post('/mensajes/hilo', { hilo_id: nueva.data.hilo.id }, nuevoTok);
+  const nb = await post('/notificaciones/listar', {}, biblio.token);
+  check('El staff recibe la notificación "Hay un nuevo mensaje"', nb.data.notificaciones.some((n) => n.titulo === 'Hay un nuevo mensaje' && n.cuerpo.includes('Rayuela')));
+  const nu = await post('/notificaciones/listar', {}, nuevoTok);
+  check('El usuario es avisado de la respuesta del staff', nu.data.notificaciones.some((n) => n.titulo === 'Hay un nuevo mensaje' && n.cuerpo.includes('ejemplares')));
   check('El usuario lee la respuesta', ver2.data.mensajes.length === 2 && ver2.data.mensajes[1].remitente.rol === 'dueno' && !ver2.data.mensajes[1].mio);
   check('Otro usuario no ve la consulta (404)', (await post('/mensajes/hilo', { hilo_id: nueva.data.hilo.id }, lucia.token)).status === 404);
   const cont = await post('/mensajes/contactos', {}, dueno.token);
@@ -261,6 +276,17 @@ async function main() {
   check('Dueño escribe un mensaje interno', interno.status === 201);
   check('Interno: solo ven los participantes', (await post('/mensajes/hilo', { hilo_id: interno.data.hilo.id }, lucia.token)).status === 404);
   check('Bibliotecario recibe el interno', (await post('/mensajes/hilos', {}, biblio.token)).data.hilos.some((h) => h.id === interno.data.hilo.id && h.tipo === 'interno' && h.con.rol === 'dueno'));
+
+  // Chats respondidos: una consulta cuya última respuesta es del personal sale de la lista y va a "Respondidos"
+  check('Consulta respondida: ya no está en la lista normal', !(await post('/mensajes/hilos', {}, biblio.token)).data.hilos.some((h) => h.id === nueva.data.hilo.id));
+  check('Consulta respondida: está en el filtro Respondidos', (await post('/mensajes/hilos', { respondidos: true }, biblio.token)).data.hilos.some((h) => h.id === nueva.data.hilo.id));
+  check('Cada hilo marca si fue respondido', (await post('/mensajes/hilos', { respondidos: true }, biblio.token)).data.hilos.every((h) => h.respondido === true) && (await post('/mensajes/hilos', {}, biblio.token)).data.hilos.every((h) => h.respondido === false));
+  check('Respondidos vale para todo el personal', (await post('/mensajes/hilos', { respondidos: true }, dueno.token)).data.hilos.some((h) => h.id === nueva.data.hilo.id));
+  check('El usuario sigue viendo su consulta', (await post('/mensajes/hilos', {}, nuevoTok)).data.hilos.some((h) => h.id === nueva.data.hilo.id));
+  check('Los mensajes internos no pasan a Respondidos', !(await post('/mensajes/hilos', { respondidos: true }, biblio.token)).data.hilos.some((h) => h.id === interno.data.hilo.id));
+  await post('/mensajes/enviar', { hilo_id: nueva.data.hilo.id, cuerpo: 'Gracias, paso mañana.' }, nuevoTok);
+  check('Si el usuario vuelve a escribir, reaparece en la lista', (await post('/mensajes/hilos', {}, biblio.token)).data.hilos.some((h) => h.id === nueva.data.hilo.id && h.no_leidos >= 1));
+  check('Y sale de Respondidos', !(await post('/mensajes/hilos', { respondidos: true }, biblio.token)).data.hilos.some((h) => h.id === nueva.data.hilo.id));
 
   console.log('\n# Panel de administración y usuarios');
   const lu = await post('/usuarios/listar', { rol: 'bibliotecario' }, dueno.token);

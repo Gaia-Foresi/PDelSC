@@ -1,6 +1,7 @@
 // Alta y edición de un libro (si llega params.libro es edición). Eliminar es solo del dueño.
 import React, { useEffect, useRef, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { api } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../theme/ThemeContext';
@@ -11,7 +12,8 @@ import { Portada } from '../../components/BookCard';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
 import ScreenContainer from '../../components/ScreenContainer';
-import SelectField from '../../components/SelectField';
+import Card from '../../components/Card';
+import { fecha } from '../../utils/format';
 import { useConfirm } from '../../components/Confirm';
 import { useToast } from '../../components/Toast';
 
@@ -27,7 +29,7 @@ export default function LibroFormScreen({ navigation, route }) {
   const [form, setForm] = useState({
     titulo: libro?.titulo || '',
     autor: libro?.autor || '',
-    categoria_id: libro?.categoria_id ?? route.params?.categoria_id ?? null,
+    categoria_ids: libro?.categorias?.length ? libro.categorias.map((c) => c.id) : [libro?.categoria_id ?? route.params?.categoria_id].filter(Boolean),
     descripcion: libro?.descripcion || '',
     stock_total: String(libro?.stock_total ?? 1),
     portada_url: libro?.portada_url || '',
@@ -64,7 +66,7 @@ export default function LibroFormScreen({ navigation, route }) {
     const e = {
       titulo: v.requerido(form.titulo, 'El título'),
       autor: v.requerido(form.autor, 'El autor'),
-      categoria_id: form.categoria_id ? '' : 'Elegí una categoría',
+      categoria_ids: form.categoria_ids.length ? '' : 'Elegí al menos una categoría',
       stock_total: v.numeroMin(form.stock_total, 0, 'El stock'),
       portada_url: form.portada_url.trim() && !/^https?:\/\//i.test(form.portada_url.trim()) ? 'Tiene que empezar con http:// o https://' : '',
     };
@@ -79,7 +81,7 @@ export default function LibroFormScreen({ navigation, route }) {
     const datos = {
       titulo: form.titulo.trim(),
       autor: form.autor.trim(),
-      categoria_id: form.categoria_id,
+      categoria_ids: form.categoria_ids,
       descripcion: form.descripcion.trim(),
       stock_total: Number(form.stock_total),
       portada_url: form.portada_url.trim(),
@@ -114,13 +116,40 @@ export default function LibroFormScreen({ navigation, route }) {
     }
   };
 
-  const categorias = (cats.data?.categorias || []).map((c) => ({ value: c.id, label: c.nombre, description: c.codigo }));
+  const alternarCategoria = (cid) => {
+    setForm((f) => {
+      const esta = f.categoria_ids.includes(cid);
+      if (esta && f.categoria_ids.length === 1) return f; // tiene que quedar al menos una
+      return { ...f, categoria_ids: esta ? f.categoria_ids.filter((c) => c !== cid) : [...f.categoria_ids, cid] };
+    });
+    setErrores((e) => ({ ...e, categoria_ids: '' }));
+  };
+
+  // Últimas 10 personas que usaron el libro (solo al editar)
+  const historial = useAsync(() => (editando ? api.libros.historial({ id: libro.id }) : Promise.resolve({ historial: [] })), []);
 
   return (
     <ScreenContainer title={editando ? 'Editar libro' : 'Nuevo libro'} back showBell={false}>
       <Input label="Título" value={form.titulo} onChangeText={set('titulo')} error={errores.titulo} placeholder="Ej.: Rayuela" maxLength={160} />
       <Input label="Autor" value={form.autor} onChangeText={set('autor')} error={errores.autor} placeholder="Ej.: Julio Cortázar" maxLength={120} />
-      <SelectField label="Categoría" value={form.categoria_id} options={categorias} onChange={set('categoria_id')} error={errores.categoria_id} placeholder={cats.loading ? 'Cargando…' : 'Elegí una categoría'} />
+      <View style={{ marginBottom: spacing.md }}>
+        <Text style={{ color: colors.text, fontWeight: '600', fontSize: 14, marginBottom: 6 }}>Categorías</Text>
+        <Text style={{ color: colors.textMuted, fontSize: 13, marginBottom: spacing.sm }}>Tocá las que correspondan: un libro puede estar en más de una. La primera que elegiste es la principal.</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+          {(cats.data?.categorias || []).map((c) => {
+            const activa = form.categoria_ids.includes(c.id);
+            return (
+              <Pressable key={c.id} accessibilityRole="button" accessibilityState={{ selected: activa }} onPress={() => alternarCategoria(c.id)}
+                style={{ minHeight: 40, paddingHorizontal: spacing.md, borderRadius: 20, borderWidth: 1.5, justifyContent: 'center', flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: activa ? colors.primary : colors.card, borderColor: activa ? colors.primary : colors.border }}>
+                {activa ? <MaterialCommunityIcons name="check" size={16} color={colors.onPrimary} /> : null}
+                <Text style={{ color: activa ? colors.onPrimary : colors.text, fontWeight: '600', fontSize: 14 }}>{c.nombre}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        {cats.loading && !cats.data ? <Text style={{ color: colors.textMuted, marginTop: 6 }}>Cargando categorías…</Text> : null}
+        {errores.categoria_ids ? <Text style={{ color: colors.danger, fontSize: 13, marginTop: 6 }}>{errores.categoria_ids}</Text> : null}
+      </View>
       <Input label="Descripción" value={form.descripcion} onChangeText={set('descripcion')} error={errores.descripcion} multiline placeholder="De qué trata el libro" maxLength={2000} />
       <Input
         label="Ejemplares en stock"
@@ -153,6 +182,23 @@ export default function LibroFormScreen({ navigation, route }) {
           <Button title="Buscar portada" icon="image-search-outline" variant="soft" small fullWidth={false} loading={buscandoPortada} disabled={form.titulo.trim().length < 3} onPress={() => buscarPortada(true)} style={{ marginTop: spacing.xs }} />
         </View>
       </View>
+
+      {editando ? (
+        <View style={{ marginBottom: spacing.md }}>
+          <Text style={{ color: colors.text, fontWeight: '700', fontSize: 16, marginBottom: spacing.sm }}>Últimas 10 personas que usaron este libro</Text>
+          {historial.loading && !historial.data ? <Text style={{ color: colors.textMuted }}>Cargando…</Text> : null}
+          {historial.data && !historial.data.historial.length ? <Text style={{ color: colors.textMuted }}>Todavía nadie se lo llevó.</Text> : null}
+          {(historial.data?.historial || []).map((h) => (
+            <Card key={h.id}>
+              <Text style={{ color: colors.text, fontWeight: '700', fontSize: 15 }}>{h.persona}</Text>
+              <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 2 }}>Retiro: {fecha(h.retirado)}</Text>
+              <Text style={{ color: h.devuelto ? colors.success : colors.warning, fontSize: 13 }}>
+                {h.devuelto ? `Devolución: ${fecha(h.devuelto)}` : 'Todavía no lo devolvió'}
+              </Text>
+            </Card>
+          ))}
+        </View>
+      ) : null}
 
       <View style={{ marginTop: spacing.sm }}>
         <Button title={editando ? 'Guardar cambios' : 'Agregar libro'} icon="content-save-outline" onPress={guardar} loading={cargando} />

@@ -79,7 +79,7 @@ async function main() {
   const [dist] = await pool.query('SELECT id FROM distribuidoras LIMIT 1');
   if (!dist.length) {
     await pool.query('INSERT INTO distribuidoras (nombre, email, telefono) VALUES (?, ?, ?)',
-      ['Distribuidora Ejemplo', 'distribuidora@ejemplo.com', '+54 11 5555-0000']);
+      ['Distribuidora Ejemplo', 'distribuidoralibrosmdp@gmail.com', '+54 11 5555-0000']);
   }
   console.log(`✔ Catálogo: ${CATEGORIAS.length} categorías, ${LIBROS.length} libros`);
   if (soloCatalogo) return;
