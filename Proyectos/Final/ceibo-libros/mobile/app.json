@@ -25,7 +25,10 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#F3E5D8"
-      }
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -49,6 +52,9 @@
         "googleIosClientId": "",
         "githubClientId": "",
         "discordClientId": ""
+      },
+      "eas": {
+        "projectId": "303bbba2-4d69-4ce8-80ab-1e31b38d98e6"
       }
     }
   }
