@@ -4,7 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../theme/ThemeContext';
 import { MIN_TAP, radius, spacing } from '../theme/tokens';
 
-export default function SearchBar({ value, onChangeText, placeholder = 'Buscar…', onSubmit, style }) {
+export default function SearchBar({ value, onChangeText, placeholder = 'Buscar…', onSubmit, onBlur, style }) {
   const { colors } = useTheme();
   return (
     <View style={[styles.box, { backgroundColor: colors.card, borderColor: colors.border }, style]}>
@@ -16,6 +16,7 @@ export default function SearchBar({ value, onChangeText, placeholder = 'Buscar�
         placeholderTextColor={colors.textMuted}
         returnKeyType="search"
         onSubmitEditing={onSubmit}
+        onBlur={onBlur}
         accessibilityLabel={placeholder}
         style={[styles.input, { color: colors.text, outlineStyle: 'none' }]}
       />

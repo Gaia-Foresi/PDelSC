@@ -4,11 +4,11 @@
     "preview": {
       "distribution": "internal",
       "android": { "buildType": "apk" },
-      "env": { "EXPO_PUBLIC_API_URL": "https://TU-BACKEND.onrender.com/api" }
+      "env": { "EXPO_PUBLIC_API_URL": "https://ceibo-libros-api.vercel.app/api" }
     },
     "production": {
       "android": { "buildType": "app-bundle" },
-      "env": { "EXPO_PUBLIC_API_URL": "https://TU-BACKEND.onrender.com/api" }
+      "env": { "EXPO_PUBLIC_API_URL": "https://ceibo-libros-api.vercel.app/api" }
     }
   }
 }
