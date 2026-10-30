@@ -48,10 +48,10 @@ export default function LoginScreen({ navigation }) {
 
       <View style={styles.sep}>
         <View style={[styles.line, { backgroundColor: colors.border }]} />
-        <Text style={[styles.sepText, { color: colors.textMuted }]}>o continuá con</Text>
+        <Text style={[styles.sepText, { color: colors.textMuted }]}>o continuá con (si ya tenés cuenta)</Text>
         <View style={[styles.line, { backgroundColor: colors.border }]} />
       </View>
-      <SocialButtons />
+      <SocialButtons modo="ingreso" />
 
       <View style={{ marginTop: spacing.xl }}>
         <Text style={{ color: colors.textMuted, textAlign: 'center', marginBottom: spacing.sm }}>¿Todavía no tenés cuenta?</Text>

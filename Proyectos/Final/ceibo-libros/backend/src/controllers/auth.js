@@ -129,7 +129,7 @@ exports.reenviarCodigo = async (req, res) => {
 };
 
 exports.social = async (req, res) => {
-  const { proveedor } = req.body;
+  const { proveedor, modo = 'registro' } = req.body;
   const datos = await oauth[proveedor](req.body);
   const email = datos.email.toLowerCase();
 
@@ -151,6 +151,10 @@ exports.social = async (req, res) => {
         }
         if (!existente.foto_url && datos.foto) await conn.query('UPDATE usuarios SET foto_url = ? WHERE id = ?', [datos.foto, id]);
       } else {
+        // Desde la pantalla de ingreso no se crean cuentas nuevas
+        if (modo === 'ingreso') {
+          throw new HttpError(404, 'CUENTA_INEXISTENTE', 'No hay una cuenta con ese email. Primero creala con "Crear cuenta".');
+        }
         const [r] = await conn.query(
           'INSERT INTO usuarios (nombre, apellido, email, rol_id, email_verificado, foto_url) VALUES (?, ?, ?, 3, 1, ?)',
           [datos.nombre.slice(0, 60), (datos.apellido || '').slice(0, 60), email, datos.foto]);

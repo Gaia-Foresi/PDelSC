@@ -37,13 +37,17 @@ async function google({ token }) {
 
 /** GitHub: la app manda el `code`; el servidor lo canjea con el client secret (que nunca sale del servidor). */
 async function github({ code, redirect_uri, code_verifier }) {
-  if (!oauth.githubClientId || !oauth.githubClientSecret) throw falla('GitHub no está configurado en el servidor.');
+  // Si el retorno es la dirección de la app (ceibolibros://...) se usa la app de GitHub del celular; si es https, la de la web
+  const esApp = typeof redirect_uri === 'string' && !/^https?:\/\//i.test(redirect_uri);
+  const clientId = esApp ? oauth.githubMobileClientId : oauth.githubClientId;
+  const clientSecret = esApp ? oauth.githubMobileClientSecret : oauth.githubClientSecret;
+  if (!clientId || !clientSecret) throw falla('GitHub no está configurado en el servidor.');
   if (!code) throw falla('Falta el código de GitHub.');
   const t = await pedirJson('https://github.com/login/oauth/access_token', {
     method: 'POST',
     headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      client_id: oauth.githubClientId, client_secret: oauth.githubClientSecret,
+      client_id: clientId, client_secret: clientSecret,
       code, redirect_uri, ...(code_verifier ? { code_verifier } : {}),
     }),
   });

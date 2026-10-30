@@ -1,14 +1,26 @@
 {
-  "cli": { "version": ">= 12.0.0" },
+  "cli": {
+    "version": ">= 12.0.0",
+    "appVersionSource": "local"
+  },
   "build": {
     "preview": {
       "distribution": "internal",
-      "android": { "buildType": "apk" },
-      "env": { "EXPO_PUBLIC_API_URL": "https://ceibo-libros-api.vercel.app/api" }
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://ceibo-libros-api.vercel.app/api",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "202784657482-qga1h714m18tuhlnvnjc43pilbqth9t1.apps.googleusercontent.com"
+      }
     },
     "production": {
-      "android": { "buildType": "app-bundle" },
-      "env": { "EXPO_PUBLIC_API_URL": "https://ceibo-libros-api.vercel.app/api" }
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://ceibo-libros-api.vercel.app/api"
+      }
     }
   }
 }

@@ -3,7 +3,10 @@
     "name": "Ceibo Libros",
     "slug": "ceibo-libros",
     "version": "1.0.0",
-    "scheme": "ceibolibros",
+    "scheme": [
+      "ceibolibros",
+      "com.ceibolibros.biblioteca"
+    ],
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",

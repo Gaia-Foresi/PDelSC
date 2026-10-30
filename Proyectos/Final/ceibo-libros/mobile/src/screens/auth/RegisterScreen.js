@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import { api } from '../../api';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
 import { useToast } from '../../components/Toast';
+import { useTheme } from '../../theme/ThemeContext';
 import { spacing } from '../../theme/tokens';
+import SocialButtons from '../../auth/SocialButtons';
 import * as v from '../../utils/validators';
 import AuthLayout from './AuthLayout';
 
 export default function RegisterScreen({ navigation }) {
+  const { colors } = useTheme();
   const toast = useToast();
   const [form, setForm] = useState({ nombre: '', apellido: '', email: '', password: '', repetir: '' });
   const [errores, setErrores] = useState({});
@@ -46,7 +50,21 @@ export default function RegisterScreen({ navigation }) {
       <Input label="Contraseña" icon="lock-outline" value={form.password} onChangeText={set('password')} error={errores.password} hint="Mínimo 8 caracteres, con letras y números" secure autoCapitalize="none" />
       <Input label="Repetir contraseña" icon="lock-check-outline" value={form.repetir} onChangeText={set('repetir')} error={errores.repetir} secure autoCapitalize="none" onSubmitEditing={enviar} />
       <Button title="Crear cuenta" onPress={enviar} loading={cargando} />
-      <Button title="Ya tengo cuenta" variant="ghost" small onPress={() => navigation.goBack()} style={{ marginTop: spacing.sm }} />
+
+      <View style={styles.sep}>
+        <View style={[styles.line, { backgroundColor: colors.border }]} />
+        <Text style={[styles.sepText, { color: colors.textMuted }]}>continuar con</Text>
+        <View style={[styles.line, { backgroundColor: colors.border }]} />
+      </View>
+      <SocialButtons modo="registro" />
+
+      <Button title="Ya tengo cuenta" variant="ghost" small onPress={() => navigation.goBack()} style={{ marginTop: spacing.lg }} />
     </AuthLayout>
   );
 }
+
+const styles = StyleSheet.create({
+  sep: { flexDirection: 'row', alignItems: 'center', marginVertical: spacing.lg },
+  line: { flex: 1, height: 1 },
+  sepText: { marginHorizontal: spacing.md, fontSize: 13 },
+});

@@ -41,21 +41,21 @@ function ProviderButton({ nombre, icon, onPress, loading, disabled }) {
       disabled={loading || disabled}
       style={({ pressed }) => [styles.btn, { backgroundColor: colors.card, borderColor: colors.border, opacity: loading || disabled ? 0.6 : pressed ? 0.85 : 1 }]}
     >
-      <MaterialCommunityIcons name={icon} size={22} color={colors.text} />
-      <Text style={[styles.text, { color: colors.text }]}>Continuar con {nombre}</Text>
+      <MaterialCommunityIcons name={icon} size={20} color={colors.text} />
+      <Text style={[styles.text, { color: colors.text }]} numberOfLines={1}>{nombre}</Text>
     </Pressable>
   );
 }
 
 // Lógica común: manda el resultado al backend y abre la sesión
-function useCompletar() {
+function useCompletar(modo) {
   const { iniciarSesion } = useAuth();
   const toast = useToast();
   const [cargando, setCargando] = useState(false);
   const completar = async (cuerpo) => {
     setCargando(true);
     try {
-      const data = await api.auth.social(cuerpo);
+      const data = await api.auth.social({ ...cuerpo, modo });
       await iniciarSesion(data);
     } catch (e) {
       toast.fromError(e, 'No pudimos ingresar con esa cuenta.');
@@ -66,8 +66,8 @@ function useCompletar() {
   return { cargando, completar, toast };
 }
 
-function GoogleReal() {
-  const { cargando, completar, toast } = useCompletar();
+function GoogleReal({ modo }) {
+  const { cargando, completar, toast } = useCompletar(modo);
   const [request, response, promptAsync] = Google.useAuthRequest({
     webClientId: OAUTH.googleWebClientId || undefined,
     androidClientId: OAUTH.googleAndroidClientId || undefined,
@@ -85,14 +85,16 @@ function GoogleReal() {
   return <ProviderButton nombre="Google" icon="google" loading={cargando} disabled={!request} onPress={() => abrir(promptAsync, toast, 'Google')} />;
 }
 
+// En el celular GitHub usa su propia app (la dirección de retorno es ceibolibros://oauth, distinta a la de la web)
+const githubId = Platform.OS === 'web' ? OAUTH.githubClientId : OAUTH.githubMobileClientId || OAUTH.githubClientId;
 const githubDiscovery = {
   authorizationEndpoint: 'https://github.com/login/oauth/authorize',
   tokenEndpoint: 'https://github.com/login/oauth/access_token',
 };
-function GitHubReal() {
-  const { cargando, completar, toast } = useCompletar();
+function GitHubReal({ modo }) {
+  const { cargando, completar, toast } = useCompletar(modo);
   const [request, response, promptAsync] = AuthSession.useAuthRequest(
-    { clientId: OAUTH.githubClientId, scopes: ['read:user', 'user:email'], redirectUri, usePKCE: true },
+    { clientId: githubId, scopes: ['read:user', 'user:email'], redirectUri, usePKCE: true },
     githubDiscovery,
   );
   useEffect(() => {
@@ -108,8 +110,8 @@ function GitHubReal() {
 }
 
 const discordDiscovery = { authorizationEndpoint: 'https://discord.com/oauth2/authorize', tokenEndpoint: 'https://discord.com/api/oauth2/token' };
-function DiscordReal() {
-  const { cargando, completar, toast } = useCompletar();
+function DiscordReal({ modo }) {
+  const { cargando, completar, toast } = useCompletar(modo);
   const [request, response, promptAsync] = AuthSession.useAuthRequest(
     { clientId: OAUTH.discordClientId, scopes: ['identify', 'email'], redirectUri, responseType: AuthSession.ResponseType.Token },
     discordDiscovery,
@@ -137,22 +139,23 @@ function SinConfigurar({ nombre, icon, variable }) {
   );
 }
 
-export default function SocialButtons() {
+// modo 'ingreso': solo entra quien ya tiene cuenta · modo 'registro': crea la cuenta si no existe
+export default function SocialButtons({ modo = 'ingreso' }) {
   // Google pide el Client ID de la plataforma donde corre la app; si falta el de esta plataforma, solo se avisa
   // (antes la app se rompía en el celular con "androidClientId must be defined").
   const googleId = Platform.select({ web: OAUTH.googleWebClientId, android: OAUTH.googleAndroidClientId, ios: OAUTH.googleIosClientId });
   const googleOk = !!googleId;
   return (
     <View style={styles.row}>
-      {googleOk ? <GoogleReal /> : <SinConfigurar nombre="Google" icon="google" variable={Platform.OS === 'web' ? 'EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID' : Platform.OS === 'android' ? 'EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID' : 'EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID'} />}
-      {OAUTH.githubClientId ? <GitHubReal /> : <SinConfigurar nombre="GitHub" icon="github" variable="EXPO_PUBLIC_GITHUB_CLIENT_ID" />}
-      {OAUTH.discordClientId ? <DiscordReal /> : <SinConfigurar nombre="Discord" icon="controller-classic" variable="EXPO_PUBLIC_DISCORD_CLIENT_ID" />}
+      {googleOk ? <GoogleReal modo={modo} /> : <SinConfigurar nombre="Google" icon="google" variable={Platform.OS === 'web' ? 'EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID' : Platform.OS === 'android' ? 'EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID' : 'EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID'} />}
+      {githubId ? <GitHubReal modo={modo} /> : <SinConfigurar nombre="GitHub" icon="github" variable={Platform.OS === 'web' ? 'EXPO_PUBLIC_GITHUB_CLIENT_ID' : 'EXPO_PUBLIC_GITHUB_MOBILE_CLIENT_ID'} />}
+      {OAUTH.discordClientId ? <DiscordReal modo={modo} /> : <SinConfigurar nombre="Discord" icon="controller-classic" variable="EXPO_PUBLIC_DISCORD_CLIENT_ID" />}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: { gap: spacing.sm },
-  btn: { width: '100%', minHeight: MIN_TAP + 6, borderRadius: radius.md, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 10, paddingHorizontal: 12 },
-  text: { fontSize: 15, fontWeight: '700' },
+  row: { flexDirection: 'row', gap: spacing.sm },
+  btn: { flex: 1, minWidth: 0, minHeight: MIN_TAP, borderRadius: radius.md, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, paddingHorizontal: 6 },
+  text: { fontSize: 13.5, fontWeight: '700', flexShrink: 1 },
 });

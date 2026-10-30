@@ -71,6 +71,9 @@ module.exports = {
     googleClientIds: (process.env.GOOGLE_CLIENT_IDS || '').split(',').map((s) => s.trim()).filter(Boolean),
     githubClientId: process.env.GITHUB_CLIENT_ID || '',
     githubClientSecret: process.env.GITHUB_CLIENT_SECRET || '',
+    // App de GitHub aparte para el APK (GitHub solo admite una dirección de retorno por app)
+    githubMobileClientId: process.env.GITHUB_MOBILE_CLIENT_ID || '',
+    githubMobileClientSecret: process.env.GITHUB_MOBILE_CLIENT_SECRET || '',
     discordClientId: process.env.DISCORD_CLIENT_ID || '',
   },
 

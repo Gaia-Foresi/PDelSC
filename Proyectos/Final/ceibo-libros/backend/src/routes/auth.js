@@ -12,6 +12,8 @@ const S = {
   reenviar: z.object({ email, proposito: z.enum(['verificar_email', 'login_2fa', 'reset_password'], { message: 'Propósito inválido' }) }),
   social: z.object({
     proveedor: z.enum(['google', 'github', 'discord'], { message: 'Proveedor inválido' }),
+    // ingreso = solo entra si ya existe la cuenta · registro = la crea si no existe
+    modo: z.enum(['ingreso', 'registro']).optional(),
     token: z.string().max(4000).optional(),
     code: z.string().max(500).optional(),
     redirect_uri: z.string().max(500).optional(),

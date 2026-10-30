@@ -33,8 +33,9 @@ Para que la dirección no cambie de puerto, arrancá siempre con `npx expo start
 ## GitHub
 
 1. GitHub → **Settings → Developer settings → OAuth Apps → New OAuth App**.
-2. *Authorization callback URL:* `http://localhost:8081/oauth` para la compu (una OAuth App de GitHub admite una sola dirección: para el APK creá otra OAuth App con `ceibolibros://oauth`).
-3. Copiá el **Client ID** → `EXPO_PUBLIC_GITHUB_CLIENT_ID` (`mobile/.env`) y, junto con el **Client secret**, → `GITHUB_CLIENT_ID` y `GITHUB_CLIENT_SECRET` (`backend/.env`).
+2. *Authorization callback URL:* `https://ceibo-libros.vercel.app/oauth` para la web (o `http://localhost:8081/oauth` en la compu). Una OAuth App de GitHub admite **una sola** dirección.
+3. Copiá el **Client ID** → `EXPO_PUBLIC_GITHUB_CLIENT_ID` (`mobile/.env` o Vercel) y, junto con el **Client secret**, → `GITHUB_CLIENT_ID` y `GITHUB_CLIENT_SECRET` (`backend/.env` o Vercel).
+4. **Para el APK** creá una *segunda* OAuth App con callback `ceibolibros://oauth`. Su Client ID va en `EXPO_PUBLIC_GITHUB_MOBILE_CLIENT_ID` (en `mobile/eas.json`, bloque `env`) y, con su Client secret, en `GITHUB_MOBILE_CLIENT_ID` y `GITHUB_MOBILE_CLIENT_SECRET` del backend (Vercel). El servidor elige solo cuál usar según la dirección de retorno.
 
 ## Discord
 

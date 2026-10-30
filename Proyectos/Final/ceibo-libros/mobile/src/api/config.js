@@ -11,5 +11,6 @@ export const OAUTH = {
   googleAndroidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || oauth.googleAndroidClientId || '',
   googleIosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || oauth.googleIosClientId || '',
   githubClientId: process.env.EXPO_PUBLIC_GITHUB_CLIENT_ID || oauth.githubClientId || '',
+  githubMobileClientId: process.env.EXPO_PUBLIC_GITHUB_MOBILE_CLIENT_ID || oauth.githubMobileClientId || '',
   discordClientId: process.env.EXPO_PUBLIC_DISCORD_CLIENT_ID || oauth.discordClientId || '',
 };
