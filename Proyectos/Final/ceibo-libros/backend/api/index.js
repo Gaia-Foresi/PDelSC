@@ -4,6 +4,8 @@ const app = require('../src/app');
 const { pool } = require('../src/config/db');
 const { migrar } = require('../src/services/migracion');
 
+// Si la migración falla, se reintenta en el próximo pedido. 
+// Esto es para evitar que un error de migración bloquee la app indefinidamente.
 let preparada = null;
 const preparar = () => {
   if (!preparada) {

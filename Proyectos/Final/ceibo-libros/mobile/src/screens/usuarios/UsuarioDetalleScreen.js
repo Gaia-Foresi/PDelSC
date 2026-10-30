@@ -50,16 +50,18 @@ export default function UsuarioDetalleScreen({ navigation, route }) {
 
   const bloquear = async () => {
     if (!motivo.trim()) { setErrorMotivo('Escribí el mensaje que va a ver el usuario'); return; }
+    // Se cierra el formulario ANTES de confirmar: si no, los dos cuadros quedan superpuestos y la confirmación se ve detrás
+    setSheetBloqueo(false);
+    await new Promise((r) => setTimeout(r, 250));
     const ok = await confirm({
       title: `¿Bloquear a ${u.nombre}?`,
       message: 'No va a poder reservar ni pedir libros hasta que devuelva lo pendiente. Va a ver el mensaje que escribiste.',
       confirmText: 'Bloquear', destructive: true,
     });
-    if (!ok) return;
+    if (!ok) { setSheetBloqueo(true); return; } // cancelar vuelve al formulario con el mensaje ya escrito
     setTrabajando(true);
     try {
       await api.usuarios.bloquear({ id, motivo: motivo.trim() });
-      setSheetBloqueo(false);
       toast.success('Usuario bloqueado. Le avisamos con tu mensaje.');
       det.refresh();
     } catch (err) {

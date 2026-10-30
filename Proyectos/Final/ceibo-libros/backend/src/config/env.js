@@ -2,12 +2,14 @@
 require('dotenv').config();
 const fs = require('fs');
 
+// Devuelve el valor de la variable de entorno o lanza un error si no está definida.
 function requerida(nombre) {
   const v = process.env[nombre];
   if (!v) throw new Error(`Falta la variable de entorno ${nombre} (copiá .env.example a .env y completala).`);
   return v;
 }
 
+// Devuelve el valor de la variable de entorno como número o el valor por defecto si no está definida.
 function numero(nombre, defecto) {
   const v = process.env[nombre];
   return v === undefined || v === '' ? defecto : Number(v);
@@ -34,6 +36,7 @@ if (urlBase && !process.env.DB_HOST) {
   }
 }
 
+// Exporta la configuración de entorno
 module.exports = {
   entorno: process.env.NODE_ENV || 'development',
   puerto: numero('PORT', 4000),
@@ -42,6 +45,7 @@ module.exports = {
   // Si se define, permite disparar la tarea diaria desde un cron externo (header x-cron-secret)
   cronSecret: process.env.CRON_SECRET || '',
 
+  // Configuración de la base de datos
   db: {
     host: requerida('DB_HOST'),
     port: numero('DB_PORT', 3306),
@@ -53,12 +57,14 @@ module.exports = {
     rechazarNoAutorizado: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false',
   },
 
+  // Configuración de JWT
   jwt: {
     accessSecret: requerida('JWT_ACCESS_SECRET'),
     accessExp: process.env.JWT_ACCESS_EXP || '15m',
     refreshDias: numero('JWT_REFRESH_DIAS', 30),
   },
 
+  // Configuración de SMTP para envío de mails
   smtp: {
     host: process.env.SMTP_HOST || '',
     port: numero('SMTP_PORT', 587),
@@ -67,6 +73,7 @@ module.exports = {
     from: process.env.MAIL_FROM || 'Ceibo Libros <no-reply@ceibolibros.com>',
   },
 
+  // Configuración de OAuth para login con Google, GitHub y Discord
   oauth: {
     googleClientIds: (process.env.GOOGLE_CLIENT_IDS || '').split(',').map((s) => s.trim()).filter(Boolean),
     githubClientId: process.env.GITHUB_CLIENT_ID || '',
@@ -87,6 +94,7 @@ module.exports = {
     graciaHoras: numero('VISITA_GRACIA_HORAS', 2), // la reserva se mantiene hasta 2 h después de la hora elegida
   },
 
+  // Reglas de negocio
   reglas: {
     recordatorioDias: numero('RECORDATORIO_DIAS', 2),
     prestamoDiasDefecto: numero('PRESTAMO_DIAS_DEFECTO', 14),

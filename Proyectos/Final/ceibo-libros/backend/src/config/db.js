@@ -6,6 +6,7 @@ const ssl = db.ssl
   ? { rejectUnauthorized: db.rechazarNoAutorizado, ...(db.ca ? { ca: db.ca } : {}) }
   : undefined;
 
+// Pool de conexiones a MySQL (base de datos alojada en la nube).
 const pool = mysql.createPool({
   host: db.host,
   port: db.port,

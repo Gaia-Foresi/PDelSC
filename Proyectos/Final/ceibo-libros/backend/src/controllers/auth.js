@@ -44,6 +44,7 @@ async function verificarCodigo(usuarioId, proposito, codigo) {
     [usuarioId, proposito]);
   if (!c || c.intentos >= MAX_INTENTOS_CODIGO) throw err.codigoInvalido();
 
+  // Comparación segura de hashes: timingSafeEqual evita ataques de tiempo que revelen el hash correcto.
   const esperado = Buffer.from(c.codigo_hash, 'hex');
   const recibido = Buffer.from(sha256(codigo), 'hex');
   if (!crypto.timingSafeEqual(esperado, recibido)) {
@@ -57,11 +58,13 @@ async function verificarCodigo(usuarioId, proposito, codigo) {
 
 const sesionDe = async (id) => tokens.emitirSesion(await cargarUsuario(id));
 
+// Registro de un nuevo usuario (o reenvío de código si ya estaba registrado pero no verificado)
 exports.registro = async (req, res) => {
   const { nombre, apellido, email, password } = req.body;
   const existente = await buscarPorEmail(email);
   if (existente?.email_verificado) throw err.conflicto('EMAIL_EN_USO', 'Ese email ya está registrado. Iniciá sesión.');
 
+  // Si ya había un registro sin verificar, se pisa el nombre, apellido y contraseña. Si no, se crea uno nuevo.
   const hash = await bcrypt.hash(password, COSTO_BCRYPT);
   let usuario;
   if (existente) {
@@ -77,6 +80,7 @@ exports.registro = async (req, res) => {
   res.status(201).json({ ok: true, data: { requiere_verificacion: true, email } });
 };
 
+// Verifica el código de verificación de email
 exports.verificarEmail = async (req, res) => {
   const { email, codigo } = req.body;
   const u = await buscarPorEmail(email);
@@ -86,16 +90,20 @@ exports.verificarEmail = async (req, res) => {
   res.json({ ok: true, data: await sesionDe(u.id) });
 };
 
+// Login con email y contraseña. Si el usuario tiene 2FA activo, devuelve un mensaje indicando que debe ingresar el código.
 exports.login = async (req, res) => {
   const { email, password } = req.body;
   const u = await buscarPorEmail(email);
   const coincide = await bcrypt.compare(password, u?.password_hash || HASH_RELLENO);
   if (!u || !u.password_hash || !coincide) throw err.credenciales();
 
+  // Si el email no está verificado, se envía un código de verificación y se indica que requiere verificación.
   if (!u.email_verificado) {
     await emitirCodigo(u, 'verificar_email');
     return res.json({ ok: true, data: { requiere_verificacion: true, email } });
   }
+
+  // Si el usuario tiene 2FA activo, se envía un código de verificación y se indica que requiere 2FA.
   if (u.dos_pasos_activo) {
     await emitirCodigo(u, 'login_2fa');
     return res.json({ ok: true, data: { requiere_2fa: true, email } });
@@ -103,6 +111,7 @@ exports.login = async (req, res) => {
   res.json({ ok: true, data: await sesionDe(u.id) });
 };
 
+// Login con código de 2FA. Se llama después de login si el usuario tiene 2FA activo.
 exports.login2fa = async (req, res) => {
   const { email, codigo } = req.body;
   const u = await buscarPorEmail(email);
@@ -111,6 +120,7 @@ exports.login2fa = async (req, res) => {
   res.json({ ok: true, data: await sesionDe(u.id) });
 };
 
+// Reenvía un código de verificación de email, 2FA o reset de contraseña. No revela si el email existe.
 exports.reenviarCodigo = async (req, res) => {
   const { email, proposito } = req.body;
   const u = await buscarPorEmail(email);
@@ -128,14 +138,17 @@ exports.reenviarCodigo = async (req, res) => {
   res.json({ ok: true, data: { enviado: true } });
 };
 
+// Login o registro con redes sociales (Google, Facebook, etc.). Si el email ya existe, se asocia la identidad social a esa cuenta.
 exports.social = async (req, res) => {
   const { proveedor, modo = 'registro' } = req.body;
   const datos = await oauth[proveedor](req.body);
   const email = datos.email.toLowerCase();
 
+  // Se busca si ya existe una identidad social asociada a un usuario
   const [identidad] = await consultar(
     'SELECT usuario_id FROM identidades_sociales WHERE proveedor = ? AND proveedor_uid = ?', [proveedor, datos.uid]);
 
+  // Si no existe, se busca si ya hay un usuario con ese email. Si tampoco existe, se crea uno nuevo.
   let usuarioId = identidad?.usuario_id;
   if (!usuarioId) {
     usuarioId = await transaccion(async (conn) => {
@@ -167,21 +180,25 @@ exports.social = async (req, res) => {
   res.json({ ok: true, data: await sesionDe(usuarioId) });
 };
 
+// Renueva el token de acceso usando un refresh token válido. Devuelve un nuevo par de tokens.
 exports.refresh = async (req, res) => {
   res.json({ ok: true, data: await tokens.rotarRefresh(req.body.refresh_token) });
 };
 
+// Revoca un refresh token (logout). No revela si el token existía.
 exports.logout = async (req, res) => {
   await tokens.revocarRefresh(req.body.refresh_token);
   res.json({ ok: true, data: { ok: true } });
 };
 
+// Inicia el proceso de recuperación de contraseña: envía un código al email si existe.
 exports.olvidePassword = async (req, res) => {
   const u = await buscarPorEmail(req.body.email);
   if (u) await emitirCodigo(u, 'reset_password');
   res.json({ ok: true, data: { enviado: true } });
 };
 
+// Cambia la contraseña de un usuario usando un código de recuperación. Cierra todas las sesiones abiertas.
 exports.resetPassword = async (req, res) => {
   const { email, codigo, password } = req.body;
   const u = await buscarPorEmail(email);

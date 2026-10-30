@@ -1,11 +1,11 @@
-// Crea las tablas en la base MySQL de la nube ejecutando sql/schema.sql.
-//   npm run db:init            -> falla si ya hay tablas (para no borrar datos por accidente)
-//   npm run db:init -- --reset -> BORRA todo y vuelve a crear
+// Crea las tablas de la base de datos.
 const fs = require('fs');
 const path = require('path');
 const mysql = require('mysql2/promise');
 const { db } = require('../src/config/env');
 
+// Si la base ya tiene tablas, no hace nada. 
+// Para forzar el borrado de todo y empezar de cero, ejecutar con --reset.
 (async () => {
   const conexion = await mysql.createConnection({
     host: db.host, port: db.port, user: db.user, password: db.password, database: db.database,

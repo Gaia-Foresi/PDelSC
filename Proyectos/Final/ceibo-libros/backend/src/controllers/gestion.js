@@ -4,7 +4,8 @@ const { err } = require('../utils/httpError');
 const { hoy } = require('../utils/fechas');
 const { enviarEmail, plantilla, escapar } = require('../services/mailer');
 
-// ------------------------------------------------------------ notificaciones
+// notificaciones
+// Devuelve la lista de notificaciones del usuario, con opción de filtrar solo las no leídas
 exports.notifListar = async (req, res) => {
   const filas = await consultar(
     `SELECT id, tipo, titulo, cuerpo, leida, creada_en FROM notificaciones
@@ -12,6 +13,7 @@ exports.notifListar = async (req, res) => {
   res.json({ ok: true, data: { notificaciones: filas.map((n) => ({ ...n, leida: !!n.leida })) } });
 };
 
+// 
 exports.notifMarcarLeidas = async (req, res) => {
   const { ids } = req.body;
   const r = ids?.length
@@ -25,7 +27,7 @@ exports.notifCantidad = async (req, res) => {
   res.json({ ok: true, data: { total: Number(total) } });
 };
 
-// ------------------------------------------------------------ distribuidoras
+// distribuidoras
 const SQL_DIST = 'SELECT id, nombre, email, telefono FROM distribuidoras WHERE activo = 1';
 
 exports.distListar = async (req, res) => {

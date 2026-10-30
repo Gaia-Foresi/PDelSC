@@ -3,11 +3,13 @@ const { consultar } = require('../config/db');
 const { aUtc, publica } = require('../services/visitas');
 const R = require('../services/reservas');
 
+// Convierte fecha local YYYY-MM-DD a fecha UTC YYYY-MM-DD, sumando días si se indica.
 const aFechaUtc = (fecha, sumarDias = 0) => {
   const [y, m, d] = fecha.split('-').map(Number);
   return aUtc(y, m, d + sumarDias);
 };
 
+// Listar reservas y préstamos en un rango de fechas.
 exports.listar = async (req, res) => {
   const { desde, hasta } = req.body; // fechas locales YYYY-MM-DD, ambas incluidas
   const inicio = aFechaUtc(desde);
@@ -22,6 +24,7 @@ exports.listar = async (req, res) => {
      WHERE r.visita_en >= ? AND r.visita_en < ?
        AND r.estado <> 'cancelada' AND NOT (r.estado = 'cumplida' AND r.tipo = 'retiro')`, [inicio, fin]);
 
+  // Préstamos. Se muestran todos, incluso los vencidos.
   const prestamos = await consultar(
     `SELECT p.id, p.estado, p.visita_en, p.codigo_retiro,
             u.id AS usuario_id, u.nombre, u.apellido, u.curso, u.dni
@@ -33,6 +36,7 @@ exports.listar = async (req, res) => {
        WHERE pi.prestamo_id IN (?) ORDER BY pi.id`, [prestamos.map((p) => p.id)])
     : [];
 
+  // Convierte un registro de reserva o préstamo a un objeto de evento para el calendario.
   const persona = (f) => ({ id: f.usuario_id, nombre: f.nombre, apellido: f.apellido, curso: f.curso, dni: f.dni });
   const eventos = [
     ...reservas.map((r) => ({

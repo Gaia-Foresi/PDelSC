@@ -69,15 +69,17 @@ export default function AdminScreen({ navigation }) {
   const cambiar = async (rol) => {
     if (!elegido || rol.value === elegido.rol) { setElegido(null); return; }
     const u = elegido;
+    // Se cierra la hoja ANTES de confirmar para que la confirmación no quede detrás
+    setElegido(null);
+    await new Promise((r) => setTimeout(r, 250));
     const ok = await confirm({
       title: `¿Cambiar el rol a ${rol.label}?`,
       message: `${nombreCompleto(u)} pasa de ${ROL_TEXTO[u.rol]} a ${rol.label}. ${rol.texto}`,
       confirmText: 'Cambiar rol', destructive: rol.value === 'dueno',
     });
-    if (!ok) return;
+    if (!ok) { setElegido(u); return; }
     try {
       await api.admin.cambiarRol({ id: u.id, rol: rol.value });
-      setElegido(null);
       toast.success(`${u.nombre} ahora es ${rol.label}.`);
       datos.refresh();
     } catch (err) {

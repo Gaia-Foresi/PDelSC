@@ -1,10 +1,10 @@
-// Cambia el email y la contraseña de una cuenta. Uso (desde backend/):
-//   node scripts/cambiar-acceso.js emailActual emailNuevo contraseñaNueva
-// Ejemplo:
-//   node scripts/cambiar-acceso.js dueno@ceibolibros.com gerente@ceibolibros.com Dueno2026
+// Cambia el email y la contraseña de un usuario en la base de datos.
 const bcrypt = require('bcryptjs');
 const { pool } = require('../src/config/db');
 
+// Entrada para Vercel (funciones serverless). 
+// En Vercel no hay un servidor encendido: cada pedido ejecuta esta función. 
+// La primera vez que despierta, deja la base al día (migración) y luego atiende.
 (async () => {
   const [actual, nuevo, clave] = process.argv.slice(2);
   if (!actual || !nuevo || !clave) {
