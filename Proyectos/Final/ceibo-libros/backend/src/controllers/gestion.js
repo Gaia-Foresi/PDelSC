@@ -22,6 +22,7 @@ exports.notifMarcarLeidas = async (req, res) => {
   res.json({ ok: true, data: { marcadas: r.affectedRows } });
 };
 
+// 
 exports.notifCantidad = async (req, res) => {
   const [{ total }] = await consultar('SELECT COUNT(*) AS total FROM notificaciones WHERE usuario_id = ? AND leida = 0', [req.usuario.id]);
   res.json({ ok: true, data: { total: Number(total) } });
@@ -36,12 +37,14 @@ exports.distListar = async (req, res) => {
 
 const distPorId = async (id) => (await consultar(`${SQL_DIST} AND id = ?`, [id]))[0];
 
+//
 exports.distCrear = async (req, res) => {
   const { nombre, email, telefono } = req.body;
   const r = await consultar('INSERT INTO distribuidoras (nombre, email, telefono) VALUES (?, ?, ?)', [nombre, email, telefono || null]);
   res.status(201).json({ ok: true, data: { distribuidora: await distPorId(r.insertId) } });
 };
 
+// 
 exports.distActualizar = async (req, res) => {
   const { id, ...resto } = req.body;
   if (!(await distPorId(id))) throw err.noEncontrado('La distribuidora');
@@ -51,13 +54,14 @@ exports.distActualizar = async (req, res) => {
   res.json({ ok: true, data: { distribuidora: await distPorId(id) } });
 };
 
+//
 exports.distEliminar = async (req, res) => {
   if (!(await distPorId(req.body.id))) throw err.noEncontrado('La distribuidora');
   await consultar('UPDATE distribuidoras SET activo = 0 WHERE id = ?', [req.body.id]); // baja lógica: conserva el historial de pedidos
   res.json({ ok: true, data: { eliminado: true } });
 };
 
-// ---------------------------------------------------------------- reposición
+// reposición
 exports.reposicionCrear = async (req, res) => {
   const { distribuidora_id, mensaje, items } = req.body;
   const dist = await distPorId(distribuidora_id);
@@ -74,6 +78,7 @@ exports.reposicionCrear = async (req, res) => {
     return { libro_id: i.libro_id || null, titulo_solicitado: l ? null : i.titulo, texto: l ? `${l.titulo} (${l.autor})` : i.titulo, cantidad: i.cantidad };
   });
 
+  //
   const [{ nombre, apellido }] = await consultar('SELECT nombre, apellido FROM usuarios WHERE id = ?', [req.usuario.id]);
   const firmante = `${nombre} ${apellido}`.trim();
   const texto = [
@@ -95,6 +100,7 @@ exports.reposicionCrear = async (req, res) => {
     estado = 'error';
   }
 
+  // 
   const pedidoId = await transaccion(async (conn) => {
     const [p] = await conn.query(
       'INSERT INTO pedidos_reposicion (distribuidora_id, dueno_id, mensaje, estado_envio) VALUES (?, ?, ?, ?)',
@@ -106,6 +112,7 @@ exports.reposicionCrear = async (req, res) => {
   res.status(201).json({ ok: true, data: { pedido: { id: pedidoId, estado_envio: estado, simulado } } });
 };
 
+// 
 exports.reposicionListar = async (req, res) => {
   const pedidos = await consultar(
     `SELECT p.id, p.mensaje, p.estado_envio, p.creado_en, d.nombre AS distribuidora
@@ -121,7 +128,7 @@ exports.reposicionListar = async (req, res) => {
   });
 };
 
-// -------------------------------------------------------------- estadísticas
+// estadísticas
 exports.resumen = async (req, res) => {
   const hoyStr = hoy();
   const [t] = await consultar(
@@ -153,6 +160,7 @@ exports.resumen = async (req, res) => {
      FROM categorias c LEFT JOIN libros l ON (l.categoria_id = c.id OR EXISTS (SELECT 1 FROM libro_categorias lc WHERE lc.libro_id = l.id AND lc.categoria_id = c.id)) LEFT JOIN prestamo_items pi ON pi.libro_id = l.id
      GROUP BY c.id, c.nombre ORDER BY total DESC, c.nombre`);
 
+  // 
   const num = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, Number(v)]));
   res.json({
     ok: true,

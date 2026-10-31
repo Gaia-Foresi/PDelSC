@@ -199,7 +199,7 @@ npm run manual:pdf      # genera un PDF por rol en mobile/assets/manuales/ y en 
 
 ## Limpiar usuarios de prueba
 
-Para borrar cuentas de la base (solo lectores, nunca el dueño ni los bibliotecarios), desde `backend`:
+Para borrar cuentas de la base (solo lectores, nunca el gerente ni los bibliotecarios), desde `backend`:
 
 ```bash
 npm run usuarios:limpiar                  # muestra a quién borraría, sin borrar

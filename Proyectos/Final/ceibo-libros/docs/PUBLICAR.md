@@ -97,7 +97,7 @@ Agregá la dirección de tu web (`https://nombre.netlify.app`) a cada servicio, 
 ## Lista de comprobación final
 
 - [ ] `curl -X POST https://TU-DIRECCION/api/salud` responde `ok`.
-- [ ] Entrás con `gerente@ceibolibros.com` (el dueño) desde la web publicada.
+- [ ] Entrás con `gerente@ceibolibros.com` (el gerente) desde la web publicada.
 - [ ] Te registrás con un email nuevo y **llega** el código a tu Gmail.
 - [ ] Los botones de Google, GitHub y Discord abren la ventana del servicio y vuelven a la app.
 - [ ] Una reserva te deja elegir día y hora en el mini calendario y muestra su código de retiro.

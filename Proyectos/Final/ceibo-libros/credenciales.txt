@@ -6,7 +6,7 @@ o eliminá estas cuentas desde la base de datos.)
 
 NOMBRE DE USUARIO (email)      CONTRASEÑA     ROL
 -----------------------------  -------------  --------------------------------------
-dueno@ceibolibros.com          Dueno2026      Dueño (administrador)
+dueno@ceibolibros.com          Dueno2026      Gerente (administrador)
 biblioteca@ceibolibros.com     Biblio2026     Bibliotecario
 lucia@ejemplo.com              Lector2026     Usuario (tiene un préstamo que vence en 2 días y una reserva)
 tomas@ejemplo.com              Lector2026     Usuario (BLOQUEADO: tiene un libro vencido; sirve para probar el aviso)
@@ -16,5 +16,5 @@ Notas
 * El "nombre de usuario" para ingresar es el email.
 * Las contraseñas se guardan en la base con hash bcrypt; este archivo es solo de referencia.
 * Cualquier persona que se registra desde la app queda con rol "Usuario".
-  Solo el dueño puede convertirla en bibliotecario (menú desplegable > Panel admin).
+  Solo el gerente puede convertirla en bibliotecario (menú desplegable > Panel admin).
 * Ingreso con Google/GitHub/Discord: crea la cuenta como "Usuario" automáticamente.
