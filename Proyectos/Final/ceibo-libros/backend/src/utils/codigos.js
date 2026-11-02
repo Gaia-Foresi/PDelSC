@@ -1,4 +1,4 @@
-const crypto = require('crypto');
+import crypto from 'crypto';
 
 /** Código numérico de 6 dígitos criptográficamente seguro. */
 const generarCodigo = () => String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
@@ -9,7 +9,7 @@ const sha256 = (texto) => crypto.createHash('sha256').update(String(texto)).dige
 /** Token aleatorio opaco para los refresh tokens. */
 const tokenAleatorio = () => crypto.randomBytes(48).toString('base64url');
 
-module.exports = { generarCodigo, sha256, tokenAleatorio };
+export { generarCodigo, sha256, tokenAleatorio };
 
 // Código de retiro: 6 caracteres sin letras que se confunden (sin 0/O, 1/I/L)
 const ALFABETO_RETIRO = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -26,5 +26,4 @@ async function codigoRetiroUnico(conn) {
   throw new Error('No se pudo generar un código de retiro único');
 }
 
-module.exports.generarCodigoRetiro = generarCodigoRetiro;
-module.exports.codigoRetiroUnico = codigoRetiroUnico;
+export { generarCodigoRetiro, codigoRetiroUnico };

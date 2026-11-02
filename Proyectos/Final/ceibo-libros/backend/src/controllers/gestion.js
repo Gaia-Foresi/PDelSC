@@ -1,22 +1,18 @@
 // Notificaciones, distribuidoras / reposición de stock y estadísticas.
-const { consultar, transaccion } = require('../config/db');
-const { err } = require('../utils/httpError');
-const { hoy } = require('../utils/fechas');
-const { enviarEmail, plantilla, escapar } = require('../services/mailer');
+import { consultar, transaccion } from '../config/db.js';
+import { err } from '../utils/httpError.js';
+import { hoy } from '../utils/fechas.js';
+import { enviarEmail, plantilla, escapar } from '../services/mailer.js';
 
-// notificaciones
-// Devuelve la lista de notificaciones del usuario, con opción de filtrar solo las no leídas
-exports.notifListar = async (req, res) => {
+// ------------------------------------------------------------ notificaciones
+export const notifListar = async (req, res) => {
   const filas = await consultar(
     `SELECT id, tipo, titulo, cuerpo, leida, creada_en FROM notificaciones
      WHERE usuario_id = ? ${req.body.solo_no_leidas ? 'AND leida = 0' : ''} ORDER BY id DESC LIMIT 100`, [req.usuario.id]);
   res.json({ ok: true, data: { notificaciones: filas.map((n) => ({ ...n, leida: !!n.leida })) } });
 };
 
-// sirve para marcar como leídas las notificaciones de un usuario. 
-// Puede marcar notificaciones específicas, si se envían sus IDs, 
-// o todas las notificaciones pendientes de ese usuario
-exports.notifMarcarLeidas = async (req, res) => {
+export const notifMarcarLeidas = async (req, res) => {
   const { ids } = req.body;
   const r = ids?.length
     ? await consultar('UPDATE notificaciones SET leida = 1 WHERE usuario_id = ? AND leida = 0 AND id IN (?)', [req.usuario.id, ids])
@@ -24,31 +20,27 @@ exports.notifMarcarLeidas = async (req, res) => {
   res.json({ ok: true, data: { marcadas: r.affectedRows } });
 };
 
-// devuelve la cantidad de notificaciones no leídas de un usuario
-exports.notifCantidad = async (req, res) => {
+export const notifCantidad = async (req, res) => {
   const [{ total }] = await consultar('SELECT COUNT(*) AS total FROM notificaciones WHERE usuario_id = ? AND leida = 0', [req.usuario.id]);
   res.json({ ok: true, data: { total: Number(total) } });
 };
 
-// distribuidoras
+// ------------------------------------------------------------ distribuidoras
 const SQL_DIST = 'SELECT id, nombre, email, telefono FROM distribuidoras WHERE activo = 1';
 
-// devuelve la lista de distribuidoras
-exports.distListar = async (req, res) => {
+export const distListar = async (req, res) => {
   res.json({ ok: true, data: { distribuidoras: await consultar(`${SQL_DIST} ORDER BY nombre`) } });
 };
 
 const distPorId = async (id) => (await consultar(`${SQL_DIST} AND id = ?`, [id]))[0];
 
-// crea una nueva distribuidora
-exports.distCrear = async (req, res) => {
+export const distCrear = async (req, res) => {
   const { nombre, email, telefono } = req.body;
   const r = await consultar('INSERT INTO distribuidoras (nombre, email, telefono) VALUES (?, ?, ?)', [nombre, email, telefono || null]);
   res.status(201).json({ ok: true, data: { distribuidora: await distPorId(r.insertId) } });
 };
 
-// actualiza los datos de una distribuidora existente
-exports.distActualizar = async (req, res) => {
+export const distActualizar = async (req, res) => {
   const { id, ...resto } = req.body;
   if (!(await distPorId(id))) throw err.noEncontrado('La distribuidora');
   const campos = Object.fromEntries(Object.entries(resto).filter(([, v]) => v !== undefined));
@@ -57,15 +49,14 @@ exports.distActualizar = async (req, res) => {
   res.json({ ok: true, data: { distribuidora: await distPorId(id) } });
 };
 
-// elimina una distribuidora existente
-exports.distEliminar = async (req, res) => {
+export const distEliminar = async (req, res) => {
   if (!(await distPorId(req.body.id))) throw err.noEncontrado('La distribuidora');
   await consultar('UPDATE distribuidoras SET activo = 0 WHERE id = ?', [req.body.id]); // baja lógica: conserva el historial de pedidos
   res.json({ ok: true, data: { eliminado: true } });
 };
 
-// reposición
-exports.reposicionCrear = async (req, res) => {
+// ---------------------------------------------------------------- reposición
+export const reposicionCrear = async (req, res) => {
   const { distribuidora_id, mensaje, items } = req.body;
   const dist = await distPorId(distribuidora_id);
   if (!dist) throw err.noEncontrado('La distribuidora');
@@ -81,9 +72,6 @@ exports.reposicionCrear = async (req, res) => {
     return { libro_id: i.libro_id || null, titulo_solicitado: l ? null : i.titulo, texto: l ? `${l.titulo} (${l.autor})` : i.titulo, cantidad: i.cantidad };
   });
 
-  // se encarga de armar y enviar un correo electrónico para pedir la reposición de stock a un distribuidor. 
-  // Prepara el mensaje en texto y HTML, 
-  // intenta enviarlo y registra si el envío tuvo éxito o falló.
   const [{ nombre, apellido }] = await consultar('SELECT nombre, apellido FROM usuarios WHERE id = ?', [req.usuario.id]);
   const firmante = `${nombre} ${apellido}`.trim();
   const texto = [
@@ -105,9 +93,6 @@ exports.reposicionCrear = async (req, res) => {
     estado = 'error';
   }
 
-  // registra un pedido de reposición de libros en la base de datos. 
-  // Primero guarda los datos generales del pedido, después guarda los libros solicitados 
-  // y, finalmente, responde que el pedido se creó correctamente
   const pedidoId = await transaccion(async (conn) => {
     const [p] = await conn.query(
       'INSERT INTO pedidos_reposicion (distribuidora_id, dueno_id, mensaje, estado_envio) VALUES (?, ?, ?, ?)',
@@ -119,8 +104,7 @@ exports.reposicionCrear = async (req, res) => {
   res.status(201).json({ ok: true, data: { pedido: { id: pedidoId, estado_envio: estado, simulado } } });
 };
 
-// lista los pedidos de reposición de stock
-exports.reposicionListar = async (req, res) => {
+export const reposicionListar = async (req, res) => {
   const pedidos = await consultar(
     `SELECT p.id, p.mensaje, p.estado_envio, p.creado_en, d.nombre AS distribuidora
      FROM pedidos_reposicion p JOIN distribuidoras d ON d.id = p.distribuidora_id ORDER BY p.id DESC LIMIT 100`);
@@ -135,8 +119,8 @@ exports.reposicionListar = async (req, res) => {
   });
 };
 
-// estadísticas
-exports.resumen = async (req, res) => {
+// -------------------------------------------------------------- estadísticas
+export const resumen = async (req, res) => {
   const hoyStr = hoy();
   const [t] = await consultar(
     `SELECT
@@ -167,7 +151,6 @@ exports.resumen = async (req, res) => {
      FROM categorias c LEFT JOIN libros l ON (l.categoria_id = c.id OR EXISTS (SELECT 1 FROM libro_categorias lc WHERE lc.libro_id = l.id AND lc.categoria_id = c.id)) LEFT JOIN prestamo_items pi ON pi.libro_id = l.id
      GROUP BY c.id, c.nombre ORDER BY total DESC, c.nombre`);
 
-  // 
   const num = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, Number(v)]));
   res.json({
     ok: true,

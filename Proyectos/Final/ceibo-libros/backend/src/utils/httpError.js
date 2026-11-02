@@ -8,8 +8,6 @@ class HttpError extends Error {
   }
 }
 
-// Funciones para crear errores comunes, con mensajes por defecto. 
-// Se pueden personalizar.
 const err = {
   validacion: (mensaje = 'Revisá los datos ingresados.', detalles) => new HttpError(400, 'VALIDACION', mensaje, detalles),
   noAutenticado: (mensaje = 'Iniciá sesión para continuar.') => new HttpError(401, 'NO_AUTENTICADO', mensaje),
@@ -23,4 +21,4 @@ const err = {
   estado: (mensaje) => new HttpError(422, 'ESTADO_INVALIDO', mensaje),
 };
 
-module.exports = { HttpError, err };
+export { HttpError, err };

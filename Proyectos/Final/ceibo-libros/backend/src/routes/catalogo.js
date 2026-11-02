@@ -1,16 +1,16 @@
-// Rutas para el catálogo de libros y categorías
-const { Router } = require('express');
-const ctl = require('../controllers/catalogo');
-const autenticar = require('../middlewares/auth');
-const { requiereRol, STAFF } = require('../middlewares/roles');
-const validar = require('../middlewares/validate');
-const asyncHandler = require('../utils/asyncHandler');
-const { z, id, texto, textoOpc, color, urlOpc } = require('../utils/esquemas');
+import express from 'express';
+import * as ctl from '../controllers/catalogo.js';
+import autenticar from '../middlewares/auth.js';
+import { requiereRol, STAFF } from '../middlewares/roles.js';
+import validar from '../middlewares/validate.js';
+import asyncHandler from '../utils/asyncHandler.js';
+import { z, id, texto, textoOpc, color, urlOpc } from '../utils/esquemas.js';
+
+const { Router } = express;
 
 const vacio = z.object({}).passthrough();
 const soloId = z.object({ id });
 
-// Esquema base para una categoría
 const categoriaBase = {
   codigo: texto(5),
   nombre: texto(60),
@@ -18,8 +18,6 @@ const categoriaBase = {
   icono: texto(40),
   color,
 };
-
-// Esquemas de validación para las rutas
 const S = {
   catCrear: z.object({ ...categoriaBase, descripcion: textoOpc(255), icono: categoriaBase.icono.optional(), color: color.optional() }),
   catActualizar: z.object({
@@ -56,7 +54,6 @@ const S = {
   }),
 };
 
-// Rutas para gestión de categorías y libros
 const categorias = Router();
 categorias.use(autenticar);
 categorias.post('/listar', validar(vacio), asyncHandler(ctl.categoriasListar));
@@ -64,7 +61,6 @@ categorias.post('/crear', requiereRol(...STAFF), validar(S.catCrear), asyncHandl
 categorias.post('/actualizar', requiereRol(...STAFF), validar(S.catActualizar), asyncHandler(ctl.categoriasActualizar));
 categorias.post('/eliminar', requiereRol('dueno'), validar(soloId), asyncHandler(ctl.categoriasEliminar));
 
-// Rutas para gestión de libros
 const libros = Router();
 libros.use(autenticar);
 libros.post('/listar', validar(S.libroListar), asyncHandler(ctl.librosListar));
@@ -75,4 +71,4 @@ libros.post('/actualizar', requiereRol(...STAFF), validar(S.libroActualizar), as
 libros.post('/buscar-portada', requiereRol(...STAFF), validar(z.object({ titulo: texto(160), autor: textoOpc(120) })), asyncHandler(ctl.librosBuscarPortada));
 libros.post('/eliminar', requiereRol('dueno'), validar(soloId), asyncHandler(ctl.librosEliminar));
 
-module.exports = { categorias, libros };
+export { categorias, libros };

@@ -50,4 +50,4 @@ mobile/
 * **Sin `alert()`:** los avisos son `Toast` y las preguntas (eliminar, devolver, bloquear, cerrar sesión…) son el diálogo `useConfirm()`.
 * **Mobile-first:** se diseñó para el celular vertical (áreas táctiles ≥ 44 px) y se adapta a más columnas y ancho máximo en tablet/horizontal (`useResponsive`).
 * **Claro/oscuro:** sigue al sistema y se cambia desde el menú; la elección se recuerda.
-* **Botones principales por rol** (barra inferior): usuario 4 · bibliotecario 6 · gerente 7. Se registran según `usuario.rol`, y el backend vuelve a validar cada permiso.
+* **Botones principales por rol** (barra inferior): usuario 4 · bibliotecario 6 · dueño 7. Se registran según `usuario.rol`, y el backend vuelve a validar cada permiso.

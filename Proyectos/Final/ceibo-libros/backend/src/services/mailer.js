@@ -1,8 +1,8 @@
 // Envío de emails con nodemailer. Sin SMTP configurado, el email se imprime en consola (modo desarrollo).
-const nodemailer = require('nodemailer');
-const { smtp } = require('../config/env');
+import nodemailer from 'nodemailer';
+import env from '../config/env.js';
+const { smtp } = env;
 
-// Si no hay host, no se envía email; se simula en consola (modo desarrollo).
 let transporte = null;
 if (smtp.host) {
   transporte = nodemailer.createTransport({
@@ -43,8 +43,6 @@ async function enviarCodigo(para, nombre, proposito, codigo) {
     login_2fa: 'Código de inicio de sesión',
     reset_password: 'Recuperá tu contraseña',
   };
-
-  // El asunto y el cuerpo del email dependen del propósito del código
   const asunto = `${titulos[proposito]} · Ceibo Libros`;
   const texto = `Hola ${nombre}, tu código es ${codigo}. Vence en 10 minutos. Si no fuiste vos, ignorá este mensaje.`;
   const html = plantilla(titulos[proposito],
@@ -54,4 +52,4 @@ async function enviarCodigo(para, nombre, proposito, codigo) {
   return enviarEmail({ para, asunto, texto, html });
 }
 
-module.exports = { enviarEmail, enviarCodigo, plantilla, escapar };
+export { enviarEmail, enviarCodigo, plantilla, escapar };

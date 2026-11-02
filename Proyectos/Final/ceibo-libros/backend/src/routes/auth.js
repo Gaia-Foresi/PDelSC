@@ -1,14 +1,12 @@
-// Rutas de autenticación: registro, login, códigos, etc.
-const router = require('express').Router();
-const ctl = require('../controllers/auth');
-const validar = require('../middlewares/validate');
-const asyncHandler = require('../utils/asyncHandler');
-const { z, texto, email, password, codigo } = require('../utils/esquemas');
+import express from 'express';
+import * as ctl from '../controllers/auth.js';
+import validar from '../middlewares/validate.js';
+import asyncHandler from '../utils/asyncHandler.js';
+import { z, texto, email, password, codigo } from '../utils/esquemas.js';
 
-// Esquemas de validación para cada ruta
+const router = express.Router();
+
 const S = {
-
-  // Registro, login, códigos, etc.
   registro: z.object({ nombre: texto(60), apellido: texto(60), email, password }),
   verificarEmail: z.object({ email, codigo }),
   login: z.object({ email, password: z.string({ required_error: 'Obligatorio' }).min(1, 'Obligatorio').max(72) }),
@@ -28,7 +26,6 @@ const S = {
   reset: z.object({ email, codigo, password }),
 };
 
-// Rutas de autenticación: registro, login, códigos, etc.
 router.post('/registro', validar(S.registro), asyncHandler(ctl.registro));
 router.post('/verificar-email', validar(S.verificarEmail), asyncHandler(ctl.verificarEmail));
 router.post('/login', validar(S.login), asyncHandler(ctl.login));
@@ -40,4 +37,4 @@ router.post('/logout', validar(S.refresh), asyncHandler(ctl.logout));
 router.post('/olvide-password', validar(S.olvide), asyncHandler(ctl.olvidePassword));
 router.post('/reset-password', validar(S.reset), asyncHandler(ctl.resetPassword));
 
-module.exports = router;
+export default router;

@@ -1,16 +1,14 @@
 // Validadores zod reutilizables (mensajes en español).
-const { z } = require('zod');
+import { z } from 'zod';
 
 const id = z.coerce.number({ invalid_type_error: 'Debe ser un número' }).int('Debe ser entero').positive('Debe ser positivo');
 
-// Validadores zod reutilizables (mensajes en español).
 const texto = (max = 255) =>
   z.string({ required_error: 'Obligatorio', invalid_type_error: 'Debe ser texto' })
     .trim().min(1, 'Obligatorio').max(max, `Máximo ${max} caracteres`);
 
 const textoOpc = (max = 255) => z.string({ invalid_type_error: 'Debe ser texto' }).trim().max(max, `Máximo ${max} caracteres`).nullish();
 
-// Validadores zod reutilizables (mensajes en español).
 const email = z.string({ required_error: 'Obligatorio', invalid_type_error: 'Debe ser texto' })
   .trim().toLowerCase().email('Email inválido').max(120, 'Máximo 120 caracteres');
 
@@ -29,4 +27,4 @@ const curso = z.string({ required_error: 'Obligatorio', invalid_type_error: 'Deb
 const dni = z.string({ required_error: 'Obligatorio', invalid_type_error: 'Debe ser texto' }).trim()
   .transform((v) => v.replace(/[.\s]/g, '')).pipe(z.string().regex(/^\d{6,9}$/, 'El DNI debe tener entre 6 y 9 números'));
 
-module.exports = { curso, dni, z, id, texto, textoOpc, email, password, codigo, color, urlOpc };
+export { curso, dni, z, id, texto, textoOpc, email, password, codigo, color, urlOpc };

@@ -1,29 +1,26 @@
 // Categorías y libros (stock). "Eliminar" es siempre una baja lógica o falla si el elemento está en uso.
-const { buscarPortada } = require('../services/portadas');
-const { pool, consultar } = require('../config/db');
-const { err } = require('../utils/httpError');
-const { SQL_LIBRO, conCategorias, EN_CATEGORIA, guardarCategorias, obtenerLibro, autorId, ejemplaresEnUso } = require('../services/libros');
+import { buscarPortada } from '../services/portadas.js';
+import { pool, consultar, transaccion } from '../config/db.js';
+import { err } from '../utils/httpError.js';
+import { SQL_LIBRO, conCategorias, EN_CATEGORIA, guardarCategorias, obtenerLibro, autorId, ejemplaresEnUso } from '../services/libros.js';
 
-// categorías
+// ---------------------------------------------------------------- categorías
 const SQL_CATEGORIA = `
   SELECT c.id, c.codigo, c.nombre, c.descripcion, c.icono, c.color,
          (SELECT COUNT(*) FROM libros l WHERE l.activo = 1 AND (l.categoria_id = c.id OR EXISTS (SELECT 1 FROM libro_categorias lc WHERE lc.libro_id = l.id AND lc.categoria_id = c.id))) AS total_libros
   FROM categorias c`;
 
-// Devuelve la categoría con el total de libros, o null si no existe
 const categoriaPorId = async (id) => {
   const [c] = await consultar(`${SQL_CATEGORIA} WHERE c.id = ?`, [id]);
   return c ? { ...c, total_libros: Number(c.total_libros) } : null;
 };
 
-// Devuelve la lista de categorías con el total de libros
-exports.categoriasListar = async (req, res) => {
+export const categoriasListar = async (req, res) => {
   const filas = await consultar(`${SQL_CATEGORIA} ORDER BY c.id`);
   res.json({ ok: true, data: { categorias: filas.map((c) => ({ ...c, total_libros: Number(c.total_libros) })) } });
 };
 
-// Devuelve la categoría con el total de libros, o lanza error si no existe
-exports.categoriasCrear = async (req, res) => {
+export const categoriasCrear = async (req, res) => {
   const { codigo, nombre, descripcion, icono, color } = req.body;
   const r = await consultar(
     'INSERT INTO categorias (codigo, nombre, descripcion, icono, color) VALUES (?, ?, ?, ?, ?)',
@@ -31,8 +28,7 @@ exports.categoriasCrear = async (req, res) => {
   res.status(201).json({ ok: true, data: { categoria: await categoriaPorId(r.insertId) } });
 };
 
-// Devuelve la categoría con el total de libros, o lanza error si no existe
-exports.categoriasActualizar = async (req, res) => {
+export const categoriasActualizar = async (req, res) => {
   const { id, ...resto } = req.body;
   const campos = Object.fromEntries(Object.entries(resto).filter(([, v]) => v !== undefined));
   if (!(await categoriaPorId(id))) throw err.noEncontrado('La categoría');
@@ -40,19 +36,30 @@ exports.categoriasActualizar = async (req, res) => {
   res.json({ ok: true, data: { categoria: await categoriaPorId(id) } });
 };
 
-// Devuelve { eliminado: true } o lanza error si no existe o tiene libros
-exports.categoriasEliminar = async (req, res) => {
+export const categoriasEliminar = async (req, res) => {
   const { id } = req.body;
   if (!(await categoriaPorId(id))) throw err.noEncontrado('La categoría');
-  const [{ total }] = await consultar('SELECT (SELECT COUNT(*) FROM libros WHERE categoria_id = ?) + (SELECT COUNT(*) FROM libro_categorias WHERE categoria_id = ?) AS total', [id, id]);
-  if (total > 0) throw err.conflicto('CATEGORIA_CON_LIBROS', 'No se puede eliminar: la categoría todavía tiene libros. Movelos a otra categoría primero.');
-  await consultar('DELETE FROM categorias WHERE id = ?', [id]);
+  // Solo cuentan los libros activos (los dados de baja no se ven en ningún listado).
+  const [{ total }] = await consultar(
+    `SELECT COUNT(DISTINCT l.id) AS total FROM libros l
+     WHERE l.activo = 1 AND (l.categoria_id = ? OR l.id IN (SELECT libro_id FROM libro_categorias WHERE categoria_id = ?))`, [id, id]);
+  if (total > 0) {
+    throw err.conflicto('CATEGORIA_CON_LIBROS', `No se puede eliminar: la categoría todavía tiene ${total} libro${total === 1 ? '' : 's'}. Movelos a otra categoría primero.`);
+  }
+  await transaccion(async (conn) => {
+    // Los libros dados de baja que la usaban pasan a otra categoría para no romper la referencia.
+    const [[otra]] = await conn.query('SELECT id FROM categorias WHERE id <> ? ORDER BY id LIMIT 1', [id]);
+    const [[{ inactivos }]] = await conn.query('SELECT COUNT(*) AS inactivos FROM libros WHERE categoria_id = ?', [id]);
+    if (inactivos > 0 && !otra) throw err.conflicto('CATEGORIA_CON_LIBROS', 'No se puede eliminar la única categoría existente.');
+    await conn.query('DELETE FROM libro_categorias WHERE categoria_id = ?', [id]);
+    if (inactivos > 0) await conn.query('UPDATE libros SET categoria_id = ? WHERE categoria_id = ?', [otra.id, id]);
+    await conn.query('DELETE FROM categorias WHERE id = ?', [id]);
+  });
   res.json({ ok: true, data: { eliminado: true } });
 };
 
-// libros
-// Devuelve el libro con las categorías y el stock, o null si no existe
-exports.librosListar = async (req, res) => {
+// -------------------------------------------------------------------- libros
+export const librosListar = async (req, res) => {
   const { categoria_id, q, solo_disponibles } = req.body;
   const donde = ['l.activo = 1'];
   const params = [];
@@ -67,15 +74,14 @@ exports.librosListar = async (req, res) => {
 
 const normalizar = (l) => (l ? { ...l, disponibles: Number(l.disponibles) } : l);
 
-// Devuelve el libro con las categorías y el stock, o lanza error si no existe
-exports.librosDetalle = async (req, res) => {
+export const librosDetalle = async (req, res) => {
   const libro = await obtenerLibro(req.body.id);
   if (!libro) throw err.noEncontrado('El libro');
   res.json({ ok: true, data: { libro: normalizar(libro) } });
 };
 
 /** Las últimas 10 personas que usaron el libro, con fecha de retiro y de devolución (solo personal). */
-exports.librosHistorial = async (req, res) => {
+export const librosHistorial = async (req, res) => {
   const libro = await obtenerLibro(req.body.id);
   if (!libro) throw err.noEncontrado('El libro');
   const filas = await consultar(
@@ -88,8 +94,7 @@ exports.librosHistorial = async (req, res) => {
   res.json({ ok: true, data: { historial: filas } });
 };
 
-// Devuelve el libro con las categorías y el stock, o lanza error si no existe
-exports.librosCrear = async (req, res) => {
+export const librosCrear = async (req, res) => {
   const { titulo, autor, categoria_id, categoria_ids, descripcion, stock_total, portada_url } = req.body;
   const cats = categoria_ids?.length ? categoria_ids : [categoria_id];
   if (!cats[0]) throw err.validacion('Elegí al menos una categoría.', { categoria_ids: 'Obligatorio' });
@@ -106,15 +111,13 @@ exports.librosCrear = async (req, res) => {
   res.status(201).json({ ok: true, data: { libro: normalizar(await obtenerLibro(r.insertId)) } });
 };
 
-// Devuelve el libro con las categorías y el stock, o lanza error si no existe
-exports.librosActualizar = async (req, res) => {
+export const librosActualizar = async (req, res) => {
   const { id, autor, categoria_ids, ...resto } = req.body;
   const actual = await obtenerLibro(id);
   if (!actual) throw err.noEncontrado('El libro');
   const cats = categoria_ids?.length ? categoria_ids : (resto.categoria_id ? [resto.categoria_id] : null);
   delete resto.categoria_id; // las categorías se guardan aparte
 
-  // Se filtran los campos que no se quieren actualizar (undefined) y se normalizan los nulos
   const campos = Object.fromEntries(Object.entries(resto).filter(([, v]) => v !== undefined));
   if ('descripcion' in campos) campos.descripcion = campos.descripcion || null;
   if ('portada_url' in campos) campos.portada_url = campos.portada_url || null;
@@ -125,29 +128,23 @@ exports.librosActualizar = async (req, res) => {
     if (encontrada) campos.portada_url = encontrada;
   }
 
-  // Se valida que el stock no quede por debajo de los ejemplares en uso
   if (campos.stock_total !== undefined) {
     const enUso = await ejemplaresEnUso(id);
     if (campos.stock_total < enUso) {
       throw err.conflicto('LIBRO_EN_USO', `No podés dejar el stock en ${campos.stock_total}: hay ${enUso} ejemplar(es) prestados o reservados.`);
     }
   }
-
-  // Se actualiza el libro y las categorías (si se indicaron)
   if (Object.keys(campos).length) await consultar('UPDATE libros SET ? WHERE id = ?', [campos, id]);
   if (cats && !(await guardarCategorias(id, cats))) throw err.validacion('Alguna de las categorías no existe.', { categoria_ids: 'Categoría inválida' });
   res.json({ ok: true, data: { libro: normalizar(await obtenerLibro(id)) } });
 };
 
-// busca la portada de un libro usando su título y autor, 
-// y devuelve la URL de la imagen encontrada en formato JSON
-exports.librosBuscarPortada = async (req, res) => {
+export const librosBuscarPortada = async (req, res) => {
   const url = await buscarPortada(req.body.titulo, req.body.autor);
   res.json({ ok: true, data: { portada_url: url } });
 };
 
-// Devuelve { eliminado: true } o lanza error si no existe o está en uso
-exports.librosEliminar = async (req, res) => {
+export const librosEliminar = async (req, res) => {
   const { id } = req.body;
   if (!(await obtenerLibro(id))) throw err.noEncontrado('El libro');
   if ((await ejemplaresEnUso(id)) > 0) {

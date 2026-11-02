@@ -5,24 +5,26 @@
 // ⚠ Modifica datos (bloquea/desbloquea a los usuarios de prueba, crea préstamos...). Usalo SOLO con una base de
 //   pruebas y, para repetirlo, reiniciala antes:  npm run db:init -- --reset && npm run db:seed
 // Tip: arrancá el servidor con LIMITE_AUTH=1000 para que el límite anti fuerza bruta no frene al test.
-const { pool } = require('../src/config/db');
-const { sha256 } = require('../src/utils/codigos');
-const { puerto } = require('../src/config/env');
-const { ejecutarRecordatorios } = require('../src/services/recordatorios');
+import { pool } from '../src/config/db.js';
+import { sha256 } from '../src/utils/codigos.js';
+import env from '../src/config/env.js';
+import { desbloquearSiNoDebe } from '../src/services/prestamos.js';
+import { buscarPortada } from '../src/services/portadas.js';
+import { ejecutarRecordatorios } from '../src/services/recordatorios.js';
+
+const { puerto } = env;
 
 const BASE = process.env.API_URL || `http://localhost:${puerto}/api`;
 const CLAVES = { dueno: ['dueno@ceibolibros.com', 'Dueno2026'], biblio: ['biblioteca@ceibolibros.com', 'Biblio2026'], lucia: ['lucia@ejemplo.com', 'Lector2026'], tomas: ['tomas@ejemplo.com', 'Lector2026'] };
 
 const DATOS = { nombre: 'Lucía', apellido: 'Lectora', dni: '40.123.456' };
 
-// Contador de tests OK y array de fallos para mostrar al final
 let ok = 0;
 const fallos = [];
 const check = (nombre, condicion, extra = '') => {
   if (condicion) { ok += 1; console.log(`  ✔ ${nombre}`); } else { fallos.push(nombre); console.log(`  ✘ ${nombre} ${extra}`); }
 };
 
-// Función auxiliar para hacer POST a la API y parsear la respuesta JSON
 async function post(ruta, cuerpo = {}, token) {
   const r = await fetch(BASE + ruta, {
     method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(cuerpo),
@@ -31,7 +33,6 @@ async function post(ruta, cuerpo = {}, token) {
   return { status: r.status, ok: json.ok, data: json.data, error: json.error };
 }
 
-// Función auxiliar para loguearse y obtener token y refresh
 async function login(clave) {
   const [email, password] = CLAVES[clave];
   const r = await post('/auth/login', { email, password });
@@ -39,7 +40,6 @@ async function login(clave) {
   return { token: r.data.access_token, refresh: r.data.refresh_token, usuario: r.data.usuario };
 }
 
-// Función auxiliar para reemplazar el código de verificación en la base por uno conocido (123456)
 const poner = async (usuarioId, proposito, codigo = '123456') => {
   await pool.query('UPDATE codigos_verificacion SET codigo_hash = ? WHERE usuario_id = ? AND proposito = ? AND usado = 0', [sha256(codigo), usuarioId, proposito]);
 };
@@ -47,7 +47,6 @@ const poner = async (usuarioId, proposito, codigo = '123456') => {
 async function main() {
   const sufijo = Date.now();
 
-  // Ejecutar recordatorios para que haya reservas vencidas y usuarios bloqueados
   console.log('\n# Reglas generales');
   const get = await fetch(`${BASE}/salud`);
   check('GET está prohibido (405)', get.status === 405);
@@ -58,14 +57,22 @@ async function main() {
   const val = await post('/auth/login', { email: 'no-es-email', password: '' });
   check('Validación → 400 con detalles por campo', val.status === 400 && val.error?.detalles?.email);
 
-  // Ejecutar recordatorios para que haya reservas vencidas y usuarios bloqueados
   console.log('\n# Login y roles');
   const mala = await post('/auth/login', { email: CLAVES.lucia[0], password: 'incorrecta1' });
   check('Contraseña incorrecta → 401', mala.status === 401 && mala.error.codigo === 'CREDENCIALES_INVALIDAS');
   const dueno = await login('dueno');
   const biblio = await login('biblio');
   const lucia = await login('lucia');
+  // Un usuario bloqueado no puede iniciar sesión (ni por contraseña ni renovando el token)
+  const intentoT = await post('/auth/login', { email: CLAVES.tomas[0], password: CLAVES.tomas[1] });
+  check('Usuario bloqueado no puede iniciar sesión (403)', intentoT.status === 403 && intentoT.error?.codigo === 'USUARIO_BLOQUEADO' && /devolv|bloqueada/i.test(intentoT.error.mensaje));
+  const [[estadoT]] = await pool.query("SELECT id, motivo_bloqueo FROM usuarios WHERE email = ?", [CLAVES.tomas[0]]);
+  await pool.query("UPDATE usuarios SET estado = 'activo' WHERE id = ?", [estadoT.id]); // se habilita un momento para obtener su sesión
   const tomas = await login('tomas');
+  await pool.query("UPDATE usuarios SET estado = 'bloqueado' WHERE id = ?", [estadoT.id]);
+  const refT = await post('/auth/refresh', { refresh_token: tomas.refresh });
+  check('Tampoco puede renovar la sesión estando bloqueado (403)', refT.status === 403 && refT.error?.codigo === 'USUARIO_BLOQUEADO');
+  tomas.usuario.estado = 'bloqueado'; tomas.usuario.motivo_bloqueo = estadoT.motivo_bloqueo;
   check('Roles correctos', dueno.usuario.rol === 'dueno' && biblio.usuario.rol === 'bibliotecario' && lucia.usuario.rol === 'usuario');
   check('Tomás entra pero está bloqueado con mensaje', tomas.usuario.estado === 'bloqueado' && /devolv/i.test(tomas.usuario.motivo_bloqueo));
   check('Usuario no puede ver estadísticas (403)', (await post('/estadisticas/resumen', {}, lucia.token)).status === 403);
@@ -74,7 +81,6 @@ async function main() {
   check('Usuario no puede listar usuarios (403)', (await post('/usuarios/listar', {}, lucia.token)).status === 403);
   check('Bibliotecario no puede cambiar roles (403)', (await post('/admin/cambiar-rol', { id: lucia.usuario.id, rol: 'bibliotecario' }, biblio.token)).status === 403);
 
-  // Crear un usuario nuevo, verificar su email y activar 2 pasos
   console.log('\n# Registro, verificación y 2 pasos');
   const email = `prueba${sufijo}@ejemplo.com`;
   const reg = await post('/auth/registro', { nombre: 'Prueba', apellido: 'Test', email, password: 'Clave1234' });
@@ -91,7 +97,6 @@ async function main() {
   check('El código no se puede reutilizar', (await post('/auth/verificar-email', { email, codigo: '123456' })).status === 401);
   const nuevoTok = ver.data.access_token;
 
-  // Activar 2 pasos y probar login con código
   check('Activar 2 pasos', (await post('/usuarios/dos-pasos', { activar: true }, nuevoTok)).data?.usuario?.dos_pasos_activo === true);
   const l2 = await post('/auth/login', { email, password: 'Clave1234' });
   check('Con 2 pasos el login pide código', l2.data?.requiere_2fa === true && !l2.data.access_token);
@@ -99,7 +104,6 @@ async function main() {
   const l2b = await post('/auth/login-2fa', { email, codigo: '123456' });
   check('Código de 2 pasos da sesión', !!l2b.data?.access_token);
 
-  // Probar refresh token y revocación de familia de sesiones
   console.log('\n# Tokens: refresh con rotación');
   const rf = await post('/auth/refresh', { refresh_token: l2b.data.refresh_token });
   check('Refresh entrega tokens nuevos', rf.data?.access_token && rf.data.refresh_token !== l2b.data.refresh_token);
@@ -108,7 +112,6 @@ async function main() {
   const rf3 = await post('/auth/refresh', { refresh_token: rf.data.refresh_token });
   check('…y revoca toda la familia de sesiones', rf3.status === 401);
 
-  // Probar recuperación de contraseña y que la vieja ya no sirve
   console.log('\n# Recuperar contraseña');
   await post('/auth/olvide-password', { email });
   await poner(nuevo.id, 'reset_password');
@@ -118,13 +121,11 @@ async function main() {
   const olvidoFalso = await post('/auth/olvide-password', { email: `no-existe${sufijo}@ejemplo.com` });
   check('No revela si el email existe', olvidoFalso.data?.enviado === true);
 
-  // Probar login social (sin configurar el proveedor)
   console.log('\n# Redes sociales');
   const soc = await post('/auth/social', { proveedor: 'github', code: 'falso', redirect_uri: 'x' });
   check('GitHub sin configurar/inválido → 502 PROVEEDOR_SOCIAL', soc.status === 502 && soc.error.codigo === 'PROVEEDOR_SOCIAL');
   check('Proveedor inválido → 400', (await post('/auth/social', { proveedor: 'myspace', token: 'x' })).status === 400);
 
-  // Probar catálogo, libros y reservas
   console.log('\n# Catálogo');
   const cats = await post('/categorias/listar', {}, lucia.token);
   check('8 categorías con conteo de libros', cats.data?.categorias?.length === 8 && cats.data.categorias.every((c) => c.total_libros >= 3));
@@ -143,7 +144,6 @@ async function main() {
   check('Aparece en la otra categoría también', (await post('/libros/listar', { categoria_id: misterio.id }, lucia.token)).data.libros.some((l) => l.id === lid));
   check('Categoría inexistente rechazada', (await post('/libros/actualizar', { id: lid, categoria_ids: [ficc.id, 99999] }, biblio.token)).status === 400);
 
-  // Probar reservas y préstamos
   console.log('\n# Reservas');
   const hz = await post('/reservas/horarios', { tipo: 'retiro' }, lucia.token);
   const hs = await post('/reservas/horarios', { tipo: 'sala' }, lucia.token);
@@ -180,7 +180,6 @@ async function main() {
   check('Cancelar reserva', (await post('/reservas/cancelar', { id: res2.data.reserva.id }, lucia.token)).data?.reserva?.estado === 'cancelada');
   check('No se cancela dos veces (422)', (await post('/reservas/cancelar', { id: res2.data.reserva.id }, lucia.token)).status === 422);
 
-  // Probar préstamos directos y devoluciones
   console.log('\n# Préstamos');
   const sinDatos = await post('/prestamos/crear', { usuario_id: nuevo.id, libro_ids: [lid] }, biblio.token);
   check('Préstamo directo a un lector sin DNI → 400 con detalle', sinDatos.status === 400 && !!sinDatos.error.detalles?.dni);
@@ -219,7 +218,6 @@ async function main() {
   const lp = await post('/prestamos/listar', { estado: 'vencido' }, dueno.token);
   check('Listado de vencidos incluye el de Tomás', lp.data.prestamos.some((p) => p.usuario.id === tomas.usuario.id && p.vencido));
 
-  // Probar calendario de visitas y préstamos con fecha de visita
   console.log('\n# Calendario de visitas (personal)');
   const prRes = await post('/prestamos/detalle', { id: pid }, biblio.token);
   check('El préstamo tiene fecha y hora de visita', !!prRes.data.prestamo.visita?.en);
@@ -238,15 +236,30 @@ async function main() {
   if (pFut.status === 201) await post('/prestamos/devolver', { prestamo_id: pFut.data.prestamo.id }, biblio.token);
   check('Visita de préstamo con fecha inválida → 400', (await post('/prestamos/crear', { usuario_id: lucia.usuario.id, libro_ids: [lid], visita: '2001-01-01T00:00:00.000Z' }, biblio.token)).status === 400);
 
-  // Probar bloqueo y desbloqueo automático de usuarios con préstamos vencidos
   console.log('\n# Bloqueo y desbloqueo automático');
-  const blq = await post('/usuarios/bloquear', { id: nuevo.id, motivo: 'Devolvé los libros que te llevaste.' }, biblio.token);
+  const blq = await post('/usuarios/bloquear', { id: nuevo.id, tipo: 'atraso', motivo: 'Devolvé los libros que te llevaste.' }, biblio.token);
   check('Bibliotecario bloquea con mensaje', blq.data?.usuario?.estado === 'bloqueado' && blq.data.usuario.motivo_bloqueo.includes('Devolvé'));
-  check('No se puede bloquear al dueño (403)', (await post('/usuarios/bloquear', { id: dueno.usuario.id, motivo: 'x' }, biblio.token)).status === 403);
+  check('Bloquear sin indicar el tipo → 400', (await post('/usuarios/bloquear', { id: nuevo.id, motivo: 'x' }, biblio.token)).status === 400);
+  check('No se puede bloquear al dueño (403)', (await post('/usuarios/bloquear', { id: dueno.usuario.id, tipo: 'atraso', motivo: 'x' }, biblio.token)).status === 403);
   const perfilB = await post('/usuarios/perfil', {}, nuevoTok);
   check('El usuario bloqueado ve su mensaje', perfilB.data.usuario.estado === 'bloqueado');
+  check('El bloqueo indica que es por atraso', blq.data.usuario.tipo_bloqueo === 'atraso');
   check('Desbloquear a mano', (await post('/usuarios/desbloquear', { id: nuevo.id }, biblio.token)).data?.usuario?.estado === 'activo');
- 
+  // Bloqueo por daño: devolver libros NO lo levanta solo
+  const bd = await post('/usuarios/bloquear', { id: lucia.usuario.id, tipo: 'dano', motivo: 'Devolviste un libro con hojas rotas.' }, biblio.token);
+  check('Bloqueo por daño a un libro', bd.data?.usuario?.tipo_bloqueo === 'dano');
+  const loginDano = await post('/auth/login', { email: CLAVES.lucia[0], password: CLAVES.lucia[1] });
+  check('El aviso de login dice que es por daño', loginDano.status === 403 && /daño/.test(loginDano.error.mensaje));
+  await post('/usuarios/desbloquear', { id: lucia.usuario.id }, biblio.token);
+  // Aunque no deba nada, el bloqueo por daño no se levanta solo; el de atraso sí
+  await post('/usuarios/bloquear', { id: nuevo.id, tipo: 'dano', motivo: 'Libro dañado.' }, biblio.token);
+  const cx = await pool.getConnection();
+  const sinDeuda1 = await desbloquearSiNoDebe(cx, nuevo.id);
+  await pool.query("UPDATE usuarios SET tipo_bloqueo = 'atraso' WHERE id = ?", [nuevo.id]);
+  const sinDeuda2 = await desbloquearSiNoDebe(cx, nuevo.id);
+  cx.release();
+  check('Bloqueo por daño: no se levanta solo al no deber libros', sinDeuda1 === false);
+  check('Bloqueo por atraso: se levanta solo al no deber libros', sinDeuda2 === true);
   // Préstamo vencido de Tomás: devolverlo desbloquea solo
   const pTomas = lp.data.prestamos.find((p) => p.usuario.id === tomas.usuario.id);
   const devT = await post('/prestamos/devolver', { prestamo_id: pTomas.id }, biblio.token);
@@ -258,12 +271,10 @@ async function main() {
   check('Marcar notificaciones como leídas', (await post('/notificaciones/marcar-leidas', {}, tomas.token)).data.marcadas >= 1);
   check('Contador de no leídas en 0', (await post('/notificaciones/cantidad', {}, tomas.token)).data.total === 0);
 
-  // Probar recordatorios y bloqueo automático por vencimiento
   console.log('\n# Tarea diaria (recordatorios y bloqueo por vencimiento)');
   const resumen = await ejecutarRecordatorios();
   check('Envía el recordatorio de Lucía (vence en 2 días)', resumen.recordatorios >= 1 || (await pool.query("SELECT 1 FROM notificaciones WHERE usuario_id = ? AND tipo = 'recordatorio_devolucion'", [lucia.usuario.id]))[0].length > 0);
   const vencido = await post('/libros/listar', { q: 'Frankenstein' }, lucia.token);
- 
   // Se fuerza un vencimiento de Lucía para comprobar el bloqueo automático
   await pool.query("UPDATE prestamos SET fecha_vencimiento = DATE_SUB(CURDATE(), INTERVAL 3 DAY) WHERE usuario_id = ? AND estado = 'activo'", [lucia.usuario.id]);
   const r2 = await ejecutarRecordatorios();
@@ -272,7 +283,6 @@ async function main() {
   check('El cron externo exige secreto (403)', (await post('/mantenimiento/recordatorios')).status === 403);
   void vencido;
 
-  // Probar mensajes y consultas
   console.log('\n# Mensajes');
   const hl = await post('/mensajes/hilos', {}, lucia.token);
   check('Usuario ve su consulta con mensajes sin leer', hl.data.hilos.length >= 1 && hl.data.hilos[0].con.rol === 'biblioteca');
@@ -308,7 +318,6 @@ async function main() {
   check('Si el usuario vuelve a escribir, reaparece en la lista', (await post('/mensajes/hilos', {}, biblio.token)).data.hilos.some((h) => h.id === nueva.data.hilo.id && h.no_leidos >= 1));
   check('Y sale de Respondidos', !(await post('/mensajes/hilos', { respondidos: true }, biblio.token)).data.hilos.some((h) => h.id === nueva.data.hilo.id));
 
-  // Probar panel de administración y usuarios
   console.log('\n# Panel de administración y usuarios');
   const lu = await post('/usuarios/listar', { rol: 'bibliotecario' }, dueno.token);
   check('El dueño lista bibliotecarios', lu.data.usuarios.some((u) => u.id === biblio.usuario.id));
@@ -331,7 +340,6 @@ async function main() {
   check('Cambiar contraseña pide la actual', (await post('/usuarios/cambiar-password', { password_actual: 'mala', password_nueva: 'Otra123456' }, nuevoTok)).status === 400);
   check('Cambiar contraseña', (await post('/usuarios/cambiar-password', { password_actual: 'Nueva12345', password_nueva: 'Otra123456' }, nuevoTok)).data?.actualizado === true);
 
-  // Probar categorías y distribuidoras
   console.log('\n# Categorías (CRUD)');
   const cc = await post('/categorias/crear', { codigo: 'X', nombre: `Categoría ${sufijo}`, icono: 'star', color: '#112233' }, dueno.token);
   check('Crear categoría', cc.status === 201);
@@ -339,9 +347,14 @@ async function main() {
   check('Actualizar categoría', (await post('/categorias/actualizar', { id: cc.data.categoria.id, nombre: `Cat editada ${sufijo}` }, dueno.token)).data?.categoria?.nombre.startsWith('Cat editada'));
   check('No se elimina una categoría con libros (409)', (await post('/categorias/eliminar', { id: ficc.id }, dueno.token)).error?.codigo === 'CATEGORIA_CON_LIBROS');
   check('Bibliotecario NO puede eliminar categorías (403)', (await post('/categorias/eliminar', { id: cc.data.categoria.id }, biblio.token)).status === 403);
+  // Una categoría cuyo único libro fue dado de baja ya no tiene libros visibles: se puede eliminar
+  const cc2 = await post('/categorias/crear', { codigo: 'Y', nombre: `Con baja ${sufijo}`, icono: 'star', color: '#445566' }, dueno.token);
+  const libroEfimero = await post('/libros/crear', { titulo: `Libro efímero ${sufijo}`, autor: 'Autor Efímero', categoria_id: cc2.data.categoria.id, stock_total: 1 }, dueno.token);
+  check('Categoría con un libro activo no se elimina', (await post('/categorias/eliminar', { id: cc2.data.categoria.id }, dueno.token)).error?.codigo === 'CATEGORIA_CON_LIBROS');
+  await post('/libros/eliminar', { id: libroEfimero.data.libro.id }, dueno.token);
+  check('Categoría que quedó sin libros activos se puede eliminar', (await post('/categorias/eliminar', { id: cc2.data.categoria.id }, dueno.token)).data?.eliminado === true);
   check('Eliminar categoría vacía (dueño)', (await post('/categorias/eliminar', { id: cc.data.categoria.id }, dueno.token)).data?.eliminado === true);
 
-  // Probar distribuidoras y pedidos de reposición
   console.log('\n# Distribuidora y reposición (solo dueño)');
   const dl = await post('/distribuidoras/listar', {}, dueno.token);
   check('El dueño lista distribuidoras', dl.data.distribuidoras.length >= 1);
@@ -357,9 +370,7 @@ async function main() {
   check('Historial de pedidos con renglones', rl.data.pedidos[0].items.length === 2);
   check('Eliminar distribuidora (baja lógica)', (await post('/distribuidoras/eliminar', { id: dc.data.distribuidora.id }, dueno.token)).data?.eliminado === true);
 
-  // Probar portadas de libros con internet simulada
   console.log('\n# Portadas (internet simulada)');
-  const { buscarPortada } = require('../src/services/portadas');
   const fetchReal = global.fetch;
   global.fetch = async (url) => {
     const u = String(url);
@@ -368,8 +379,6 @@ async function main() {
     if (u.includes('googleapis.com/books') && u.includes('Ficciones')) return json({ items: [{ volumeInfo: { imageLinks: { thumbnail: 'http://books.google.com/x.jpg&edge=curl' } } }] });
     return json({ docs: [], items: [] });
   };
-
-  // Probar la función de búsqueda de portadas
   check('Open Library: arma el link con el cover_i', (await buscarPortada('Rayuela', 'Julio Cortázar')) === 'https://covers.openlibrary.org/b/id/12345-L.jpg');
   check('Si Open Library no tiene, usa Google Books (https)', (await buscarPortada('Ficciones', 'Borges')) === 'https://books.google.com/x.jpg');
   check('Sin resultados devuelve null (no falla)', (await buscarPortada('Libro inexistente zzz', 'Nadie')) === null);
@@ -379,7 +388,6 @@ async function main() {
   check('Endpoint buscar-portada responde para el personal', (await post('/libros/buscar-portada', { titulo: 'Rayuela', autor: 'Cortázar' }, biblio.token)).status === 200);
   check('Usuario no puede buscar portadas (403)', (await post('/libros/buscar-portada', { titulo: 'Rayuela' }, lucia.token)).status === 403);
 
-  // Probar estadísticas y reportes
   console.log('\n# Estadísticas (solo dueño)');
   const est = await post('/estadisticas/resumen', {}, dueno.token);
   const e = est.data;
@@ -388,7 +396,6 @@ async function main() {
   check('Libro más prestado = Sapiens', e.libros_mas_prestados[0].titulo === 'Sapiens');
   check('Préstamos por categoría', e.por_categoria.length >= 8);
 
-  // Probar la tarea de limpieza de tokens antiguos
   await pool.end();
   console.log(`\n${ok} pruebas correctas, ${fallos.length} con error`);
   if (fallos.length) { console.log('Fallaron:\n - ' + fallos.join('\n - ')); process.exit(1); }

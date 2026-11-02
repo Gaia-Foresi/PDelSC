@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "API REST de Ceibo Libros · Biblioteca (Node.js + Express + MySQL)",
   "main": "src/server.js",
+  "type": "module",
   "private": true,
   "engines": { "node": ">=18" },
   "scripts": {

@@ -1,14 +1,14 @@
 // Autenticación: registro, verificación de email, login (con 2 pasos opcional), redes sociales,
 // renovación de tokens y recuperación de contraseña.
-const bcrypt = require('bcryptjs');
-const crypto = require('crypto');
-const { consultar, transaccion } = require('../config/db');
-const { err, HttpError } = require('../utils/httpError');
-const { SQL_USUARIO } = require('../utils/serializers');
-const { generarCodigo, sha256 } = require('../utils/codigos');
-const { enviarCodigo } = require('../services/mailer');
-const tokens = require('../services/tokens');
-const oauth = require('../services/oauth');
+import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
+import { consultar, transaccion } from '../config/db.js';
+import { err, HttpError } from '../utils/httpError.js';
+import { SQL_USUARIO } from '../utils/serializers.js';
+import { generarCodigo, sha256 } from '../utils/codigos.js';
+import { enviarCodigo } from '../services/mailer.js';
+import * as tokens from '../services/tokens.js';
+import * as oauth from '../services/oauth.js';
 
 const COSTO_BCRYPT = 10;
 const MAX_INTENTOS_CODIGO = 5;
@@ -17,7 +17,7 @@ const HASH_RELLENO = bcrypt.hashSync('relleno-no-usar', COSTO_BCRYPT);
 
 const buscarPorEmail = async (email) =>
   (await consultar(
-    'SELECT id, nombre, email, password_hash, email_verificado, dos_pasos_activo FROM usuarios WHERE email = ?', [email]))[0];
+    'SELECT id, nombre, email, password_hash, email_verificado, dos_pasos_activo, estado, motivo_bloqueo, tipo_bloqueo FROM usuarios WHERE email = ?', [email]))[0];
 
 const cargarUsuario = async (id) => (await consultar(`${SQL_USUARIO} WHERE u.id = ?`, [id]))[0];
 
@@ -44,7 +44,6 @@ async function verificarCodigo(usuarioId, proposito, codigo) {
     [usuarioId, proposito]);
   if (!c || c.intentos >= MAX_INTENTOS_CODIGO) throw err.codigoInvalido();
 
-  // Comparación segura de hashes: timingSafeEqual evita ataques de tiempo que revelen el hash correcto.
   const esperado = Buffer.from(c.codigo_hash, 'hex');
   const recibido = Buffer.from(sha256(codigo), 'hex');
   if (!crypto.timingSafeEqual(esperado, recibido)) {
@@ -56,15 +55,22 @@ async function verificarCodigo(usuarioId, proposito, codigo) {
   if (r.affectedRows === 0) throw err.codigoInvalido();
 }
 
-const sesionDe = async (id) => tokens.emitirSesion(await cargarUsuario(id));
+/** Una cuenta bloqueada no puede iniciar sesión (ni por contraseña, ni con 2 pasos, ni con redes sociales). */
+const exigirNoBloqueado = (u) => {
+  if (u?.estado === 'bloqueado') throw err.bloqueado(`Tu cuenta está bloqueada ${u.tipo_bloqueo === 'dano' ? 'por daño a un libro' : 'por atraso en la devolución'} y no podés iniciar sesión.${u.motivo_bloqueo ? ` Motivo: ${u.motivo_bloqueo}` : ''} Acercate a la biblioteca para regularizarla.`);
+};
 
-// Registro de un nuevo usuario (o reenvío de código si ya estaba registrado pero no verificado)
-exports.registro = async (req, res) => {
+const sesionDe = async (id) => {
+  const usuario = await cargarUsuario(id);
+  exigirNoBloqueado(usuario);
+  return tokens.emitirSesion(usuario);
+};
+
+export const registro = async (req, res) => {
   const { nombre, apellido, email, password } = req.body;
   const existente = await buscarPorEmail(email);
   if (existente?.email_verificado) throw err.conflicto('EMAIL_EN_USO', 'Ese email ya está registrado. Iniciá sesión.');
 
-  // Si ya había un registro sin verificar, se pisa el nombre, apellido y contraseña. Si no, se crea uno nuevo.
   const hash = await bcrypt.hash(password, COSTO_BCRYPT);
   let usuario;
   if (existente) {
@@ -80,8 +86,7 @@ exports.registro = async (req, res) => {
   res.status(201).json({ ok: true, data: { requiere_verificacion: true, email } });
 };
 
-// Verifica el código de verificación de email
-exports.verificarEmail = async (req, res) => {
+export const verificarEmail = async (req, res) => {
   const { email, codigo } = req.body;
   const u = await buscarPorEmail(email);
   if (!u) throw err.codigoInvalido();
@@ -90,20 +95,17 @@ exports.verificarEmail = async (req, res) => {
   res.json({ ok: true, data: await sesionDe(u.id) });
 };
 
-// Login con email y contraseña. Si el usuario tiene 2FA activo, devuelve un mensaje indicando que debe ingresar el código.
-exports.login = async (req, res) => {
+export const login = async (req, res) => {
   const { email, password } = req.body;
   const u = await buscarPorEmail(email);
   const coincide = await bcrypt.compare(password, u?.password_hash || HASH_RELLENO);
   if (!u || !u.password_hash || !coincide) throw err.credenciales();
+  exigirNoBloqueado(u); // recién después de validar la contraseña: no se revela el estado a quien no la conoce
 
-  // Si el email no está verificado, se envía un código de verificación y se indica que requiere verificación.
   if (!u.email_verificado) {
     await emitirCodigo(u, 'verificar_email');
     return res.json({ ok: true, data: { requiere_verificacion: true, email } });
   }
-
-  // Si el usuario tiene 2FA activo, se envía un código de verificación y se indica que requiere 2FA.
   if (u.dos_pasos_activo) {
     await emitirCodigo(u, 'login_2fa');
     return res.json({ ok: true, data: { requiere_2fa: true, email } });
@@ -111,17 +113,16 @@ exports.login = async (req, res) => {
   res.json({ ok: true, data: await sesionDe(u.id) });
 };
 
-// Login con código de 2FA. Se llama después de login si el usuario tiene 2FA activo.
-exports.login2fa = async (req, res) => {
+export const login2fa = async (req, res) => {
   const { email, codigo } = req.body;
   const u = await buscarPorEmail(email);
   if (!u || !u.dos_pasos_activo) throw err.codigoInvalido();
+  exigirNoBloqueado(u);
   await verificarCodigo(u.id, 'login_2fa', codigo);
   res.json({ ok: true, data: await sesionDe(u.id) });
 };
 
-// Reenvía un código de verificación de email, 2FA o reset de contraseña. No revela si el email existe.
-exports.reenviarCodigo = async (req, res) => {
+export const reenviarCodigo = async (req, res) => {
   const { email, proposito } = req.body;
   const u = await buscarPorEmail(email);
   // Siempre responde igual (no revela si el email existe). Espera 30 s entre envíos.
@@ -138,17 +139,14 @@ exports.reenviarCodigo = async (req, res) => {
   res.json({ ok: true, data: { enviado: true } });
 };
 
-// Login o registro con redes sociales (Google, Facebook, etc.). Si el email ya existe, se asocia la identidad social a esa cuenta.
-exports.social = async (req, res) => {
+export const social = async (req, res) => {
   const { proveedor, modo = 'registro' } = req.body;
   const datos = await oauth[proveedor](req.body);
   const email = datos.email.toLowerCase();
 
-  // Se busca si ya existe una identidad social asociada a un usuario
   const [identidad] = await consultar(
     'SELECT usuario_id FROM identidades_sociales WHERE proveedor = ? AND proveedor_uid = ?', [proveedor, datos.uid]);
 
-  // Si no existe, se busca si ya hay un usuario con ese email. Si tampoco existe, se crea uno nuevo.
   let usuarioId = identidad?.usuario_id;
   if (!usuarioId) {
     usuarioId = await transaccion(async (conn) => {
@@ -180,26 +178,22 @@ exports.social = async (req, res) => {
   res.json({ ok: true, data: await sesionDe(usuarioId) });
 };
 
-// Renueva el token de acceso usando un refresh token válido. Devuelve un nuevo par de tokens.
-exports.refresh = async (req, res) => {
+export const refresh = async (req, res) => {
   res.json({ ok: true, data: await tokens.rotarRefresh(req.body.refresh_token) });
 };
 
-// Revoca un refresh token (logout). No revela si el token existía.
-exports.logout = async (req, res) => {
+export const logout = async (req, res) => {
   await tokens.revocarRefresh(req.body.refresh_token);
   res.json({ ok: true, data: { ok: true } });
 };
 
-// Inicia el proceso de recuperación de contraseña: envía un código al email si existe.
-exports.olvidePassword = async (req, res) => {
+export const olvidePassword = async (req, res) => {
   const u = await buscarPorEmail(req.body.email);
   if (u) await emitirCodigo(u, 'reset_password');
   res.json({ ok: true, data: { enviado: true } });
 };
 
-// Cambia la contraseña de un usuario usando un código de recuperación. Cierra todas las sesiones abiertas.
-exports.resetPassword = async (req, res) => {
+export const resetPassword = async (req, res) => {
   const { email, codigo, password } = req.body;
   const u = await buscarPorEmail(email);
   if (!u) throw err.codigoInvalido();
@@ -211,4 +205,3 @@ exports.resetPassword = async (req, res) => {
   res.json({ ok: true, data: { actualizado: true } });
 };
 
-exports._internos = { COSTO_BCRYPT };

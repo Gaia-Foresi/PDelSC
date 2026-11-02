@@ -1,12 +1,12 @@
 // Pool de conexiones a MySQL (base de datos alojada en la nube).
-const mysql = require('mysql2/promise');
-const { db } = require('./env');
+import mysql from 'mysql2/promise';
+import env from './env.js';
+const { db } = env;
 
 const ssl = db.ssl
   ? { rejectUnauthorized: db.rechazarNoAutorizado, ...(db.ca ? { ca: db.ca } : {}) }
   : undefined;
 
-// Pool de conexiones a MySQL (base de datos alojada en la nube).
 const pool = mysql.createPool({
   host: db.host,
   port: db.port,
@@ -46,4 +46,4 @@ async function transaccion(fn) {
   }
 }
 
-module.exports = { pool, consultar, transaccion };
+export { pool, consultar, transaccion };

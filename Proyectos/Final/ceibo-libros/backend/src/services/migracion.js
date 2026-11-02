@@ -1,7 +1,6 @@
 // Actualiza una base YA CREADA a la versión nueva, sin borrar datos. Es idempotente: se puede ejecutar siempre.
-const { codigoRetiroUnico } = require('../utils/codigos');
+import { codigoRetiroUnico } from '../utils/codigos.js';
 
-// Agrega columnas, índices y tablas nuevas. Devuelve la lista de cambios hechos.
 async function migrar(pool) {
 const existeColumna = async (tabla, columna) => {
   const [r] = await pool.query(
@@ -14,7 +13,6 @@ const existeIndice = async (tabla, indice) => {
   return r.length > 0;
 };
 
-  // Lista de cambios hechos, para mostrar al personal de la biblioteca.
   const hechos = [];
   const agregar = async (tabla, columna, definicion) => {
     if (!(await existeColumna(tabla, columna))) {
@@ -23,6 +21,9 @@ const existeIndice = async (tabla, indice) => {
     }
   };
 
+  await agregar('usuarios', 'tipo_bloqueo', "ENUM('atraso','dano') NULL AFTER motivo_bloqueo");
+  // Los bloqueos anteriores a este cambio eran por atraso
+  await pool.query("UPDATE usuarios SET tipo_bloqueo = 'atraso' WHERE estado = 'bloqueado' AND tipo_bloqueo IS NULL");
   await agregar('usuarios', 'curso', 'VARCHAR(40) NULL AFTER telefono');
   await agregar('usuarios', 'dni', 'VARCHAR(15) NULL AFTER curso');
 
@@ -84,4 +85,4 @@ const existeIndice = async (tabla, indice) => {
   return hechos;
 }
 
-module.exports = { migrar };
+export { migrar };

@@ -1,11 +1,9 @@
 // Entrada para Vercel (funciones serverless). En Vercel no hay un servidor encendido: cada pedido
 // ejecuta esta función. La primera vez que despierta, deja la base al día (migración) y luego atiende.
-const app = require('../src/app');
-const { pool } = require('../src/config/db');
-const { migrar } = require('../src/services/migracion');
+import app from '../src/app.js';
+import { pool } from '../src/config/db.js';
+import { migrar } from '../src/services/migracion.js';
 
-// Si la migración falla, se reintenta en el próximo pedido. 
-// Esto es para evitar que un error de migración bloquee la app indefinidamente.
 let preparada = null;
 const preparar = () => {
   if (!preparada) {
@@ -17,7 +15,7 @@ const preparar = () => {
   return preparada;
 };
 
-module.exports = async (req, res) => {
+export default async (req, res) => {
   await preparar();
   return app(req, res);
 };

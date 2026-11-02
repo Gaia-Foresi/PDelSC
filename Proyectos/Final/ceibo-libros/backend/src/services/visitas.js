@@ -1,9 +1,10 @@
 // Fecha y hora en que una persona va a la biblioteca: horarios disponibles y validación.
 // Todo se guarda en UTC; los días y las horas de atención se calculan en la hora local (TZ_OFFSET_HORAS).
-const { visitas, tzOffsetHoras } = require('../config/env');
-const { err } = require('../utils/httpError');
+import env from '../config/env.js';
+import { err } from '../utils/httpError.js';
 
-// Horarios de atención y validación de visitas
+const { visitas, tzOffsetHoras } = env;
+
 const HORAS_VENTANA = { sala: 24, retiro: 72 }; // cuánto se guarda la reserva como mínimo según el tipo
 const DIAS_ELEGIBLES = 14; // hasta cuántos días adelante se puede elegir la visita
 const dos = (n) => String(n).padStart(2, '0');
@@ -95,4 +96,4 @@ function visitaPrestamo(iso) {
   return t;
 }
 
-module.exports = { aLocal, aUtc, publica, horariosAgrupados, validarVisitaReserva, visitaPrestamo };
+export { aLocal, aUtc, publica, horariosAgrupados, validarVisitaReserva, visitaPrestamo };

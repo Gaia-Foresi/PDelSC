@@ -1,16 +1,17 @@
 // Tarea diaria: vence reservas, avisa devoluciones próximas y bloquea a quienes tienen libros vencidos.
-const { consultar } = require('../config/db');
-const { reglas } = require('../config/env');
-const { hoy, sumarDias, aLegible } = require('../utils/fechas');
-const { crearNotificacion } = require('./notificaciones');
-const { expirarReservas } = require('./reservas');
-const { enviarEmail, plantilla, escapar } = require('./mailer');
+import { consultar } from '../config/db.js';
+import env from '../config/env.js';
+import { hoy, sumarDias, aLegible } from '../utils/fechas.js';
+import { crearNotificacion } from './notificaciones.js';
+import { expirarReservas } from './reservas.js';
+import { enviarEmail, plantilla, escapar } from './mailer.js';
+
+const { reglas } = env;
 
 async function emailSeguro(datos) {
   try { await enviarEmail(datos); } catch (e) { console.error('[recordatorios] email fallido:', e.message); }
 }
 
-// Ejecuta la tarea diaria de recordatorios y bloqueos. Devuelve un resumen de lo que hizo.
 async function ejecutarRecordatorios() {
   const hoyStr = hoy();
   const limite = sumarDias(hoyStr, reglas.recordatorioDias);
@@ -24,7 +25,6 @@ async function ejecutarRecordatorios() {
      FROM prestamos p JOIN usuarios u ON u.id = p.usuario_id
      WHERE p.estado = 'activo' AND p.fecha_vencimiento >= ? AND p.fecha_vencimiento <= ?`, [hoyStr, limite]);
 
-  // para cada préstamo próximo, crea una notificación y envía un email
   for (const p of proximos) {
     const cuando = p.fecha_vencimiento === hoyStr ? 'hoy' : `el ${aLegible(p.fecha_vencimiento)}`;
     const cuerpo = `Tus libros vencen ${cuando}. Acercate a la biblioteca a devolverlos o pedí una extensión.`;
@@ -47,7 +47,6 @@ async function ejecutarRecordatorios() {
      JOIN roles r ON r.id = u.rol_id
      WHERE p.estado = 'activo' AND p.fecha_vencimiento < ? AND r.nombre = 'usuario'`, [hoyStr]);
 
-  // para cada préstamo vencido, crea una notificación, envía un email y bloquea la cuenta si no estaba bloqueada
   for (const p of vencidos) {
     const cuerpo = `Tu préstamo venció el ${aLegible(p.fecha_vencimiento)}. Devolvé los libros en la biblioteca para volver a usar el servicio.`;
     const nueva = await crearNotificacion({
@@ -62,8 +61,8 @@ async function ejecutarRecordatorios() {
     }
     if (p.estado !== 'bloqueado') {
       const motivo = 'Tenés libros sin devolver con el plazo vencido. Devolvelos en la biblioteca y tu cuenta se habilita automáticamente.';
-      await consultar("UPDATE usuarios SET estado = 'bloqueado', motivo_bloqueo = ?, bloqueado_en = NOW() WHERE id = ? AND estado = 'activo'", [motivo, p.uid]);
-      await crearNotificacion({ usuarioId: p.uid, tipo: 'bloqueo', titulo: 'Cuenta bloqueada', cuerpo: motivo });
+      await consultar("UPDATE usuarios SET estado = 'bloqueado', motivo_bloqueo = ?, tipo_bloqueo = 'atraso', bloqueado_en = NOW() WHERE id = ? AND estado = 'activo'", [motivo, p.uid]);
+      await crearNotificacion({ usuarioId: p.uid, tipo: 'bloqueo', titulo: 'Cuenta bloqueada por atraso en la devolución', cuerpo: motivo });
       p.estado = 'bloqueado'; // evita bloquear dos veces si tiene varios préstamos vencidos
       resumen.bloqueados += 1;
     }
@@ -73,4 +72,4 @@ async function ejecutarRecordatorios() {
   return resumen;
 }
 
-module.exports = { ejecutarRecordatorios };
+export { ejecutarRecordatorios };

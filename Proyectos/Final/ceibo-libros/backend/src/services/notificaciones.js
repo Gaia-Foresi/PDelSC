@@ -1,8 +1,10 @@
 // Notificaciones dentro de la app.
-const { pool } = require('../config/db');
+import { pool } from '../config/db.js';
 
-// sirve para guardar una notificación para un usuario. 
-// Recibe los datos del mensaje, los guarda en la base de datos y devuelve si pudo crearlo o no
+/**
+ * Crea una notificación. Si ya existe una igual para ese préstamo (misma clave única),
+ * no duplica y devuelve false; si se creó devuelve true.
+ */
 async function crearNotificacion({ usuarioId, tipo, titulo, cuerpo, prestamoId = null }, conn = pool) {
   const [r] = await conn.query(
     'INSERT IGNORE INTO notificaciones (usuario_id, tipo, titulo, cuerpo, prestamo_id) VALUES (?, ?, ?, ?, ?)',
@@ -10,4 +12,4 @@ async function crearNotificacion({ usuarioId, tipo, titulo, cuerpo, prestamoId =
   return r.affectedRows > 0;
 }
 
-module.exports = { crearNotificacion };
+export { crearNotificacion };

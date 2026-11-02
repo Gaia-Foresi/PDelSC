@@ -57,6 +57,7 @@ CREATE TABLE usuarios (
   rol_id            TINYINT UNSIGNED NOT NULL DEFAULT 3,
   estado            ENUM('activo','bloqueado') NOT NULL DEFAULT 'activo',
   motivo_bloqueo    VARCHAR(255) NULL,           -- mensaje que ve el usuario bloqueado
+  tipo_bloqueo      ENUM('atraso','dano') NULL,  -- por qué está bloqueado: atraso en la devolución o daño a un libro
   bloqueado_en      DATETIME NULL,
   telefono          VARCHAR(30)  NULL,
   curso             VARCHAR(40)  NULL,           -- se pide al reservar / pedir un préstamo

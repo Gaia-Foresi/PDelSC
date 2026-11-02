@@ -1,14 +1,13 @@
-// Rutas para usuarios. Todas requieren autenticación (login) y validación de datos.
-const router = require('express').Router();
-const ctl = require('../controllers/usuarios');
-const autenticar = require('../middlewares/auth');
-const { requiereRol, STAFF } = require('../middlewares/roles');
-const validar = require('../middlewares/validate');
-const asyncHandler = require('../utils/asyncHandler');
-const { z, id, texto, textoOpc, password, curso, dni } = require('../utils/esquemas');
+import express from 'express';
+import * as ctl from '../controllers/usuarios.js';
+import autenticar from '../middlewares/auth.js';
+import { requiereRol, STAFF } from '../middlewares/roles.js';
+import validar from '../middlewares/validate.js';
+import asyncHandler from '../utils/asyncHandler.js';
+import { z, id, texto, textoOpc, password, curso, dni } from '../utils/esquemas.js';
 
-// Valida que los datos de la petición cumplan con el esquema zod. 
-// Si no, responde 400 con el detalle de errores.
+const router = express.Router();
+
 const S = {
   vacio: z.object({}).passthrough(),
   actualizar: z.object({
@@ -32,11 +31,14 @@ const S = {
     limite: z.coerce.number().int().min(1).max(100).default(30),
   }),
   id: z.object({ id }),
-  bloquear: z.object({ id, motivo: texto(255) }),
+  bloquear: z.object({
+    id,
+    tipo: z.enum(['atraso', 'dano'], { message: 'Elegí si es por atraso en la devolución o por daño a un libro' }),
+    motivo: texto(255),
+  }),
   cambiarRol: z.object({ id, rol: z.enum(['dueno', 'bibliotecario', 'usuario'], { message: 'Rol inválido' }) }),
 };
 
-// Rutas para usuarios. Todas requieren autenticación (login) y validación de datos.
 const usuarios = router;
 usuarios.use(autenticar);
 usuarios.post('/perfil', validar(S.vacio), asyncHandler(ctl.perfil));
@@ -49,8 +51,8 @@ usuarios.post('/bloquear', requiereRol(...STAFF), validar(S.bloquear), asyncHand
 usuarios.post('/desbloquear', requiereRol(...STAFF), validar(S.id), asyncHandler(ctl.desbloquear));
 
 // Panel de administración
-const admin = require('express').Router();
+const admin = express.Router();
 admin.use(autenticar, requiereRol('dueno'));
 admin.post('/cambiar-rol', validar(S.cambiarRol), asyncHandler(ctl.cambiarRol));
 
-module.exports = { usuarios, admin };
+export { usuarios, admin };

@@ -1,5 +1,5 @@
 // Consultas compartidas de libros (con ejemplares disponibles calculados).
-const { pool } = require('../config/db');
+import { pool } from '../config/db.js';
 
 // disponibles = stock_total - prestados sin devolver - reservas activas vigentes
 const SQL_LIBRO = `
@@ -29,7 +29,6 @@ async function conCategorias(libros, conn = pool) {
   }));
 }
 
-// Devuelve el libro con sus categorías, o null si no existe o no está activo.
 async function obtenerLibro(id, conn = pool) {
   const [filas] = await conn.query(`${SQL_LIBRO} WHERE l.id = ? AND l.activo = 1`, [id]);
   return filas[0] ? (await conCategorias([filas[0]], conn))[0] : null;
@@ -67,4 +66,4 @@ async function ejemplaresEnUso(libroId, conn = pool) {
   return Number(r.usados);
 }
 
-module.exports = { SQL_LIBRO, conCategorias, EN_CATEGORIA, guardarCategorias, obtenerLibro, autorId, ejemplaresEnUso };
+export { SQL_LIBRO, conCategorias, EN_CATEGORIA, guardarCategorias, obtenerLibro, autorId, ejemplaresEnUso };

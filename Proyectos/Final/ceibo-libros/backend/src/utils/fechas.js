@@ -1,5 +1,6 @@
 // Fechas "de calendario" (YYYY-MM-DD) según el huso horario de la biblioteca.
-const { tzOffsetHoras } = require('../config/env');
+import env from '../config/env.js';
+const { tzOffsetHoras } = env;
 
 const dos = (n) => String(n).padStart(2, '0');
 const formatear = (d) => `${d.getUTCFullYear()}-${dos(d.getUTCMonth() + 1)}-${dos(d.getUTCDate())}`;
@@ -26,4 +27,4 @@ function aLegible(fecha) {
   return `${dos(d)}/${dos(m)}/${y}`;
 }
 
-module.exports = { hoy, sumarDias, diasEntre, aLegible };
+export { hoy, sumarDias, diasEntre, aLegible };

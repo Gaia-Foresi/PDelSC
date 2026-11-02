@@ -1,14 +1,18 @@
 // Monta todas las rutas bajo /api. Recordá: SOLO existen endpoints POST.
-const { Router } = require('express');
-const { limiteAuth } = require('../middlewares/limites');
-const env = require('../config/env');
-const asyncHandler = require('../utils/asyncHandler');
-const { HttpError } = require('../utils/httpError');
-const { ejecutarRecordatorios } = require('../services/recordatorios');
-const { usuarios, admin } = require('./usuarios');
-const { categorias, libros } = require('./catalogo');
-const { prestamos, reservas } = require('./prestamos');
-const gestion = require('./gestion');
+import express from 'express';
+import { limiteAuth } from '../middlewares/limites.js';
+import env from '../config/env.js';
+import asyncHandler from '../utils/asyncHandler.js';
+import { HttpError } from '../utils/httpError.js';
+import { ejecutarRecordatorios } from '../services/recordatorios.js';
+import { usuarios, admin } from './usuarios.js';
+import { categorias, libros } from './catalogo.js';
+import { prestamos, reservas } from './prestamos.js';
+import calendario from './calendario.js';
+import authRouter from './auth.js';
+import * as gestion from './gestion.js';
+
+const { Router } = express;
 
 const api = Router();
 
@@ -21,19 +25,18 @@ api.post('/mantenimiento/recordatorios', asyncHandler(async (req, res) => {
   res.json({ ok: true, data: await ejecutarRecordatorios() });
 }));
 
-// rutas
-api.use('/auth', limiteAuth, require('./auth'));
+api.use('/auth', limiteAuth, authRouter);
 api.use('/usuarios', usuarios);
 api.use('/admin', admin);
 api.use('/categorias', categorias);
 api.use('/libros', libros);
 api.use('/prestamos', prestamos);
 api.use('/reservas', reservas);
-api.use('/calendario', require('./calendario'));
+api.use('/calendario', calendario);
 api.use('/mensajes', gestion.mensajes);
 api.use('/notificaciones', gestion.notificaciones);
 api.use('/distribuidoras', gestion.distribuidoras);
 api.use('/reposicion', gestion.reposicion);
 api.use('/estadisticas', gestion.estadisticas);
 
-module.exports = api;
+export default api;

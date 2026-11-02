@@ -1,17 +1,16 @@
 // Qué secciones del manual ve cada rol y cómo se numeran. Lo usan la pantalla del manual y el generador de PDF.
 const manual = require('./manual.json');
 
-//
 const ROLES = {
   usuario: { etiqueta: 'Usuario (lector)', titulo: 'Manual del usuario', archivo: 'manual-usuario' },
   bibliotecario: { etiqueta: 'Bibliotecario', titulo: 'Manual del bibliotecario', archivo: 'manual-bibliotecario' },
-  gerente: { etiqueta: 'Gerente', titulo: 'Manual del gerente', archivo: 'manual-gerente' },
+  dueno: { etiqueta: 'Dueño', titulo: 'Manual del dueño', archivo: 'manual-dueno' },
 };
 
-// Cada rol ve las secciones generales + las propias (el gerente  ve también todo lo del personal)
+// Cada rol ve las secciones generales + las propias (el dueño ve también todo lo del personal)
 const veSeccion = (seccion, rol) => {
   if (seccion.para === 'todos') return true;
-  if (rol === 'gerente') return seccion.para !== 'usuario';
+  if (rol === 'dueno') return seccion.para !== 'usuario';
   return seccion.para === rol;
 };
 

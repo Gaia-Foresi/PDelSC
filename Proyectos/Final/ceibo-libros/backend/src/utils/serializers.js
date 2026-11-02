@@ -10,6 +10,7 @@ function usuarioPublico(u) {
     rol: u.rol,
     estado: u.estado,
     motivo_bloqueo: u.estado === 'bloqueado' ? u.motivo_bloqueo : null,
+    tipo_bloqueo: u.estado === 'bloqueado' ? (u.tipo_bloqueo || 'atraso') : null,
     telefono: u.telefono,
     curso: u.curso,
     dni: u.dni,
@@ -21,8 +22,8 @@ function usuarioPublico(u) {
 
 /** SELECT base de usuarios con su rol (sin password_hash). */
 const SQL_USUARIO = `
-  SELECT u.id, u.nombre, u.apellido, u.email, r.nombre AS rol, u.estado, u.motivo_bloqueo,
+  SELECT u.id, u.nombre, u.apellido, u.email, r.nombre AS rol, u.estado, u.motivo_bloqueo, u.tipo_bloqueo,
          u.telefono, u.curso, u.dni, u.foto_url, u.dos_pasos_activo, u.email_verificado, u.creado_en
   FROM usuarios u JOIN roles r ON r.id = u.rol_id`;
 
-module.exports = { usuarioPublico, SQL_USUARIO };
+export { usuarioPublico, SQL_USUARIO };

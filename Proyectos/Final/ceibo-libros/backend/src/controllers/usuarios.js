@@ -1,12 +1,12 @@
-// Perfil propio, seguridad de la cuenta y administración de usuarios (bloqueo y roles). 
-// Nunca se borran usuarios.
-const bcrypt = require('bcryptjs');
-const { consultar } = require('../config/db');
-const { err } = require('../utils/httpError');
-const { usuarioPublico, SQL_USUARIO } = require('../utils/serializers');
-const { crearNotificacion } = require('../services/notificaciones');
-const { cargarPrestamos } = require('../services/prestamos');
-const { listarReservas } = require('../services/reservas');
+// Perfil propio, seguridad de la cuenta y administración de usuarios (bloqueo y roles). Nunca se borran usuarios.
+import bcrypt from 'bcryptjs';
+import env from '../config/env.js';
+import { consultar } from '../config/db.js';
+import { err } from '../utils/httpError.js';
+import { usuarioPublico, SQL_USUARIO } from '../utils/serializers.js';
+import { crearNotificacion } from '../services/notificaciones.js';
+import { cargarPrestamos } from '../services/prestamos.js';
+import { listarReservas } from '../services/reservas.js';
 
 const cargar = async (id) => (await consultar(`${SQL_USUARIO} WHERE u.id = ?`, [id]))[0];
 
@@ -17,19 +17,17 @@ function validarAlcance(actor, objetivo) {
   }
 }
 
-// Devuelve el perfil del usuario logueado, con un resumen de sus préstamos y reservas activas
-exports.perfil = async (req, res) => {
+export const perfil = async (req, res) => {
   const u = await cargar(req.usuario.id);
   const [{ prestamos_activos }] = await consultar(
     `SELECT COUNT(*) AS prestamos_activos FROM prestamo_items pi JOIN prestamos p ON p.id = pi.prestamo_id
      WHERE p.usuario_id = ? AND pi.devuelto_en IS NULL`, [u.id]);
   const [{ reservas_activas }] = await consultar(
     "SELECT COUNT(*) AS reservas_activas FROM reservas WHERE usuario_id = ? AND estado = 'activa' AND fecha_limite > NOW()", [u.id]);
-  res.json({ ok: true, data: { usuario: usuarioPublico(u), resumen: { prestamos_activos, reservas_activas } } });
+  res.json({ ok: true, data: { usuario: usuarioPublico(u), resumen: { prestamos_activos, reservas_activas, reservas_max: env.reglas.reservasMaxActivas } } });
 };
 
-// Actualiza los datos del perfil del usuario logueado. No se puede cambiar el rol ni el estado.
-exports.actualizarPerfil = async (req, res) => {
+export const actualizarPerfil = async (req, res) => {
   const campos = {};
   for (const k of ['nombre', 'apellido', 'telefono', 'curso', 'dni', 'foto_url']) {
     if (req.body[k] !== undefined) campos[k] = req.body[k] === '' ? null : req.body[k];
@@ -40,8 +38,7 @@ exports.actualizarPerfil = async (req, res) => {
   res.json({ ok: true, data: { usuario: usuarioPublico(await cargar(req.usuario.id)) } });
 };
 
-// Cambia la contraseña del usuario logueado. Si ya tenía contraseña, hay que demostrar que la conoce.
-exports.cambiarPassword = async (req, res) => {
+export const cambiarPassword = async (req, res) => {
   const { password_actual, password_nueva } = req.body;
   const [u] = await consultar('SELECT password_hash FROM usuarios WHERE id = ?', [req.usuario.id]);
   if (u.password_hash) {
@@ -54,14 +51,12 @@ exports.cambiarPassword = async (req, res) => {
   res.json({ ok: true, data: { actualizado: true } });
 };
 
-// Activa o desactiva la verificación en dos pasos para el usuario logueado
-exports.dosPasos = async (req, res) => {
+export const dosPasos = async (req, res) => {
   await consultar('UPDATE usuarios SET dos_pasos_activo = ? WHERE id = ?', [req.body.activar ? 1 : 0, req.usuario.id]);
   res.json({ ok: true, data: { usuario: usuarioPublico(await cargar(req.usuario.id)) } });
 };
 
-// Panel de administración (dueño y bibliotecario)
-exports.listar = async (req, res) => {
+export const listar = async (req, res) => {
   const { q, rol, estado, pagina, limite } = req.body;
   const donde = [];
   const params = [];
@@ -75,8 +70,6 @@ exports.listar = async (req, res) => {
   }
   const W = donde.length ? `WHERE ${donde.join(' AND ')}` : '';
 
-  // Devuelve la lista de usuarios con un resumen de sus préstamos activos. 
-  // No se envían las fotos subidas (pesan); la app muestra las iniciales.
   const [{ total }] = await consultar(`SELECT COUNT(*) AS total FROM usuarios u JOIN roles r ON r.id = u.rol_id ${W}`, params);
   const filas = await consultar(
     `SELECT x.*, (SELECT COUNT(*) FROM prestamo_items pi JOIN prestamos p ON p.id = pi.prestamo_id
@@ -94,10 +87,7 @@ exports.listar = async (req, res) => {
   });
 };
 
-// Devuelve el perfil de un usuario, con un resumen de sus préstamos y reservas activas.
-// Solo el dueño y el bibliotecario pueden ver a otros usuarios; 
-// los usuarios comunes solo ven su propio perfil.
-exports.detalle = async (req, res) => {
+export const detalle = async (req, res) => {
   const u = await cargar(req.body.id);
   if (!u) throw err.noEncontrado('El usuario');
   validarAlcance(req.usuario, u);
@@ -108,24 +98,24 @@ exports.detalle = async (req, res) => {
   res.json({ ok: true, data: { usuario: usuarioPublico(u), prestamos, reservas } });
 };
 
-// Cambia el estado de un usuario a bloqueado o activo. 
-// Solo el dueño y el bibliotecario pueden bloquear usuarios comunes.
-exports.bloquear = async (req, res) => {
+export const bloquear = async (req, res) => {
   const u = await cargar(req.body.id);
   if (!u) throw err.noEncontrado('El usuario');
   if (u.rol !== 'usuario') throw err.sinPermiso('Solo se pueden bloquear usuarios comunes.');
-  await consultar("UPDATE usuarios SET estado = 'bloqueado', motivo_bloqueo = ?, bloqueado_en = NOW() WHERE id = ?", [req.body.motivo, u.id]);
-  await crearNotificacion({ usuarioId: u.id, tipo: 'bloqueo', titulo: 'Cuenta bloqueada', cuerpo: req.body.motivo });
+  const { tipo, motivo } = req.body;
+  await consultar("UPDATE usuarios SET estado = 'bloqueado', motivo_bloqueo = ?, tipo_bloqueo = ?, bloqueado_en = NOW() WHERE id = ?", [motivo, tipo, u.id]);
+  await crearNotificacion({
+    usuarioId: u.id, tipo: 'bloqueo',
+    titulo: tipo === 'dano' ? 'Cuenta bloqueada por daño a un libro' : 'Cuenta bloqueada por atraso en la devolución', cuerpo: motivo,
+  });
   res.json({ ok: true, data: { usuario: usuarioPublico(await cargar(u.id)) } });
 };
 
-// Cambia el estado de un usuario a activo. 
-// Solo el dueño y el bibliotecario pueden desbloquear usuarios comunes.
-exports.desbloquear = async (req, res) => {
+export const desbloquear = async (req, res) => {
   const u = await cargar(req.body.id);
   if (!u) throw err.noEncontrado('El usuario');
   if (u.rol !== 'usuario') throw err.sinPermiso('Solo se pueden desbloquear usuarios comunes.');
-  await consultar("UPDATE usuarios SET estado = 'activo', motivo_bloqueo = NULL, bloqueado_en = NULL WHERE id = ?", [u.id]);
+  await consultar("UPDATE usuarios SET estado = 'activo', motivo_bloqueo = NULL, tipo_bloqueo = NULL, bloqueado_en = NULL WHERE id = ?", [u.id]);
   await crearNotificacion({
     usuarioId: u.id, tipo: 'desbloqueo', titulo: 'Cuenta habilitada', cuerpo: 'Tu cuenta fue habilitada nuevamente por la biblioteca.',
   });
@@ -133,7 +123,7 @@ exports.desbloquear = async (req, res) => {
 };
 
 // Panel de administración (solo dueño)
-exports.cambiarRol = async (req, res) => {
+export const cambiarRol = async (req, res) => {
   const { id, rol } = req.body;
   if (id === req.usuario.id) throw err.sinPermiso('No podés cambiar tu propio rol.');
   const u = await cargar(id);

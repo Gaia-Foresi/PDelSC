@@ -2,10 +2,6 @@
 // Primero Open Library; si no hay, Google Books. Nunca lanza errores: si no encuentra nada devuelve null.
 const TIMEOUT_MS = 7000;
 
-// realiza una petición a una URL para obtener información en formato JSON. 
-// Tiene un tiempo máximo de espera, comprueba si la respuesta fue correcta y convierte los datos recibidos a JSON. 
-// Si ocurre algún error o la petición falla, 
-// devuelve null para evitar que el programa se interrumpa.
 async function pedirJson(url) {
   try {
     const r = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS), headers: { Accept: 'application/json', 'User-Agent': 'CeiboLibros/1.0' } });
@@ -18,7 +14,6 @@ async function pedirJson(url) {
 
 const limpiar = (t) => String(t || '').replace(/\s+/g, ' ').trim();
 
-// Devuelve la URL de la portada de un libro usando Open Library o Google Books, o null si no se encuentra.
 async function openLibrary(titulo, autor) {
   const q = new URLSearchParams({ title: titulo, limit: '5', fields: 'cover_i,title,author_name' });
   if (autor) q.set('author', autor);
@@ -27,7 +22,6 @@ async function openLibrary(titulo, autor) {
   return doc ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg` : null;
 }
 
-// Devuelve la URL de la portada de un libro usando Google Books, o null si no se encuentra.
 async function googleBooks(titulo, autor) {
   const q = `intitle:${titulo}${autor ? `+inauthor:${autor}` : ''}`;
   const j = await pedirJson(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q).replace(/%2B/g, '+')}&maxResults=5&printType=books`);
@@ -36,8 +30,7 @@ async function googleBooks(titulo, autor) {
   return url ? url.replace(/^http:/, 'https:').replace('&edge=curl', '') : null;
 }
 
-// Busca la portada de un libro en Open Library y Google Books, 
-// devuelve la primera que encuentre o null si no hay.
+/** @returns {Promise<string|null>} URL de la portada o null */
 async function buscarPortada(titulo, autor) {
   const t = limpiar(titulo);
   if (!t) return null;
@@ -69,4 +62,4 @@ async function completarPortadasFaltantes(pool, { limite = 60, todas = false, lo
   return { revisados: libros.length, completados: ok };
 }
 
-module.exports = { buscarPortada, completarPortadasFaltantes };
+export { buscarPortada, completarPortadasFaltantes };

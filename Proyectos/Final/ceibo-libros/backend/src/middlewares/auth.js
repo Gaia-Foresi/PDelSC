@@ -1,14 +1,13 @@
 // Middleware de autenticación: valida el JWT y carga el usuario (con su rol ACTUAL de la base).
-const jwt = require('jsonwebtoken');
-const { jwt: cfg } = require('../config/env');
-const { consultar } = require('../config/db');
-const { HttpError, err } = require('../utils/httpError');
-const asyncHandler = require('../utils/asyncHandler');
+import jwt from 'jsonwebtoken';
+import env from '../config/env.js';
+import { consultar } from '../config/db.js';
+import { HttpError, err } from '../utils/httpError.js';
+import asyncHandler from '../utils/asyncHandler.js';
 
-// Se usa en todas las rutas que requieren autenticación (login, códigos, registro no requieren).
-module.exports = asyncHandler(async (req, res, next) => {
+const { jwt: cfg } = env;
 
-  // Se espera un header Authorization: "Bearer <token>"
+export default asyncHandler(async (req, res, next) => {
   const [tipo, token] = (req.headers.authorization || '').split(' ');
   if (tipo !== 'Bearer' || !token) throw err.noAutenticado();
 

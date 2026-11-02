@@ -1,13 +1,12 @@
 // Verificación de identidad con redes sociales. Devuelve { uid, email, nombre, apellido, foto }.
 // El servidor SIEMPRE valida con el proveedor: nunca confía en datos que mande la app.
-const { oauth } = require('../config/env');
-const { HttpError } = require('../utils/httpError');
+import env from '../config/env.js';
+import { HttpError } from '../utils/httpError.js';
+
+const { oauth } = env;
 
 const falla = (mensaje) => new HttpError(502, 'PROVEEDOR_SOCIAL', mensaje);
 
-// función que se encarga de hablar con un servidor, 
-// esperar su respuesta, recibir los datos y avisar si hubo algún problema de conexión. 
-// Además, evita que la petición quede esperando para siempre porque tiene un límite de 10 segundos.
 async function pedirJson(url, opciones = {}) {
   let r;
   try {
@@ -85,4 +84,4 @@ async function discord({ token }) {
   return { uid: r.cuerpo.id, email: r.cuerpo.email, nombre: r.cuerpo.global_name || r.cuerpo.username || 'Usuario', apellido: '', foto };
 }
 
-module.exports = { google, github, discord };
+export { google, github, discord };
