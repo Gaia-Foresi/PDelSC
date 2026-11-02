@@ -10,6 +10,7 @@ import { fechaHora, ROL_TEXTO } from '../../utils/format';
 import { useAsync } from '../../hooks/useAsync';
 import { usePolling } from '../../hooks/useFocus';
 import { useResponsive } from '../../utils/useResponsive';
+import { useTecladoAbierto } from '../../hooks/useTeclado';
 import ErrorState from '../../components/ErrorState';
 import ScreenContainer from '../../components/ScreenContainer';
 import { Skeleton } from '../../components/Skeleton';
@@ -25,11 +26,17 @@ export default function HiloScreen({ route }) {
   const lista = useRef(null);
   const [texto, setTexto] = useState('');
   const [enviando, setEnviando] = useState(false);
+  const tecladoAbierto = useTecladoAbierto();
 
   // Carga el hilo de mensajes, con actualización automática cada 10 segundos y scroll al final si hay mensajes nuevos
   const hilo = useAsync(() => api.mensajes.hilo({ hilo_id: id }), [id]);
   usePolling(hilo.refresh, 10000);
   const cantidad = hilo.data?.mensajes?.length || 0;
+
+  // Al abrir el teclado, la conversación baja al último mensaje (como en WhatsApp)
+  useEffect(() => {
+    if (tecladoAbierto) setTimeout(() => lista.current?.scrollToEnd({ animated: false }), 120);
+  }, [tecladoAbierto]);
 
   // Al llegar mensajes nuevos: bajar al final y actualizar el contador del menú
   useEffect(() => {
