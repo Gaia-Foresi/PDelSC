@@ -7,6 +7,7 @@ async function expirarReservas(conn = pool) {
   await conn.query("UPDATE reservas SET estado = 'vencida' WHERE estado = 'activa' AND fecha_limite <= NOW()");
 }
 
+// consultas de reservas
 const SQL_RESERVA = `
   SELECT r.id, r.tipo, r.estado, r.creada_en, r.fecha_limite, r.visita_en, r.codigo_retiro,
          l.id AS libro_id, l.titulo, a.nombre AS autor,
@@ -16,6 +17,7 @@ const SQL_RESERVA = `
   JOIN autores a ON a.id = l.autor_id
   JOIN usuarios u ON u.id = r.usuario_id`;
 
+// Devuelve un objeto con los campos de la reserva y los datos del libro y del usuario.
 const aObjeto = (r) => ({
   id: r.id,
   tipo: r.tipo,
@@ -34,6 +36,7 @@ async function listarReservas(where = '', params = [], conn = pool) {
   return filas.map(aObjeto);
 }
 
+// Devuelve la reserva con id `id` o null si no existe.
 async function obtenerReserva(id, conn = pool) {
   const [r] = await listarReservas('WHERE r.id = ?', [id], conn);
   return r || null;

@@ -7,6 +7,7 @@ const { crearNotificacion } = require('./notificaciones');
 const { codigoRetiroUnico } = require('../utils/codigos');
 const { publica } = require('./visitas');
 
+// Devuelve un objeto con los campos del préstamo y los datos del usuario, más `vencido` y `dias_restantes`.
 const SQL_PRESTAMO = `
   SELECT p.id, p.usuario_id, p.fecha_inicio, p.fecha_vencimiento, p.estado, p.cerrado_en, p.visita_en, p.codigo_retiro,
          u.nombre AS unombre, u.apellido AS uapellido, u.email AS uemail, u.curso AS ucurso, u.dni AS udni,
@@ -20,6 +21,7 @@ async function cargarPrestamos(where = '', params = [], { limite = 200, conn = p
   const [filas] = await conn.query(`${SQL_PRESTAMO} ${where} ORDER BY p.id DESC LIMIT ${Number(limite)}`, params);
   if (!filas.length) return [];
 
+  // Carga los libros de cada préstamo (prestamo_items) y los datos del libro y del autor.
   const [items] = await conn.query(
     `SELECT pi.prestamo_id, pi.libro_id, l.titulo, a.nombre AS autor, pi.devuelto_en
      FROM prestamo_items pi
@@ -28,6 +30,8 @@ async function cargarPrestamos(where = '', params = [], { limite = 200, conn = p
      WHERE pi.prestamo_id IN (?) ORDER BY pi.id`, [filas.map((f) => f.id)]);
 
   const hoyStr = hoy();
+
+  // Devuelve los préstamos con sus libros y los campos calculados `vencido` y `dias_restantes`.
   return filas.map((f) => ({
     id: f.id,
     usuario: { id: f.usuario_id, nombre: `${f.unombre} ${f.uapellido}`.trim(), email: f.uemail, curso: f.ucurso, dni: f.udni },
@@ -45,6 +49,7 @@ async function cargarPrestamos(where = '', params = [], { limite = 200, conn = p
   }));
 }
 
+// Devuelve el préstamo con id `id` o null si no existe.
 async function obtenerPrestamo(id, conn = pool) {
   const [p] = await cargarPrestamos('WHERE p.id = ?', [id], { conn });
   return p || null;
@@ -81,6 +86,7 @@ async function verificarStock(conn, libroIds) {
 const cumplirReservas = (conn, usuarioId, libroIds) =>
   conn.query("UPDATE reservas SET estado = 'cumplida' WHERE usuario_id = ? AND libro_id IN (?) AND estado = 'activa'", [usuarioId, libroIds]);
 
+// Valida que el usuario exista y no esté bloqueado. Debe llamarse dentro de una transacción.
 async function validarUsuarioParaPrestamo(conn, usuarioId) {
   const [[u]] = await conn.query('SELECT id, estado, motivo_bloqueo FROM usuarios WHERE id = ? FOR UPDATE', [usuarioId]);
   if (!u) throw err.noEncontrado('El usuario');
@@ -187,6 +193,7 @@ async function desbloquearSiNoDebe(conn, usuarioId) {
      WHERE p.usuario_id = ? AND pi.devuelto_en IS NULL`, [usuarioId]);
   if (Number(debe) > 0) return false;
 
+  // Desbloquea al usuario y le envía una notificación.
   await conn.query("UPDATE usuarios SET estado = 'activo', motivo_bloqueo = NULL, bloqueado_en = NULL WHERE id = ?", [usuarioId]);
   await crearNotificacion({
     usuarioId, tipo: 'desbloqueo', titulo: 'Cuenta habilitada',

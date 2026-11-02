@@ -15,6 +15,7 @@ import ScreenContainer from '../../components/ScreenContainer';
 import { Skeleton } from '../../components/Skeleton';
 import { useToast } from '../../components/Toast';
 
+// Pantalla de conversación: muestra los mensajes del hilo, permite enviar nuevos y se actualiza automáticamente.
 export default function HiloScreen({ route }) {
   const { id, asunto } = route.params;
   const { colors } = useTheme();
@@ -25,6 +26,7 @@ export default function HiloScreen({ route }) {
   const [texto, setTexto] = useState('');
   const [enviando, setEnviando] = useState(false);
 
+  // Carga el hilo de mensajes, con actualización automática cada 10 segundos y scroll al final si hay mensajes nuevos
   const hilo = useAsync(() => api.mensajes.hilo({ hilo_id: id }), [id]);
   usePolling(hilo.refresh, 10000);
   const cantidad = hilo.data?.mensajes?.length || 0;
@@ -36,6 +38,7 @@ export default function HiloScreen({ route }) {
     setTimeout(() => lista.current?.scrollToEnd({ animated: true }), 80);
   }, [cantidad, refrescar]);
 
+  // Envía un mensaje, con manejo de errores y actualización del hilo
   const enviar = useCallback(async () => {
     const cuerpo = texto.trim();
     if (!cuerpo || enviando) return;
@@ -53,6 +56,7 @@ export default function HiloScreen({ route }) {
 
   const con = hilo.data?.hilo?.con;
 
+  // Renderiza la pantalla de conversación, con encabezado, lista de mensajes y barra de envío
   return (
     <ScreenContainer
       title={asunto || hilo.data?.hilo?.asunto || 'Conversación'}
@@ -60,7 +64,7 @@ export default function HiloScreen({ route }) {
       scroll={false}
       showBell={false}
     >
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'web' ? undefined : 'padding'}>
         {con ? (
           <View style={{ flexShrink: 0, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }}>
             <Text style={{ color: colors.textMuted, fontSize: 13, lineHeight: 18 }} numberOfLines={1}>Conversación con {con.nombre}</Text>

@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { MIN_TAP, radius, spacing } from '../theme/tokens';
 
+// Componente Chips: muestra una fila de opciones (chips) y permite seleccionar una de ellas
 export default function Chips({ options, value, onChange, style }) {
   const { colors } = useTheme();
   return (

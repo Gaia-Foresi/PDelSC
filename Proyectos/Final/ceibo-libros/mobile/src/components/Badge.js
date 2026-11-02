@@ -22,6 +22,7 @@ export default function Badge({ text, tone = 'neutral', icon, style }) {
   );
 }
 
+// Estilos del componente Badge
 const styles = StyleSheet.create({
   badge: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.pill },
   text: { fontSize: 12, fontWeight: '700' },

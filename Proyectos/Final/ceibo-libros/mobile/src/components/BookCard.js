@@ -35,6 +35,9 @@ export default function BookCard({ libro, color, onReservar, bloqueado, motivoBl
   const { colors } = useTheme();
   const sinStock = libro.disponibles <= 0;
   const puedeReservar = !!onReservar && !sinStock && !bloqueado;
+  const [expandida, setExpandida] = useState(false);
+  // Descripción larga (o con saltos de línea): se muestra recortada y se puede desplegar
+  const larga = (libro.descripcion || '').length > 150 || (libro.descripcion || '').split('\n').length > 3;
 
   return (
     <Card>
@@ -69,7 +72,21 @@ export default function BookCard({ libro, color, onReservar, bloqueado, motivoBl
           </View>
         ) : null}
       </View>
-      {libro.descripcion ? <Text style={[styles.desc, { color: colors.text }]} numberOfLines={4}>{libro.descripcion}</Text> : null}
+      {libro.descripcion ? (
+        <View>
+          <Text style={[styles.desc, { color: colors.text }]} numberOfLines={expandida ? undefined : 4}>{libro.descripcion}</Text>
+          {larga ? (
+            <Pressable
+              onPress={() => setExpandida((v) => !v)}
+              accessibilityRole="button"
+              accessibilityLabel={expandida ? 'Ver menos de la descripción' : 'Ver la descripción completa'}
+              style={styles.verMas}
+            >
+              <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 14 }}>{expandida ? 'Ver menos' : 'Ver más'}</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
       {onReservar ? (
         <View style={{ marginTop: spacing.md }}>
           {bloqueado ? (
@@ -94,6 +111,7 @@ const styles = StyleSheet.create({
   titulo: { fontSize: 17, fontWeight: '700', lineHeight: 22 },
   autor: { fontSize: 14, marginTop: 2 },
   desc: { fontSize: 14, lineHeight: 20, marginTop: spacing.md },
+  verMas: { minHeight: 36, justifyContent: 'center', alignSelf: 'flex-start' },
   actions: { flexDirection: 'row' },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
 });

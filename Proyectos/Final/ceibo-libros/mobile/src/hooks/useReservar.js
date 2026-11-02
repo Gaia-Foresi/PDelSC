@@ -6,10 +6,14 @@ import { useAuth } from '../context/AuthContext';
 import { useDatosLector } from '../components/DatosLector';
 import { useToast } from '../components/Toast';
 
+// Hook que devuelve una función para reservar un libro. Llama a onDone() si la reserva se hizo con éxito.
 export function useReservar(onDone) {
+
+  // Pide los datos del lector, llama a la API para crear la reserva y muestra el código de retiro.
   const { pedirDatos, mostrarCodigo } = useDatosLector();
   const { recargarPerfil } = useAuth();
   const toast = useToast();
+  // Devuelve una función que recibe un libro y un tipo de reserva ('sala' o 'llevar') y realiza la reserva.
   return useCallback(async (libro, tipo) => {
     const sala = tipo === 'sala';
     const datos = await pedirDatos({
@@ -20,6 +24,9 @@ export function useReservar(onDone) {
       confirmText: 'Reservar',
       visitaTipo: tipo,
     });
+
+    // Si el usuario canceló, no hace nada. 
+    // Si completó los datos, llama a la API para crear la reserva y muestra el código de retiro.
     if (!datos) return false;
     try {
       const { reserva } = await api.reservas.crear({ libro_id: libro.id, tipo, ...datos });

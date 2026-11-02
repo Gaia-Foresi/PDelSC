@@ -4,6 +4,7 @@ import { post } from './client';
 const publico = (ruta) => (cuerpo) => post(ruta, cuerpo, { auth: false });
 const privado = (ruta) => (cuerpo) => post(ruta, cuerpo);
 
+// Exporta un objeto con todos los endpoints del backend, agrupados por funcionalidad
 export const api = {
   auth: {
     registro: publico('/auth/registro'),

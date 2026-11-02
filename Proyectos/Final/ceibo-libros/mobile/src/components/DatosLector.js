@@ -16,6 +16,8 @@ import SelectorVisita from './SelectorVisita';
 import { visitaTexto } from '../utils/format';
 import { SheetModal } from './Modal';
 
+// Contexto para manejar los datos del lector y el código de retiro, 
+// proporcionando funciones para pedir datos y mostrar códigos.
 const Ctx = createContext(null);
 export const useDatosLector = () => useContext(Ctx);
 
@@ -33,6 +35,8 @@ export function validarDatosLector(f) {
   };
 }
 
+// Componente que muestra los campos de datos del lector (nombre, apellido y DNI) 
+// y permite editarlos, mostrando errores si los hay.
 export function CamposDatosLector({ form, setCampo, errores }) {
   return (
     <View>
@@ -45,6 +49,8 @@ export function CamposDatosLector({ form, setCampo, errores }) {
 
 export const formDesde = (u) => ({ nombre: u?.nombre || '', apellido: u?.apellido || '', dni: u?.dni || '' });
 
+// Componente que provee el contexto de datos del lector y código de retiro,
+// manejando el estado de los formularios y diálogos, y proporcionando funciones para pedir datos y mostrar códigos.
 export function DatosLectorProvider({ children }) {
   const { colors } = useTheme();
   const { usuario } = useAuth();
@@ -57,6 +63,9 @@ export function DatosLectorProvider({ children }) {
   const resolver = useRef(null);
   const resolverCodigo = useRef(null);
 
+  // Función que pide los datos del lector, 
+  // mostrando un formulario con los campos necesarios y validando la entrada. 
+  // Devuelve una promesa que se resuelve con los datos ingresados o null si se cancela.
   const pedirDatos = useCallback((o) => new Promise((resolve) => {
     resolver.current = resolve;
     setErrores({});
@@ -82,6 +91,7 @@ export function DatosLectorProvider({ children }) {
     resolverCodigo.current = null;
   };
 
+  // Función que actualiza un campo del formulario y borra el error correspondiente.
   const setCampo = (k) => (t) => { setForm((f) => ({ ...f, [k]: t })); setErrores((e) => ({ ...e, [k]: '' })); };
   const enviar = () => {
     const e = validarDatosLector(form);
@@ -94,6 +104,8 @@ export function DatosLectorProvider({ children }) {
     });
   };
 
+  // Renderiza el proveedor de contexto, el diálogo de formulario de datos del lector y el diálogo de código de retiro,
+  // pasando las opciones y los callbacks correspondientes.
   return (
     <Ctx.Provider value={{ pedirDatos, mostrarCodigo }}>
       {children}

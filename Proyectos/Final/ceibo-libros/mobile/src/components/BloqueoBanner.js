@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
 import { radius, spacing } from '../theme/tokens';
 
+// Componente que muestra un banner de advertencia si el usuario está bloqueado
 export default function BloqueoBanner() {
   const { colors } = useTheme();
   const { bloqueado, usuario } = useAuth();

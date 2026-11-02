@@ -11,6 +11,7 @@ import SocialButtons from '../../auth/SocialButtons';
 import * as v from '../../utils/validators';
 import AuthLayout from './AuthLayout';
 
+// Pantalla de login: permite ingresar con email y contraseña, o con redes sociales. Si el usuario requiere verificación de email o 2FA, lo redirige a la pantalla de código.
 export default function LoginScreen({ navigation }) {
   const { colors } = useTheme();
   const { iniciarSesion } = useAuth();
@@ -20,6 +21,7 @@ export default function LoginScreen({ navigation }) {
   const [cargando, setCargando] = useState(false);
   const set = (k) => (t) => { setForm((f) => ({ ...f, [k]: t })); setErrores((e) => ({ ...e, [k]: '' })); };
 
+  // Envía el formulario de login: valida los campos, llama a la API y maneja los distintos casos de respuesta (verificación de email, 2FA o inicio de sesión exitoso).
   const enviar = async () => {
     const e = { email: v.email(form.email), password: v.requerido(form.password, 'La contraseña') };
     setErrores(e);
@@ -39,6 +41,7 @@ export default function LoginScreen({ navigation }) {
     }
   };
 
+  // Renderiza la pantalla de login, con inputs para email y contraseña, botones de envío y de redes sociales, y enlaces a recuperación de contraseña y registro.
   return (
     <AuthLayout title="Ingresar" subtitle="Bienvenido a la biblioteca. Entrá para reservar y pedir libros.">
       <Input label="Email" icon="email-outline" value={form.email} onChangeText={set('email')} error={errores.email} keyboardType="email-address" autoCapitalize="none" autoComplete="email" placeholder="tu@email.com" />

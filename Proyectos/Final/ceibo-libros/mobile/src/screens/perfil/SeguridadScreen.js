@@ -13,6 +13,7 @@ import Input from '../../components/Input';
 import ScreenContainer from '../../components/ScreenContainer';
 import { useToast } from '../../components/Toast';
 
+// Pantalla de seguridad: permite activar/desactivar la verificación en 2 pasos y cambiar la contraseña.
 export default function SeguridadScreen() {
   const { colors } = useTheme();
   const { usuario, actualizarUsuario } = useAuth();
@@ -24,6 +25,7 @@ export default function SeguridadScreen() {
   const [guardando, setGuardando] = useState(false);
   const set = (k) => (t) => { setForm((f) => ({ ...f, [k]: t })); setErrores((e) => ({ ...e, [k]: '' })); };
 
+  // Activa o desactiva la verificación en 2 pasos, con confirmación al desactivar y manejo de errores
   const cambiar2fa = async (activar) => {
     if (!activar) {
       const ok = await confirm({
@@ -34,6 +36,7 @@ export default function SeguridadScreen() {
       if (!ok) return;
     }
     setCambiando2fa(true);
+    // Intenta activar o desactivar la verificación en 2 pasos y actualizar el contexto de usuario, o muestra errores si falla 
     try {
       const data = await api.usuarios.dosPasos({ activar });
       await actualizarUsuario(data.usuario);
@@ -45,6 +48,7 @@ export default function SeguridadScreen() {
     }
   };
 
+  // Cambia la contraseña, con validación de campos, manejo de errores y limpieza del formulario
   const cambiarPassword = async () => {
     const e = {
       nueva: v.password(form.nueva),
@@ -53,6 +57,7 @@ export default function SeguridadScreen() {
     setErrores(e);
     if (!v.sinErrores(e)) return;
     setGuardando(true);
+    // Intenta cambiar la contraseña y limpiar el formulario, o muestra errores si falla
     try {
       await api.usuarios.cambiarPassword({ ...(form.actual ? { password_actual: form.actual } : {}), password_nueva: form.nueva });
       setForm({ actual: '', nueva: '', repetir: '' });
@@ -65,6 +70,7 @@ export default function SeguridadScreen() {
     }
   };
 
+  // Renderiza la pantalla de seguridad, con opciones para activar/desactivar la verificación en 2 pasos y cambiar la contraseña
   return (
     <ScreenContainer title="Seguridad" back>
       <Card>

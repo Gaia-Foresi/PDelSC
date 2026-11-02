@@ -1,10 +1,14 @@
+// Rutas de autenticación: registro, login, códigos, etc.
 const router = require('express').Router();
 const ctl = require('../controllers/auth');
 const validar = require('../middlewares/validate');
 const asyncHandler = require('../utils/asyncHandler');
 const { z, texto, email, password, codigo } = require('../utils/esquemas');
 
+// Esquemas de validación para cada ruta
 const S = {
+
+  // Registro, login, códigos, etc.
   registro: z.object({ nombre: texto(60), apellido: texto(60), email, password }),
   verificarEmail: z.object({ email, codigo }),
   login: z.object({ email, password: z.string({ required_error: 'Obligatorio' }).min(1, 'Obligatorio').max(72) }),
@@ -24,6 +28,7 @@ const S = {
   reset: z.object({ email, codigo, password }),
 };
 
+// Rutas de autenticación: registro, login, códigos, etc.
 router.post('/registro', validar(S.registro), asyncHandler(ctl.registro));
 router.post('/verificar-email', validar(S.verificarEmail), asyncHandler(ctl.verificarEmail));
 router.post('/login', validar(S.login), asyncHandler(ctl.login));

@@ -7,6 +7,7 @@ const { ejecutarRecordatorios } = require('./services/recordatorios');
 const { completarPortadasFaltantes } = require('./services/portadas');
 const { migrar } = require('./services/migracion');
 
+// Arranque: verifica la conexión con la base en la nube, levanta la API y programa la tarea diaria.
 async function main() {
   try {
     await pool.query('SELECT 1');
@@ -27,6 +28,7 @@ async function main() {
 
   const servidor = app.listen(env.puerto, '0.0.0.0', () => console.log(`[api] Ceibo Libros escuchando en el puerto ${env.puerto}`));
 
+  // Tarea diaria: envía recordatorios de libros prestados que vencen hoy o mañana
   const correrTarea = () => ejecutarRecordatorios().catch((e) => console.error('[recordatorios] falló:', e.message));
   cron.schedule(env.reglas.cron, correrTarea, { timezone: env.reglas.cronTz });
   setTimeout(correrTarea, 15000); // también al arrancar: si el hosting durmió el servidor, se ponen al día los avisos
@@ -38,6 +40,7 @@ async function main() {
       .catch(() => {});
   }, 5000);
 
+  // Cierra el servidor y la conexión a la base de datos al recibir SIGTERM o SIGINT
   const cerrar = (senal) => {
     console.log(`[api] ${senal}: cerrando...`);
     servidor.close(() => pool.end().finally(() => process.exit(0)));

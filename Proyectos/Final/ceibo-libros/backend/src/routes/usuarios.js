@@ -1,3 +1,4 @@
+// Rutas para usuarios. Todas requieren autenticación (login) y validación de datos.
 const router = require('express').Router();
 const ctl = require('../controllers/usuarios');
 const autenticar = require('../middlewares/auth');
@@ -6,6 +7,8 @@ const validar = require('../middlewares/validate');
 const asyncHandler = require('../utils/asyncHandler');
 const { z, id, texto, textoOpc, password, curso, dni } = require('../utils/esquemas');
 
+// Valida que los datos de la petición cumplan con el esquema zod. 
+// Si no, responde 400 con el detalle de errores.
 const S = {
   vacio: z.object({}).passthrough(),
   actualizar: z.object({
@@ -33,6 +36,7 @@ const S = {
   cambiarRol: z.object({ id, rol: z.enum(['dueno', 'bibliotecario', 'usuario'], { message: 'Rol inválido' }) }),
 };
 
+// Rutas para usuarios. Todas requieren autenticación (login) y validación de datos.
 const usuarios = router;
 usuarios.use(autenticar);
 usuarios.post('/perfil', validar(S.vacio), asyncHandler(ctl.perfil));

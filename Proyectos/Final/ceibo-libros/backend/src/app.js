@@ -11,6 +11,7 @@ const app = express();
 app.disable('x-powered-by');
 app.set('trust proxy', 1); // detrás del proxy del hosting (Render, Railway...) para que el límite de peticiones use la IP real
 
+// Seguridad, CORS, parsing JSON, solo POST, rutas y manejo de errores
 app.use(helmet());
 app.use(cors({ origin: corsOrigin === '*' ? true : corsOrigin.split(',').map((s) => s.trim()), methods: ['POST', 'OPTIONS'] }));
 app.use(express.json({ limit: '500kb' }));

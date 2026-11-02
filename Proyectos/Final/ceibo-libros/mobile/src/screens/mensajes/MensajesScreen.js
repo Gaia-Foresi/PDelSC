@@ -18,6 +18,7 @@ import ErrorState from '../../components/ErrorState';
 import ScreenContainer, { useListContentStyle } from '../../components/ScreenContainer';
 import { SkeletonList } from '../../components/Skeleton';
 
+// Filtros de conversaciones: todos, consultas, internos y respondidos (solo para staff)
 const FILTROS = [
   { value: 'todos', label: 'Todos' },
   { value: 'consulta', label: 'Consultas' },
@@ -25,6 +26,7 @@ const FILTROS = [
   { value: 'respondidos', label: 'Respondidos' },
 ];
 
+// Pantalla de conversaciones: lista de hilos, con filtros, botón de nuevo mensaje y globito de mensajes sin leer
 export default function MensajesScreen({ navigation }) {
   const { colors } = useTheme();
   const { esStaff } = useAuth();
@@ -32,6 +34,7 @@ export default function MensajesScreen({ navigation }) {
   const contenido = useListContentStyle(true);
   const [filtro, setFiltro] = useState('todos');
 
+  // Lista de hilos, con actualización automática cada 20 segundos y refresco al volver a la pantalla
   const verRespondidos = esStaff && filtro === 'respondidos';
   const hilos = useAsync(() => api.mensajes.hilos(verRespondidos ? { respondidos: true } : {}), [verRespondidos]);
   useRefreshOnFocus(hilos.refresh);
@@ -39,6 +42,7 @@ export default function MensajesScreen({ navigation }) {
   // Cuando llegan los datos, se actualiza el globito del menú inferior
   useEffect(() => { if (hilos.data) refrescar(); }, [hilos.data, refrescar]);
 
+  // Filtra los hilos según el filtro seleccionado: todos, consultas, internos o respondidos (solo para staff)
   const lista = useMemo(
     () => (hilos.data?.hilos || []).filter((h) => {
       if (!esStaff) return true;
@@ -48,6 +52,7 @@ export default function MensajesScreen({ navigation }) {
     [hilos.data, filtro, esStaff],
   );
 
+  // Renderiza el encabezado de la lista: chips de filtro y botón de nuevo mensaje
   const encabezado = (
     <View>
       {esStaff
@@ -62,6 +67,7 @@ export default function MensajesScreen({ navigation }) {
     </View>
   );
 
+  // Renderiza la pantalla de conversaciones, con lista de hilos, encabezado y manejo de estados vacíos o de error  
   return (
     <ScreenContainer title="Mensajes" menu tab scroll={false}>
       <FlatList

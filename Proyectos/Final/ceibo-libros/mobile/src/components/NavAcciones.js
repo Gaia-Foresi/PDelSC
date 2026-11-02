@@ -46,6 +46,7 @@ export function BotonIcono({ icon, label, onPress, badge, color, activo }) {
   );
 }
 
+// Componente que muestra el menú de perfil con opciones para ir a "Mi perfil", "Seguridad de la cuenta" y "Cerrar sesión". Se muestra como un modal que se puede cerrar al tocar fuera del menú.
 function MenuPerfil({ visible, onClose, onIr, onSalir }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
@@ -56,6 +57,8 @@ function MenuPerfil({ visible, onClose, onIr, onSalir }) {
       <Text style={{ color: danger ? colors.danger : colors.text, fontSize: 15, fontWeight: '600', marginLeft: spacing.md }}>{texto}</Text>
     </Pressable>
   );
+
+  // Renderiza el modal del menú de perfil, mostrando el avatar del usuario, su nombre completo y rol, y las opciones de navegación y cierre de sesión.
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.fondo} onPress={onClose} accessibilityLabel="Cerrar menú">
@@ -88,6 +91,7 @@ export default function NavAcciones({ showBell = true }) {
   const compu = useMenuFijo();
   const [abierto, setAbierto] = useState(false);
 
+  // Funciones para navegar a diferentes pantallas o cerrar sesión, manejando el estado del menú de perfil y mostrando confirmaciones cuando sea necesario.
   const ir = (pantalla) => navigation.navigate(pantalla);
   const irMenu = (donde) => {
     setAbierto(false);
@@ -100,6 +104,7 @@ export default function NavAcciones({ showBell = true }) {
     if (ok) await cerrarSesion();
   };
 
+  // Renderiza los accesos de la barra superior, incluyendo el botón para cambiar entre modo claro y oscuro, botones de navegación según el rol del usuario y la plataforma, y el menú de perfil con opciones de cuenta y cierre de sesión.
   return (
     <View style={styles.fila2}>
       <BotonIcono icon={isDark ? 'weather-sunny' : 'weather-night'} label={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'} onPress={toggle} />

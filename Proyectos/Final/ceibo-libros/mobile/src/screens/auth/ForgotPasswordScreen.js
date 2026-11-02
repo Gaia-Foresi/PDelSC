@@ -8,6 +8,7 @@ import { spacing } from '../../theme/tokens';
 import * as v from '../../utils/validators';
 import AuthLayout from './AuthLayout';
 
+// Recuperar contraseña en 2 pasos: 1) pedir el código por email  2) código + contraseña nueva
 export default function ForgotPasswordScreen({ navigation }) {
   const toast = useToast();
   const [paso, setPaso] = useState(1);
@@ -16,6 +17,7 @@ export default function ForgotPasswordScreen({ navigation }) {
   const [cargando, setCargando] = useState(false);
   const set = (k) => (t) => { setForm((f) => ({ ...f, [k]: t })); setErrores((e) => ({ ...e, [k]: '' })); };
 
+  // Pedir el código por email
   const pedirCodigo = async () => {
     const e = { email: v.email(form.email) };
     setErrores(e);
@@ -32,6 +34,7 @@ export default function ForgotPasswordScreen({ navigation }) {
     }
   };
 
+  // Cambiar la contraseña con el código recibido
   const cambiar = async () => {
     const e = { codigo: v.codigo(form.codigo), password: v.password(form.password) };
     setErrores(e);
@@ -49,6 +52,7 @@ export default function ForgotPasswordScreen({ navigation }) {
     }
   };
 
+  // Renderizar la pantalla según el paso actual
   return (
     <AuthLayout
       title="Recuperar contraseña"

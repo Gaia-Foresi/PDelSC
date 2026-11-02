@@ -1,3 +1,4 @@
+// Archivo de índice que exporta todos los componentes de la carpeta para facilitar su importación en otras partes de la aplicación.
 export { default as Avatar } from './Avatar';
 export { default as Badge } from './Badge';
 export { default as Button } from './Button';

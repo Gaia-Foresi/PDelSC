@@ -6,6 +6,8 @@ const { err } = require('../utils/httpError');
 const { crearNotificacion } = require('../services/notificaciones');
 const { esStaff } = require('../middlewares/roles');
 
+// Un hilo tiene participantes (hilo_participantes) y mensajes (mensajes). 
+// Cada participante tiene un último mensaje leído (ultimo_leido_id).
 const BIBLIOTECA = { id: null, nombre: 'Biblioteca Ceibo Libros', rol: 'biblioteca' };
 const nombreCompleto = (u) => `${u.nombre} ${u.apellido || ''}`.trim();
 
@@ -27,6 +29,7 @@ async function resolverContrapartes(hilos, usuario, conn) {
   const consultas = hilos.filter((h) => h.tipo === 'consulta');
   const internos = hilos.filter((h) => h.tipo === 'interno');
 
+  // Para cada hilo, buscamos al otro participante (o la biblioteca si no hay otro).
   if (esStaff(usuario) && consultas.length) {
     const [us] = await conn.query(
       'SELECT u.id, u.nombre, u.apellido, r.nombre AS rol FROM usuarios u JOIN roles r ON r.id = u.rol_id WHERE u.id IN (?)',
@@ -39,6 +42,7 @@ async function resolverContrapartes(hilos, usuario, conn) {
     for (const h of consultas) mapa.set(h.id, BIBLIOTECA);
   }
 
+  // Para los internos, buscamos al otro participante (si lo hay).
   if (internos.length) {
     const [otros] = await conn.query(
       `SELECT hp.hilo_id, u.id, u.nombre, u.apellido, r.nombre AS rol
@@ -52,11 +56,13 @@ async function resolverContrapartes(hilos, usuario, conn) {
   return mapa;
 }
 
+// SQL para filtrar hilos visibles para un usuario: es participante o es staff y es una consulta.
 const SQL_VISIBLES = `
   FROM hilos h
   LEFT JOIN hilo_participantes hp ON hp.hilo_id = h.id AND hp.usuario_id = ?
   WHERE (hp.usuario_id IS NOT NULL OR (h.tipo = 'consulta' AND ?))`;
 
+// Lista de hilos visibles para el usuario logueado, con último mensaje y cantidad de no leídos.
 exports.hilos = async (req, res) => {
   const staff = esStaff(req.usuario) ? 1 : 0;
   const filas = await consultar(
@@ -71,6 +77,7 @@ exports.hilos = async (req, res) => {
      ORDER BY lm.id DESC LIMIT 200`,
     [req.usuario.id, req.usuario.id, staff]);
 
+  // Para cada hilo, buscamos con quién habla el usuario (la contraparte).
   const contrapartes = await resolverContrapartes(filas, req.usuario, pool);
   res.json({
     ok: true,
@@ -84,8 +91,13 @@ exports.hilos = async (req, res) => {
   });
 };
 
+// Devuelve un hilo y sus mensajes, marcando como leídos los que no lo estaban.
 exports.hilo = async (req, res) => {
+
+  // Carga el hilo y sus mensajes, marcando como leídos los que no lo estaban.
   const datos = await transaccion(async (conn) => {
+
+    // Carga el hilo y sus mensajes, marcando como leídos los que no lo estaban.
     const h = await cargarHiloVisible(req.body.hilo_id, req.usuario, conn);
     const [mensajes] = await conn.query(
       `SELECT m.id, m.cuerpo, m.creado_en, m.remitente_id, u.nombre, u.apellido, r.nombre AS rol
@@ -103,6 +115,7 @@ exports.hilo = async (req, res) => {
     return { h, mensajes, con };
   });
 
+  // Devolver el hilo y sus mensajes, indicando si cada mensaje es mío o no.
   res.json({
     ok: true,
     data: {
@@ -120,7 +133,13 @@ exports.hilo = async (req, res) => {
 
 /** Avisa en la app ("Hay un nuevo mensaje") a quienes tienen que leerlo. Nunca hace fallar el envío. */
 async function avisarMensaje(hilo, req, cuerpo) {
+
+  // Si es una consulta y la envía un usuario, avisa a todos los bibliotecarios y al dueño (excepto el remitente).
+  // Si es una consulta y la envía un bibliotecario/dueño, avisa al usuario que inició la consulta (excepto el remitente).
+  // Si es un mensaje interno, avisa al otro participante (excepto el remitente).
   try {
+
+    // Averiguamos a quién avisar
     const staffRemitente = esStaff(req.usuario);
     let destinos;
     if (hilo.tipo === 'consulta' && !staffRemitente) {
@@ -141,13 +160,19 @@ async function avisarMensaje(hilo, req, cuerpo) {
   }
 }
 
+// Crea un hilo y su primer mensaje, avisando a los destinatarios. Solo el dueño puede iniciar consultas; 
+// los mensajes internos son entre dueño y bibliotecario.
 exports.crear = async (req, res) => {
+
+  // Valida los datos y permisos
   const { tipo, asunto, cuerpo, destinatario_id } = req.body;
   const staff = esStaff(req.usuario);
 
+  // Validaciones de permisos y destinatario
   if (tipo === 'consulta' && staff) throw err.sinPermiso('Las consultas las inician los usuarios; vos podés responderlas.');
   if (tipo === 'interno' && !staff) throw err.sinPermiso('Los mensajes internos son solo para el equipo de la biblioteca.');
 
+  // Validaciones de campos obligatorios
   if (tipo === 'interno') {
     if (!destinatario_id) throw err.validacion('Elegí a quién le escribís.', { destinatario_id: 'Obligatorio' });
     const [dest] = await consultar(
@@ -157,6 +182,7 @@ exports.crear = async (req, res) => {
     if (dest.rol === req.usuario.rol) throw err.validacion('Los mensajes internos son entre el dueño y un bibliotecario.', { destinatario_id: 'Destinatario inválido' });
   }
 
+  // Crea el hilo, el primer mensaje y los participantes, todo en una transacción
   const hiloId = await transaccion(async (conn) => {
     const [h] = await conn.query('INSERT INTO hilos (tipo, asunto, creado_por) VALUES (?, ?, ?)', [tipo, asunto, req.usuario.id]);
     const [m] = await conn.query('INSERT INTO mensajes (hilo_id, remitente_id, cuerpo) VALUES (?, ?, ?)', [h.insertId, req.usuario.id, cuerpo]);
@@ -170,8 +196,13 @@ exports.crear = async (req, res) => {
   res.status(201).json({ ok: true, data: { hilo: { id: hiloId, tipo, asunto } } });
 };
 
+// Envía un mensaje a un hilo existente, avisando a los destinatarios. Solo los participantes pueden enviar mensajes.
 exports.enviar = async (req, res) => {
+
+  // Valida que el hilo exista y sea visible para el usuario
   const mensaje = await transaccion(async (conn) => {
+
+    // Carga el hilo y valida que sea visible para el usuario
     const h = await cargarHiloVisible(req.body.hilo_id, req.usuario, conn);
     const [m] = await conn.query('INSERT INTO mensajes (hilo_id, remitente_id, cuerpo) VALUES (?, ?, ?)', [h.id, req.usuario.id, req.body.cuerpo]);
     await conn.query(
@@ -179,10 +210,14 @@ exports.enviar = async (req, res) => {
        ON DUPLICATE KEY UPDATE ultimo_leido_id = VALUES(ultimo_leido_id)`, [h.id, req.usuario.id, m.insertId]);
     return { id: m.insertId, hilo_id: h.id, tipo: h.tipo };
   });
+
+  // Avisar a los destinatarios que hay un nuevo mensaje (no hace fallar el envío si falla la notificación) 
   await avisarMensaje({ id: mensaje.hilo_id, tipo: mensaje.tipo }, req, req.body.cuerpo);
   const [m] = await consultar(
     `SELECT m.id, m.cuerpo, m.creado_en, m.remitente_id, u.nombre, u.apellido, r.nombre AS rol
      FROM mensajes m JOIN usuarios u ON u.id = m.remitente_id JOIN roles r ON r.id = u.rol_id WHERE m.id = ?`, [mensaje.id]);
+  
+  // Devolver el mensaje recién creado, indicando que es mío y con los datos del remitente.
   res.status(201).json({
     ok: true,
     data: {
@@ -194,7 +229,11 @@ exports.enviar = async (req, res) => {
   });
 };
 
+// Devuelve la cantidad de mensajes no leídos para el usuario logueado (para mostrar en el menú).
 exports.noLeidos = async (req, res) => {
+
+  // Contar los mensajes no leídos: son los que pertenecen a hilos visibles para el usuario, 
+  // que no fueron enviados por él y que tienen un id mayor al último leído.
   const staff = esStaff(req.usuario) ? 1 : 0;
   const [{ total }] = await consultar(
     `SELECT COUNT(*) AS total FROM mensajes m
@@ -209,6 +248,7 @@ exports.noLeidos = async (req, res) => {
   res.json({ ok: true, data: { total: Number(total) } });
 };
 
+// Devuelve la lista de contactos con los que puede hablar el usuario logueado (para mostrar en el selector de destinatario).
 exports.contactos = async (req, res) => {
   const buscado = req.usuario.rol === 'dueno' ? 'bibliotecario' : 'dueno';
   const filas = await consultar(

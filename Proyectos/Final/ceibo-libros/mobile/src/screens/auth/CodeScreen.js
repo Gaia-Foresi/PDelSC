@@ -13,6 +13,7 @@ import AuthLayout from './AuthLayout';
 
 const ESPERA = 30; // segundos entre reenvíos
 
+// Pantalla para ingresar el código de verificación que se envía por email. Se usa tanto para verificar el email como para el segundo paso del login (2FA).
 export default function CodeScreen({ route, navigation }) {
   const { email, proposito } = route.params;
   const { colors } = useTheme();
@@ -23,6 +24,7 @@ export default function CodeScreen({ route, navigation }) {
   const [cargando, setCargando] = useState(false);
   const [espera, setEspera] = useState(ESPERA);
 
+  // Temporizador para el reenvío del código: cada segundo decrementa la espera hasta 0.
   useEffect(() => {
     if (espera <= 0) return undefined;
     const id = setTimeout(() => setEspera((s) => s - 1), 1000);
@@ -31,6 +33,7 @@ export default function CodeScreen({ route, navigation }) {
 
   const es2fa = proposito === 'login_2fa';
 
+  // Verifica el código ingresado: si es correcto, inicia sesión; si no, muestra un error.
   const verificar = async () => {
     const e = v.codigo(codigo);
     setError(e);
@@ -48,6 +51,7 @@ export default function CodeScreen({ route, navigation }) {
     }
   };
 
+  // Reenvía un nuevo código al email ingresado, y reinicia el temporizador de espera.
   const reenviar = async () => {
     try {
       await api.auth.reenviarCodigo({ email, proposito });
@@ -58,6 +62,7 @@ export default function CodeScreen({ route, navigation }) {
     }
   };
 
+  // Renderiza la pantalla de ingreso del código, con el input, botones y mensajes.
   return (
     <AuthLayout
       title={es2fa ? 'Verificación en 2 pasos' : 'Verificá tu email'}

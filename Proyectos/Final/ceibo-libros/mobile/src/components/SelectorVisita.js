@@ -10,10 +10,12 @@ import { MIN_TAP, radius, spacing } from '../theme/tokens';
 import { MESES_LARGO, diaLargo, diaSemana } from '../utils/format';
 import HorarioAtencion from './HorarioAtencion';
 
+// Componente que permite seleccionar un día y una hora para visitar la biblioteca, mostrando un mini calendario con los días disponibles y las horas correspondientes. Se adapta a diferentes tipos de visitas (retiro, devolución) y permite seleccionar "Ahora" si está habilitado.
 export const AHORA = 'ahora';
 const SEMANA = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 const pad = (n) => String(n).padStart(2, '0');
 
+// Componente que representa una opción seleccionable (chip) con texto, que cambia de estilo según si está activo o no. Se utiliza para mostrar los días y horas disponibles en el selector de visitas.
 function Opcion({ texto, activo, onPress }) {
   const { colors } = useTheme();
   return (
@@ -28,6 +30,7 @@ function Opcion({ texto, activo, onPress }) {
   );
 }
 
+// Componente que permite seleccionar un día y una hora para visitar la biblioteca, mostrando un mini calendario con los días disponibles y las horas correspondientes. Se adapta a diferentes tipos de visitas (retiro, devolución) y permite seleccionar "Ahora" si está habilitado.
 export default function SelectorVisita({ tipo = 'retiro', value, onChange, error, permitirAhora = false, titulo = '¿Cuándo vas a ir a la biblioteca?' }) {
   const { colors } = useTheme();
   const [dias, setDias] = useState(null);
@@ -35,6 +38,7 @@ export default function SelectorVisita({ tipo = 'retiro', value, onChange, error
   const [dia, setDia] = useState(null);
   const [mes, setMes] = useState(null); // { y, m } (m: 0-11)
 
+  // Efecto que carga los horarios disponibles desde el servidor según el tipo de visita (retiro o devolución). Actualiza los días y el mes seleccionado, y maneja errores en la carga.
   useEffect(() => {
     let activo = true;
     setDias(null); setFallo(false);
@@ -51,6 +55,7 @@ export default function SelectorVisita({ tipo = 'retiro', value, onChange, error
     return () => { activo = false; };
   }, [tipo]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Calcula los días disponibles y los meses a partir de los datos obtenidos del servidor, y permite navegar entre los meses para seleccionar un día. Actualiza el estado del día seleccionado y llama a la función onChange cuando se selecciona un día u hora.
   const disponibles = useMemo(() => new Set((dias || []).map((d) => d.fecha)), [dias]);
   const meses = useMemo(() => [...new Set((dias || []).map((d) => d.fecha.slice(0, 7)))], [dias]);
   const idxMes = mes ? meses.indexOf(`${mes.y}-${pad(mes.m + 1)}`) : -1;
@@ -59,6 +64,7 @@ export default function SelectorVisita({ tipo = 'retiro', value, onChange, error
     if (k) { const [y, m] = k.split('-').map(Number); setMes({ y, m: m - 1 }); }
   };
 
+  // Calcula el día actual y las celdas del calendario para el mes seleccionado, mostrando los días disponibles y permitiendo seleccionar un día y una hora. Actualiza el estado del día seleccionado y llama a la función onChange cuando se selecciona un día u hora.
   const diaActual = dias?.find((d) => d.fecha === dia);
   let celdas = [];
   if (mes) {
@@ -66,6 +72,7 @@ export default function SelectorVisita({ tipo = 'retiro', value, onChange, error
     celdas = [...Array((diaSemana(primero) + 6) % 7).fill(null), ...Array.from({ length: new Date(mes.y, mes.m + 1, 0).getDate() }, (_, i) => i + 1)];
   }
 
+  // Renderiza el componente de selección de visita, mostrando el título, el mini calendario con los días disponibles, las horas correspondientes y los mensajes de error o carga según corresponda. Permite seleccionar "Ahora" si está habilitado y muestra un indicador de carga mientras se obtienen los datos del servidor.
   return (
     <View style={{ marginTop: spacing.sm }}>
       <Text style={[styles.titulo, { color: colors.text }]}>{titulo}</Text>

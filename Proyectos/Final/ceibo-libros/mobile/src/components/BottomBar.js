@@ -8,6 +8,7 @@ import { MIN_TAP } from '../theme/tokens';
 import { useBadges } from '../context/BadgesContext';
 import { useAuth } from '../context/AuthContext';
 
+// crea un objeto llamado TAB_INFO que guarda la información de cada pestaña de la aplicación, como su nombre y los íconos que debe mostrar.
 export const TAB_INFO = {
   Inicio: { label: 'Inicio', icon: 'home-variant-outline', iconOn: 'home-variant' },
   Mensajes: { label: 'Mensajes', icon: 'message-outline', iconOn: 'message' },
@@ -51,6 +52,7 @@ export default function BottomBar({ actual, onIr }) {
   const botones = ['Inicio', 'Mensajes', ...(staff ? ['Stock'] : []), 'ReservasTab', 'Prestamos', ...(staff ? ['Usuarios'] : [])];
   const resaltado = PERTENECE[actual] || null;
 
+  // Renderiza la barra inferior con los botones correspondientes, resaltando el botón activo y mostrando un badge si hay mensajes sin leer
   return (
     <View style={[styles.bar, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 6) }]} accessibilityRole="tablist">
       {botones.map((nombre) => {
@@ -75,6 +77,7 @@ export default function BottomBar({ actual, onIr }) {
   );
 }
 
+// Estilos del componente BottomBar
 const styles = StyleSheet.create({
   bar: { flexDirection: 'row', borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 6 },
   item: { flex: 1, alignItems: 'center', minHeight: MIN_TAP + 6, justifyContent: 'center' },

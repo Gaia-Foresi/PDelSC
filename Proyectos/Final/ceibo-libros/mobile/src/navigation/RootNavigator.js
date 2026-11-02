@@ -15,11 +15,13 @@ import BottomBar, { pantallaActual } from '../components/BottomBar';
 import DrawerContent from './DrawerContent';
 import { ANCHO_MENU_FIJO } from '../utils/useResponsive';
 
+// Pantallas de autenticación
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import CodeScreen from '../screens/auth/CodeScreen';
 import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 
+// Pantallas principales
 import HomeScreen from '../screens/home/HomeScreen';
 import LibrosCategoriaScreen from '../screens/home/LibrosCategoriaScreen';
 import StockScreen from '../screens/stock/StockScreen';
@@ -47,6 +49,7 @@ import ManualScreen from '../screens/ManualScreen';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
+// Navegadores
 const AuthStack = createNativeStackNavigator();
 const Drawer = createDrawerNavigator();
 const Stack = createNativeStackNavigator();
@@ -80,6 +83,7 @@ const linking = {
   },
 };
 
+// Navegación de autenticación: Login, Registro, Código y Olvidé. No se muestra la barra superior.
 function AuthNavigator() {
   return (
     <AuthStack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
@@ -94,7 +98,7 @@ function AuthNavigator() {
 // Botones principales según el rol:
 //   usuario:       Inicio · Mensajes · Reservas · Préstamos · Perfil
 //   bibliotecario: Inicio · Mensajes · Stock · Reservas · Préstamos · Usuarios · Perfil
-//   dueño:         Inicio · Mensajes · Stock · Reservas · Préstamos · Usuarios · Perfil
+//   gerente:         Inicio · Mensajes · Stock · Reservas · Préstamos · Usuarios · Perfil
 function Tabs() {
   const { usuario } = useAuth();
   const staff = usuario.rol !== 'usuario';
@@ -111,6 +115,7 @@ function Tabs() {
   );
 }
 
+// La pila principal contiene las pantallas que se abren desde los botones principales (Tabs) y las pantallas de detalle (libro, préstamo, usuario, etc.).
 function MainStack() {
   return (
     <View style={{ flex: 1 }}>
@@ -137,6 +142,7 @@ function BarraFija() {
   return <BottomBar actual={actual} onIr={ir} />;
 }
 
+// La pila principal contiene las pantallas que se abren desde los botones principales (Tabs) y las pantallas de detalle (libro, préstamo, usuario, etc.).
 function PilaPrincipal() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
@@ -163,6 +169,8 @@ function PilaPrincipal() {
   );
 }
 
+// La raíz de la navegación: si hay sesión, va a la app; si no, va a autenticación. 
+// Mientras se revisa si había una sesión guardada, muestra un esqueleto.
 function AppNavigator() {
   // Celular: menú que se abre con ☰. Compu / pantalla ancha: sin menú lateral (accesos en la barra superior).
   const { width } = useWindowDimensions();
@@ -183,6 +191,8 @@ function AppNavigator() {
   );
 }
 
+// La raíz de la navegación: si hay sesión, va a la app; si no, va a autenticación. 
+// Mientras se revisa si había una sesión guardada, muestra un esqueleto.
 export default function RootNavigator() {
   const { colors, isDark } = useTheme();
   const { usuario, restaurando } = useAuth();

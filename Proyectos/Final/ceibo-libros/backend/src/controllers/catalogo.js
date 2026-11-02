@@ -139,6 +139,8 @@ exports.librosActualizar = async (req, res) => {
   res.json({ ok: true, data: { libro: normalizar(await obtenerLibro(id)) } });
 };
 
+// busca la portada de un libro usando su título y autor, 
+// y devuelve la URL de la imagen encontrada en formato JSON
 exports.librosBuscarPortada = async (req, res) => {
   const url = await buscarPortada(req.body.titulo, req.body.autor);
   res.json({ ok: true, data: { portada_url: url } });

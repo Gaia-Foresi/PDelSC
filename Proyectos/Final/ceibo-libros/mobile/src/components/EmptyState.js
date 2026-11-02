@@ -5,6 +5,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { font, spacing } from '../theme/tokens';
 import Button from './Button';
 
+// Componente que muestra un estado vacío con un ícono, un título, un texto opcional y un botón de acción opcional. Se utiliza para indicar que no hay contenido disponible o que se requiere una acción del usuario.
 export default function EmptyState({ icon = 'book-open-page-variant-outline', title, text, actionTitle, onAction }) {
   const { colors } = useTheme();
   return (

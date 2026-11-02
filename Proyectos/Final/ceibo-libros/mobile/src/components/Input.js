@@ -11,6 +11,7 @@ export default function Input({ label, error, hint, secure, icon, multiline, sty
   const [oculto, setOculto] = useState(true);
   const borde = error ? colors.danger : foco ? colors.primary : colors.border;
 
+  // Renderiza un campo de entrada de texto con etiqueta, ícono opcional, manejo de errores y estilo según el tema. Permite mostrar/ocultar texto si es un campo seguro (contraseña) y soporta múltiples líneas.
   return (
     <View style={[{ marginBottom: spacing.md }, style]}>
       {label ? <Text style={[styles.label, { color: colors.text }]}>{label}</Text> : null}

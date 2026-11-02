@@ -6,7 +6,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { MIN_TAP, radius, spacing } from '../theme/tokens';
 import { SheetModal } from './Modal';
 
-// options: [{ value, label, description? }]
+// Campo que abre una hoja con opciones (reemplaza al <select>)
 export default function SelectField({ label, value, options, onChange, placeholder = 'Elegir…', error, title }) {
   const { colors } = useTheme();
   const [abierto, setAbierto] = useState(false);

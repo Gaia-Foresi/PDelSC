@@ -9,6 +9,8 @@ export default function Button({ title, onPress, variant = 'primary', icon, load
   const { colors } = useTheme();
   const inactivo = disabled || loading;
 
+  // crea un objeto llamado estilos que guarda los diferentes estilos visuales que puede tener un botón, 
+  // dependiendo de la variante que se elija
   const estilos = {
     primary: { bg: colors.primary, fg: colors.onPrimary, border: colors.primary },
     secondary: { bg: 'transparent', fg: colors.primary, border: colors.primary },
@@ -17,6 +19,8 @@ export default function Button({ title, onPress, variant = 'primary', icon, load
     soft: { bg: colors.primarySoft, fg: colors.primary, border: 'transparent' },
   }[variant];
 
+  // renderiza un componente Pressable que representa el botón, 
+  // con diferentes estilos y comportamientos según las props recibidas
   return (
     <Pressable
       accessibilityRole="button"
@@ -43,6 +47,7 @@ export default function Button({ title, onPress, variant = 'primary', icon, load
   );
 }
 
+// Estilos del componente Button
 const styles = StyleSheet.create({
   base: { borderRadius: radius.md, borderWidth: 1.5, paddingHorizontal: spacing.lg, justifyContent: 'center', alignItems: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },

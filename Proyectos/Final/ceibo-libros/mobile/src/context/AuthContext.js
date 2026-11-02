@@ -5,6 +5,7 @@ import { cargarSesion, guardarSesion, limpiarSesion, setAlPerderSesion, getSesio
 
 const AuthContext = createContext(null);
 
+// Proveedor de contexto para la sesión del usuario
 export function AuthProvider({ children }) {
   const [usuario, setUsuario] = useState(null);
   const [resumen, setResumen] = useState(null);
@@ -39,6 +40,7 @@ export function AuthProvider({ children }) {
     setUsuario(data.usuario);
   }, []);
 
+  // Cierra la sesión: borra la sesión guardada y el usuario en memoria, y avisa al backend para invalidar el refresh_token
   const cerrarSesion = useCallback(async () => {
     const { refresh_token } = getSesion();
     if (refresh_token) api.auth.logout({ refresh_token }).catch(() => {});
@@ -47,11 +49,13 @@ export function AuthProvider({ children }) {
     setResumen(null);
   }, []);
 
+  // Actualiza el usuario en memoria y en la sesión guardada
   const actualizarUsuario = useCallback(async (nuevo) => {
     setUsuario(nuevo);
     await guardarSesion({ usuario: nuevo });
   }, []);
 
+  // Recarga el perfil del usuario desde el backend y actualiza la sesión guardada
   const recargarPerfil = useCallback(async () => {
     const data = await api.usuarios.perfil();
     await actualizarUsuario(data.usuario);
@@ -59,6 +63,7 @@ export function AuthProvider({ children }) {
     return data;
   }, [actualizarUsuario]);
 
+  // El valor del contexto incluye el usuario, su resumen, si se está restaurando la sesión, y funciones para iniciar/cerrar sesión, actualizar el usuario y recargar el perfil.
   const value = useMemo(() => ({
     usuario, resumen, restaurando,
     esDueno: usuario?.rol === 'dueno',

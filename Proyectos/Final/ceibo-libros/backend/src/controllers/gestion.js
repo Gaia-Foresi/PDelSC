@@ -13,7 +13,9 @@ exports.notifListar = async (req, res) => {
   res.json({ ok: true, data: { notificaciones: filas.map((n) => ({ ...n, leida: !!n.leida })) } });
 };
 
-// 
+// sirve para marcar como leídas las notificaciones de un usuario. 
+// Puede marcar notificaciones específicas, si se envían sus IDs, 
+// o todas las notificaciones pendientes de ese usuario
 exports.notifMarcarLeidas = async (req, res) => {
   const { ids } = req.body;
   const r = ids?.length
@@ -22,7 +24,7 @@ exports.notifMarcarLeidas = async (req, res) => {
   res.json({ ok: true, data: { marcadas: r.affectedRows } });
 };
 
-// 
+// devuelve la cantidad de notificaciones no leídas de un usuario
 exports.notifCantidad = async (req, res) => {
   const [{ total }] = await consultar('SELECT COUNT(*) AS total FROM notificaciones WHERE usuario_id = ? AND leida = 0', [req.usuario.id]);
   res.json({ ok: true, data: { total: Number(total) } });
@@ -31,20 +33,21 @@ exports.notifCantidad = async (req, res) => {
 // distribuidoras
 const SQL_DIST = 'SELECT id, nombre, email, telefono FROM distribuidoras WHERE activo = 1';
 
+// devuelve la lista de distribuidoras
 exports.distListar = async (req, res) => {
   res.json({ ok: true, data: { distribuidoras: await consultar(`${SQL_DIST} ORDER BY nombre`) } });
 };
 
 const distPorId = async (id) => (await consultar(`${SQL_DIST} AND id = ?`, [id]))[0];
 
-//
+// crea una nueva distribuidora
 exports.distCrear = async (req, res) => {
   const { nombre, email, telefono } = req.body;
   const r = await consultar('INSERT INTO distribuidoras (nombre, email, telefono) VALUES (?, ?, ?)', [nombre, email, telefono || null]);
   res.status(201).json({ ok: true, data: { distribuidora: await distPorId(r.insertId) } });
 };
 
-// 
+// actualiza los datos de una distribuidora existente
 exports.distActualizar = async (req, res) => {
   const { id, ...resto } = req.body;
   if (!(await distPorId(id))) throw err.noEncontrado('La distribuidora');
@@ -54,7 +57,7 @@ exports.distActualizar = async (req, res) => {
   res.json({ ok: true, data: { distribuidora: await distPorId(id) } });
 };
 
-//
+// elimina una distribuidora existente
 exports.distEliminar = async (req, res) => {
   if (!(await distPorId(req.body.id))) throw err.noEncontrado('La distribuidora');
   await consultar('UPDATE distribuidoras SET activo = 0 WHERE id = ?', [req.body.id]); // baja lógica: conserva el historial de pedidos
@@ -78,7 +81,9 @@ exports.reposicionCrear = async (req, res) => {
     return { libro_id: i.libro_id || null, titulo_solicitado: l ? null : i.titulo, texto: l ? `${l.titulo} (${l.autor})` : i.titulo, cantidad: i.cantidad };
   });
 
-  //
+  // se encarga de armar y enviar un correo electrónico para pedir la reposición de stock a un distribuidor. 
+  // Prepara el mensaje en texto y HTML, 
+  // intenta enviarlo y registra si el envío tuvo éxito o falló.
   const [{ nombre, apellido }] = await consultar('SELECT nombre, apellido FROM usuarios WHERE id = ?', [req.usuario.id]);
   const firmante = `${nombre} ${apellido}`.trim();
   const texto = [
@@ -100,7 +105,9 @@ exports.reposicionCrear = async (req, res) => {
     estado = 'error';
   }
 
-  // 
+  // registra un pedido de reposición de libros en la base de datos. 
+  // Primero guarda los datos generales del pedido, después guarda los libros solicitados 
+  // y, finalmente, responde que el pedido se creó correctamente
   const pedidoId = await transaccion(async (conn) => {
     const [p] = await conn.query(
       'INSERT INTO pedidos_reposicion (distribuidora_id, dueno_id, mensaje, estado_envio) VALUES (?, ?, ?, ?)',
@@ -112,7 +119,7 @@ exports.reposicionCrear = async (req, res) => {
   res.status(201).json({ ok: true, data: { pedido: { id: pedidoId, estado_envio: estado, simulado } } });
 };
 
-// 
+// lista los pedidos de reposición de stock
 exports.reposicionListar = async (req, res) => {
   const pedidos = await consultar(
     `SELECT p.id, p.mensaje, p.estado_envio, p.creado_en, d.nombre AS distribuidora

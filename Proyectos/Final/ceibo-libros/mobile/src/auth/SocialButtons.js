@@ -31,6 +31,7 @@ async function abrir(promptAsync, toast, nombre) {
   }
 }
 
+// Botón de un proveedor: ícono + nombre + callback
 function ProviderButton({ nombre, icon, onPress, loading, disabled }) {
   const { colors } = useTheme();
   return (
@@ -66,6 +67,7 @@ function useCompletar(modo) {
   return { cargando, completar, toast };
 }
 
+// Google usa el flujo de OAuth 2.0 para clientes públicos (PKCE) y devuelve un access token directamente
 function GoogleReal({ modo }) {
   const { cargando, completar, toast } = useCompletar(modo);
   const [request, response, promptAsync] = Google.useAuthRequest({
@@ -109,6 +111,7 @@ function GitHubReal({ modo }) {
   return <ProviderButton nombre="GitHub" icon="github" loading={cargando} disabled={!request} onPress={() => abrir(promptAsync, toast, 'GitHub')} />;
 }
 
+// Discord usa el flujo de OAuth 2.0 para clientes públicos (PKCE) y devuelve un access token directamente
 const discordDiscovery = { authorizationEndpoint: 'https://discord.com/oauth2/authorize', tokenEndpoint: 'https://discord.com/api/oauth2/token' };
 function DiscordReal({ modo }) {
   const { cargando, completar, toast } = useCompletar(modo);

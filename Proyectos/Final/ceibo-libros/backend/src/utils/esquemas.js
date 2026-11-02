@@ -3,12 +3,14 @@ const { z } = require('zod');
 
 const id = z.coerce.number({ invalid_type_error: 'Debe ser un número' }).int('Debe ser entero').positive('Debe ser positivo');
 
+// Validadores zod reutilizables (mensajes en español).
 const texto = (max = 255) =>
   z.string({ required_error: 'Obligatorio', invalid_type_error: 'Debe ser texto' })
     .trim().min(1, 'Obligatorio').max(max, `Máximo ${max} caracteres`);
 
 const textoOpc = (max = 255) => z.string({ invalid_type_error: 'Debe ser texto' }).trim().max(max, `Máximo ${max} caracteres`).nullish();
 
+// Validadores zod reutilizables (mensajes en español).
 const email = z.string({ required_error: 'Obligatorio', invalid_type_error: 'Debe ser texto' })
   .trim().toLowerCase().email('Email inválido').max(120, 'Máximo 120 caracteres');
 

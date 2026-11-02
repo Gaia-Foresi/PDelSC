@@ -14,6 +14,7 @@ import SelectField from '../../components/SelectField';
 import { useToast } from '../../components/Toast';
 import { ROL_TEXTO } from '../../utils/format';
 
+// Pantalla de nueva conversación: permite enviar un mensaje a la biblioteca (usuario) o entre dueño y bibliotecario (staff).
 export default function NuevoMensajeScreen({ navigation }) {
   const { colors } = useTheme();
   const { esStaff, usuario } = useAuth();
@@ -24,18 +25,23 @@ export default function NuevoMensajeScreen({ navigation }) {
   const [enviando, setEnviando] = useState(false);
   const set = (k) => (t) => { setForm((f) => ({ ...f, [k]: t })); setErrores((e) => ({ ...e, [k]: '' })); };
 
+  // Carga los contactos del staff (dueño y bibliotecario) para el select de destinatario
   const contactos = useAsync(() => (esStaff ? api.mensajes.contactos() : Promise.resolve(null)), [esStaff]);
   const opciones = (contactos.data?.contactos || []).map((c) => ({ value: c.id, label: c.nombre, description: ROL_TEXTO[c.rol] }));
 
+  // Envía el mensaje, con validación de campos, manejo de errores y redirección al hilo recién creado
   const enviar = async () => {
+    // Valida los campos: asunto y cuerpo son requeridos, destinatario es requerido solo para staff
     const e = {
       asunto: v.requerido(form.asunto, 'El asunto'),
       cuerpo: v.requerido(form.cuerpo, 'El mensaje'),
       destinatario: esStaff && !form.destinatario ? 'Elegí a quién le escribís' : '',
     };
+    // Si hay errores, los muestra y no envía el mensaje
     setErrores(e);
     if (!v.sinErrores(e)) return;
     setEnviando(true);
+    // Intenta enviar el mensaje y redirigir al hilo recién creado, o muestra errores si falla
     try {
       const asunto = form.asunto.trim();
       const data = await api.mensajes.crear({
@@ -51,6 +57,7 @@ export default function NuevoMensajeScreen({ navigation }) {
     }
   };
 
+  // Renderiza la pantalla de nueva conversación, con campos de asunto, mensaje y destinatario (solo para staff)
   return (
     <ScreenContainer title={esStaff ? 'Mensaje al equipo' : 'Nueva consulta'} back showBell={false}>
       <Text style={{ color: colors.textMuted, marginBottom: spacing.lg, lineHeight: 20 }}>

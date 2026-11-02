@@ -2,6 +2,7 @@
 const { HttpError } = require('../utils/httpError');
 const { entorno } = require('../config/env');
 
+// Responde un error con el formato de la API. Si hay detalles, se incluyen en el objeto error.detalles.
 const responder = (res, status, codigo, mensaje, detalles) =>
   res.status(status).json({ ok: false, error: { codigo, mensaje, ...(detalles ? { detalles } : {}) } });
 
@@ -12,6 +13,7 @@ function soloPost(req, res, next) {
   return responder(res, 405, 'METODO_NO_PERMITIDO', 'Esta API solo acepta el método POST.');
 }
 
+// Responde 404 para rutas inexistentes.
 function noEncontrado(req, res) {
   return responder(res, 404, 'NO_ENCONTRADO', 'Ruta inexistente.');
 }

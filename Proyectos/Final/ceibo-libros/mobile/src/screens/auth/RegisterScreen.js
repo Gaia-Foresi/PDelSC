@@ -10,6 +10,7 @@ import SocialButtons from '../../auth/SocialButtons';
 import * as v from '../../utils/validators';
 import AuthLayout from './AuthLayout';
 
+// Pantalla de registro de usuario, con inputs para nombre, apellido, email y contraseña, y botones para registrarse o ir a login.
 export default function RegisterScreen({ navigation }) {
   const { colors } = useTheme();
   const toast = useToast();
@@ -18,6 +19,7 @@ export default function RegisterScreen({ navigation }) {
   const [cargando, setCargando] = useState(false);
   const set = (k) => (t) => { setForm((f) => ({ ...f, [k]: t })); setErrores((e) => ({ ...e, [k]: '' })); };
 
+  // Envía el formulario de registro: valida los campos, llama a la API y maneja los distintos casos de respuesta (verificación de email o inicio de sesión exitoso).
   const enviar = async () => {
     const e = {
       nombre: v.requerido(form.nombre, 'El nombre'),
@@ -42,6 +44,7 @@ export default function RegisterScreen({ navigation }) {
     }
   };
 
+  // Renderiza la pantalla de registro, con inputs para nombre, apellido, email y contraseña, botones de registro y redes sociales, y enlace a login.
   return (
     <AuthLayout title="Crear cuenta" subtitle="Registrate para reservar libros. Vamos a verificar tu email." compactLogo>
       <Input label="Nombre" value={form.nombre} onChangeText={set('nombre')} error={errores.nombre} autoComplete="given-name" />

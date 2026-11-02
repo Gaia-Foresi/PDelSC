@@ -1,6 +1,8 @@
 // Valida (y limpia) req.body con un esquema zod. Responde 400 con el detalle por campo.
 const { err } = require('../utils/httpError');
 
+// crea un middleware de Express que valida los datos que llegan en una petición 
+// antes de que continúen al siguiente paso del servidor
 module.exports = (esquema) => (req, res, next) => {
   const r = esquema.safeParse(req.body ?? {});
   if (!r.success) {

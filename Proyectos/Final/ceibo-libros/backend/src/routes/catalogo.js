@@ -1,3 +1,4 @@
+// Rutas para el catálogo de libros y categorías
 const { Router } = require('express');
 const ctl = require('../controllers/catalogo');
 const autenticar = require('../middlewares/auth');
@@ -9,6 +10,7 @@ const { z, id, texto, textoOpc, color, urlOpc } = require('../utils/esquemas');
 const vacio = z.object({}).passthrough();
 const soloId = z.object({ id });
 
+// Esquema base para una categoría
 const categoriaBase = {
   codigo: texto(5),
   nombre: texto(60),
@@ -16,6 +18,8 @@ const categoriaBase = {
   icono: texto(40),
   color,
 };
+
+// Esquemas de validación para las rutas
 const S = {
   catCrear: z.object({ ...categoriaBase, descripcion: textoOpc(255), icono: categoriaBase.icono.optional(), color: color.optional() }),
   catActualizar: z.object({
@@ -52,6 +56,7 @@ const S = {
   }),
 };
 
+// Rutas para gestión de categorías y libros
 const categorias = Router();
 categorias.use(autenticar);
 categorias.post('/listar', validar(vacio), asyncHandler(ctl.categoriasListar));
@@ -59,6 +64,7 @@ categorias.post('/crear', requiereRol(...STAFF), validar(S.catCrear), asyncHandl
 categorias.post('/actualizar', requiereRol(...STAFF), validar(S.catActualizar), asyncHandler(ctl.categoriasActualizar));
 categorias.post('/eliminar', requiereRol('dueno'), validar(soloId), asyncHandler(ctl.categoriasEliminar));
 
+// Rutas para gestión de libros
 const libros = Router();
 libros.use(autenticar);
 libros.post('/listar', validar(S.libroListar), asyncHandler(ctl.librosListar));

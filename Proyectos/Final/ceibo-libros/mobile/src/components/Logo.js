@@ -2,6 +2,7 @@ import React from 'react';
 import { Image, View } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 
+// Componente que muestra el logo de la aplicación en diferentes variantes (marca, vertical u horizontal) y tamaños, con un fondo opcional según el tema (claro u oscuro).
 const fuentes = {
   mark: require('../../assets/logo.png'),
   vertical: require('../../assets/logo-vertical.png'),

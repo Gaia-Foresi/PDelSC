@@ -7,6 +7,7 @@ import { radius, spacing } from '../theme/tokens';
 
 export const HORARIO_ATENCION = 'Lunes a sábados de 08:00 a 18:00 hs';
 
+// Componente que muestra el horario de atención de la biblioteca, con un ícono y un estilo destacado. Puede mostrarse en formato compacto o normal.
 export default function HorarioAtencion({ style, compacto = false }) {
   const { colors } = useTheme();
   return (

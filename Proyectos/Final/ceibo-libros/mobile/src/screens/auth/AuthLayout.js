@@ -7,6 +7,7 @@ import { font, radius, shadow, spacing } from '../../theme/tokens';
 import { ANCHO_MENU_FIJO, useResponsive } from '../../utils/useResponsive';
 import Logo from '../../components/Logo';
 
+// Fondo y tarjeta comunes de las pantallas de ingreso
 export default function AuthLayout({ title, subtitle, children, compactLogo }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
@@ -34,6 +35,7 @@ export default function AuthLayout({ title, subtitle, children, compactLogo }) {
     );
   }
 
+  // Celular: logo arriba y formulario abajo
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scroll, { paddingTop: insets.top + spacing.lg, paddingBottom: insets.bottom + spacing.xl }]} keyboardShouldPersistTaps="handled">

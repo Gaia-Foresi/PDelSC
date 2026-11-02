@@ -22,6 +22,7 @@ import { useConfirm } from '../../components/Confirm';
 import { useToast } from '../../components/Toast';
 import { LibroPicker } from './PrestamoNuevoScreen';
 
+// Componente para mostrar una fila de etiqueta y valor, usado en el detalle del préstamo
 const MAX_ABIERTOS = 5;
 const EXTENSIONES = [
   { value: 3, label: '3 días' },
@@ -30,7 +31,9 @@ const EXTENSIONES = [
   { value: 30, label: '30 días' },
 ];
 
+// Pantalla de detalle del préstamo: muestra la información del usuario, los libros prestados, el estado y las acciones disponibles según el rol del usuario y el estado del préstamo.
 export default function PrestamoDetalleScreen({ navigation, route }) {
+  // Obtiene el ID del préstamo de los parámetros de la ruta, el tema, la información del usuario y los hooks de confirmación y toast
   const { id } = route.params;
   const { colors } = useTheme();
   const { esStaff } = useAuth();
@@ -39,6 +42,7 @@ export default function PrestamoDetalleScreen({ navigation, route }) {
   const detalle = useAsync(() => api.prestamos.detalle({ id }), [id]);
   const prestamo = detalle.data?.prestamo;
 
+  // Estado de la pantalla: ocupado (realizando una acción), agregando libros, extendiendo plazo, días de extensión y libros seleccionados para agregar
   const [ocupado, setOcupado] = useState(false);
   const [agregando, setAgregando] = useState(false);
   const [nuevos, setNuevos] = useState([]);
@@ -47,7 +51,9 @@ export default function PrestamoDetalleScreen({ navigation, route }) {
 
   const aplicar = (p) => detalle.setData({ prestamo: p });
 
+  // Registra la devolución de un libro o de todos los libros del préstamo, mostrando un mensaje de éxito o error según corresponda
   const devolver = async (item) => {
+    // Si no se pasa un libro, se devuelven todos los libros pendientes del préstamo
     const todos = !item;
     const ok = await confirm({
       title: todos ? '¿Devolver todos los libros?' : '¿Registrar la devolución?',
@@ -58,6 +64,7 @@ export default function PrestamoDetalleScreen({ navigation, route }) {
     });
     if (!ok) return;
     setOcupado(true);
+    // Intenta registrar la devolución del libro o de todos los libros, mostrando un mensaje de éxito o error según corresponda
     try {
       const r = await api.prestamos.devolver({ prestamo_id: id, ...(item ? { libro_id: item.libro_id } : {}) });
       aplicar(r.prestamo);
@@ -72,8 +79,10 @@ export default function PrestamoDetalleScreen({ navigation, route }) {
   const abiertos = prestamo ? prestamo.items.filter((i) => !i.devuelto_en).length : 0;
   const cupo = Math.max(0, MAX_ABIERTOS - abiertos);
 
+  // Agrega libros al préstamo, mostrando un mensaje de éxito o error según corresponda
   const agregar = async () => {
     setOcupado(true);
+    // Intenta agregar los libros seleccionados al préstamo, mostrando un mensaje de éxito o error según corresponda
     try {
       const r = await api.prestamos.agregarLibros({ prestamo_id: id, libro_ids: nuevos });
       aplicar(r.prestamo);
@@ -87,8 +96,10 @@ export default function PrestamoDetalleScreen({ navigation, route }) {
     }
   };
 
+  // Extiende el plazo del préstamo, mostrando un mensaje de éxito o error según corresponda
   const extender = async () => {
     setOcupado(true);
+    // Intenta extender el plazo del préstamo, mostrando un mensaje de éxito o error según corresponda
     try {
       const r = await api.prestamos.extender({ prestamo_id: id, dias });
       aplicar(r.prestamo);
@@ -103,9 +114,11 @@ export default function PrestamoDetalleScreen({ navigation, route }) {
 
   const toggleNuevo = (libro) => setNuevos((ids) => (ids.includes(libro.id) ? ids.filter((i) => i !== libro.id) : [...ids, libro.id]));
 
+  // Determina si el préstamo está activo y el tono de la etiqueta según el estado y los días restantes
   const activo = prestamo?.estado === 'activo';
   const tono = !prestamo ? 'neutral' : prestamo.estado === 'cerrado' ? 'neutral' : prestamo.vencido ? 'danger' : prestamo.dias_restantes <= 2 ? 'warning' : 'success';
 
+  // Renderiza la pantalla de detalle del préstamo, con información del usuario, los libros prestados, el estado y las acciones disponibles según el rol del usuario y el estado del préstamo
   return (
     <ScreenContainer title={`Préstamo #${id}`} back showBell={false} refreshing={false} onRefresh={detalle.refresh}>
       {detalle.loading && !prestamo ? <SkeletonList count={2} height={110} /> :
@@ -209,6 +222,7 @@ export default function PrestamoDetalleScreen({ navigation, route }) {
   );
 }
 
+// Componente para mostrar una fila de etiqueta y valor, usado en el detalle del préstamo
 function Fila({ etiqueta, valor }) {
   const { colors } = useTheme();
   return (

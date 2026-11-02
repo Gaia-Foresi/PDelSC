@@ -50,6 +50,7 @@ function Seccion({ titulo, explicacion }) {
   );
 }
 
+// Leyenda de color + texto explicativo
 function Leyenda({ color, texto }) {
   const { colors } = useTheme();
   return (
@@ -72,6 +73,7 @@ function BarrasVerticales({ datos }) {
   const mejor = datos.reduce((a, b) => (b.total > a.total ? b : a), datos[0]);
   const ultimo = datos.length - 1;
 
+  // Renderiza el gráfico de barras verticales, con eje de valores, líneas guía, barras coloreadas según si es el mes actual o no, y leyenda explicativa.
   return (
     <View>
       <View
@@ -154,7 +156,11 @@ function Ranking({ datos, etiqueta, vacio, conPorcentaje }) {
   );
 }
 
+// Pantalla de estadísticas: muestra un resumen en tarjetas y gráficos de barras con el historial de préstamos, libros más prestados y préstamos por categoría. Solo accesible para el dueño.
 export default function EstadisticasScreen() {
+
+  // prepara varios datos y funciones que necesita la pantalla para mostrar la información correctamente, 
+  // adaptándose al usuario y al tamaño de la pantalla
   const { colors } = useTheme();
   const { esDueno } = useAuth();
   const { width, maxWidth, columns } = useResponsive();
@@ -163,6 +169,7 @@ export default function EstadisticasScreen() {
 
   if (!esDueno) return <ScreenContainer title="Estadísticas" back><EmptyState icon="lock-outline" title="Solo para el dueño" /></ScreenContainer>;
 
+  // calcula el espacio disponible para organizar elementos en columnas y obtiene información de las estadísticas
   const area = Math.min(width, maxWidth || width) - spacing.lg * 2;
   const cols = columns >= 3 ? 3 : 2;
   const gap = spacing.md;
@@ -170,6 +177,8 @@ export default function EstadisticasScreen() {
   const d = stats.data;
   const t = d?.totales;
 
+  // muestra un resumen de cómo está funcionando la biblioteca y presentar gráficos sobre los préstamos, 
+  // los libros más solicitados y las categorías más populares
   return (
     <ScreenContainer title="Estadísticas" back refreshing={stats.loading && !!d} onRefresh={stats.refresh}>
       {stats.loading && !d ? <SkeletonList count={3} height={120} /> :

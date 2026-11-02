@@ -9,6 +9,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { MIN_TAP, font, radius, spacing } from '../theme/tokens';
 import Logo from '../components/Logo';
 
+// Botón del menú desplegable: ícono, texto y opcionalmente un badge con número de notificaciones
 function Item({ icon, label, onPress, badge, danger }) {
   const { colors } = useTheme();
   const color = danger ? colors.danger : colors.text;
@@ -30,16 +31,19 @@ function Item({ icon, label, onPress, badge, danger }) {
   );
 }
 
+// Menú lateral (celular) con logo de la app y accesos secundarios (estadísticas, panel admin y pedir libros para el dueño)
 export default function DrawerContent({ navigation }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { esDueno } = useAuth();
 
+  // Navega a la pantalla indicada y cierra el menú lateral
   const ir = (pantalla) => {
     navigation.closeDrawer();
     navigation.navigate('Main', { screen: pantalla });
   };
 
+  // Renderiza el menú lateral con el logo de la app y los accesos secundarios (estadísticas, panel admin y pedir libros para el dueño)
   return (
     <View style={[styles.flex, { backgroundColor: colors.surface, paddingTop: insets.top }]}>
       {/* Nombre y logo de la biblioteca */}

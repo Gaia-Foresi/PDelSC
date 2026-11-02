@@ -21,6 +21,7 @@ api.post('/mantenimiento/recordatorios', asyncHandler(async (req, res) => {
   res.json({ ok: true, data: await ejecutarRecordatorios() });
 }));
 
+// rutas
 api.use('/auth', limiteAuth, require('./auth'));
 api.use('/usuarios', usuarios);
 api.use('/admin', admin);

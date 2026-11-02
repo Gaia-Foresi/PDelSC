@@ -21,6 +21,7 @@ import { useToast } from '../../components/Toast';
 import SelectorVisita, { AHORA } from '../../components/SelectorVisita';
 import { CamposDatosLector, formDesde, limpiarDni, validarDatosLector } from '../../components/DatosLector';
 
+// Configuración de los límites y opciones para el nuevo préstamo
 const MAX_LIBROS = 5;
 const PLAZOS = [
   { value: 7, label: '7 días' },
@@ -31,6 +32,7 @@ const PLAZOS = [
 // Buscador + lista de libros disponibles con selección múltiple.
 // seleccion: array de ids · onToggle(libro) · max: cuántos se pueden elegir · excluir: ids que no se muestran
 export function LibroPicker({ seleccion, onToggle, max = MAX_LIBROS, excluir = [] }) {
+  // Hook para manejar la búsqueda de libros disponibles, con debounce de 400ms
   const { colors } = useTheme();
   const [q, setQ] = useState('');
   const [busqueda, setBusqueda] = useState('');
@@ -39,10 +41,12 @@ export function LibroPicker({ seleccion, onToggle, max = MAX_LIBROS, excluir = [
     return () => clearTimeout(id);
   }, [q]);
 
+  // Hook para cargar los libros disponibles según la búsqueda, excluyendo los ya seleccionados y limitando a 40 resultados
   const libros = useAsync(() => api.libros.listar({ solo_disponibles: true, ...(busqueda ? { q: busqueda } : {}) }), [busqueda]);
   const lista = (libros.data?.libros || []).filter((l) => !excluir.includes(l.id)).slice(0, 40);
   const lleno = seleccion.length >= max;
 
+  // Renderiza la lista de libros disponibles, mostrando un estado de carga, error o vacío según corresponda, y permite seleccionar o deseleccionar libros
   return (
     <View>
       <SearchBar value={q} onChangeText={setQ} placeholder="Buscar libro por título o autor" />
@@ -55,6 +59,7 @@ export function LibroPicker({ seleccion, onToggle, max = MAX_LIBROS, excluir = [
         lista.map((l) => {
           const activo = seleccion.includes(l.id);
           const bloqueado = !activo && lleno;
+          // Renderiza cada libro como un Pressable, mostrando el título, autor, cantidad disponible y un checkbox para indicar si está seleccionado o no. Si se alcanza el límite de selección, los libros no seleccionados se muestran deshabilitados.
           return (
             <Pressable
               key={l.id}
@@ -76,6 +81,7 @@ export function LibroPicker({ seleccion, onToggle, max = MAX_LIBROS, excluir = [
   );
 }
 
+// Pantalla para registrar un nuevo préstamo: 1) elegir usuario, 2) completar datos del lector, 3) elegir libros, 4) plazo y fecha de visita. Al confirmar, se crea el préstamo y se muestra el código de retiro.
 export default function PrestamoNuevoScreen({ navigation, route }) {
   const { colors } = useTheme();
   const toast = useToast();
@@ -100,16 +106,19 @@ export default function PrestamoNuevoScreen({ navigation, route }) {
     return () => { activo = false; };
   }, [usuario?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Hook para manejar la búsqueda de usuarios, con debounce de 400ms
   useEffect(() => {
     const id = setTimeout(() => setBusqueda(q.trim()), 400);
     return () => clearTimeout(id);
   }, [q]);
 
+  // Hook para cargar los usuarios según la búsqueda, excluyendo al usuario ya elegido y limitando a 30 resultados
   const usuarios = useAsync(
     () => (usuario ? Promise.resolve(null) : api.usuarios.listar({ rol: 'usuario', limite: 30, ...(busqueda ? { q: busqueda } : {}) })),
     [busqueda, usuario],
   );
 
+  // Función para elegir al usuario seleccionado, verificando si está bloqueado y mostrando un mensaje de error si es así. Si no está bloqueado, se guarda su información en el estado.
   const elegirUsuario = (u) => {
     if (u.estado === 'bloqueado') {
       toast.error(`${nombreCompleto(u)} está bloqueado: ${u.motivo_bloqueo || 'tiene libros sin devolver'}. No se le pueden prestar libros.`);
@@ -120,11 +129,13 @@ export default function PrestamoNuevoScreen({ navigation, route }) {
 
   const toggleLibro = (libro) => setLibroIds((ids) => (ids.includes(libro.id) ? ids.filter((i) => i !== libro.id) : [...ids, libro.id]));
 
+  // Función para confirmar el préstamo: valida los datos del lector, crea el préstamo mediante la API y navega a la pantalla de detalle del préstamo mostrando un mensaje de éxito o error según corresponda
   const confirmar = async () => {
     const e = validarDatosLector(datos);
     setErroresDatos(e);
     if (Object.values(e).some(Boolean)) { toast.error('Completá los datos del lector para registrar el préstamo.'); return; }
     setEnviando(true);
+    // Intenta crear el préstamo mediante la API, mostrando un mensaje de éxito o error según corresponda
     try {
       const { prestamo } = await api.prestamos.crear({
         usuario_id: usuario.id, libro_ids: libroIds, dias,
@@ -140,6 +151,7 @@ export default function PrestamoNuevoScreen({ navigation, route }) {
     }
   };
 
+  // Renderiza la pantalla de nuevo préstamo: si no se eligió un usuario, muestra la búsqueda de usuarios; si se eligió un usuario, muestra los datos del lector, la selección de libros, el plazo y la fecha de visita, y el botón para confirmar el préstamo.
   return (
     <ScreenContainer title="Nuevo préstamo" back showBell={false}>
       {!usuario ? (

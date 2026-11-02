@@ -1,6 +1,7 @@
 // Límites de peticiones (anti fuerza bruta).
 const rateLimit = require('express-rate-limit');
 
+// Respuesta de error para los límites de peticiones
 const respuesta = {
   ok: false,
   error: { codigo: 'DEMASIADOS_INTENTOS', mensaje: 'Demasiados intentos. Esperá unos minutos y probá de nuevo.' },

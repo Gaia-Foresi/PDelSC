@@ -21,6 +21,7 @@ import { SkeletonList } from '../../components/Skeleton';
 import { useConfirm } from '../../components/Confirm';
 import { useToast } from '../../components/Toast';
 
+// Constantes para los filtros de reservas según el tipo de usuario (usuario o staff) y los tonos y textos asociados a cada estado de reserva.
 const FILTROS_USUARIO = [
   { value: 'activa', label: 'Activas' },
   { value: 'todas', label: 'Todas' },
@@ -34,6 +35,7 @@ const FILTROS_STAFF = [
 const TONO_ESTADO = { activa: 'success', cumplida: 'primary', cancelada: 'neutral', vencida: 'danger' };
 const TEXTO_ESTADO = { activa: 'Activa', cumplida: 'Cumplida', cancelada: 'Cancelada', vencida: 'Vencida' };
 
+// Pantalla de reservas: muestra la lista de reservas del usuario o del personal, con opciones para filtrar, buscar, cancelar o atender reservas según corresponda.
 export default function ReservasScreen({ navigation, route }) {
   const enTab = route?.name === 'ReservasTab';
   const { colors } = useTheme();
@@ -46,11 +48,13 @@ export default function ReservasScreen({ navigation, route }) {
   const [busqueda, setBusqueda] = useState('');
   const [ocupada, setOcupada] = useState(null);
 
+  // Hook para manejar la búsqueda de reservas, con debounce de 400ms
   useEffect(() => {
     const id = setTimeout(() => setBusqueda(q.trim()), 400);
     return () => clearTimeout(id);
   }, [q]);
 
+  // Hook para cargar las reservas según el filtro y la búsqueda, llamando a la API correspondiente según si es staff o usuario.
   const estado = filtro === 'todas' ? undefined : filtro;
   const datos = useAsync(
     () => (esStaff
@@ -60,6 +64,7 @@ export default function ReservasScreen({ navigation, route }) {
   );
   useRefreshOnFocus(datos.refresh);
 
+  // Función para cancelar una reserva: muestra un diálogo de confirmación, llama a la API para cancelar la reserva y actualiza la lista de reservas.
   const cancelar = async (r) => {
     const ok = await confirm({
       title: '¿Cancelar la reserva?',
@@ -70,6 +75,7 @@ export default function ReservasScreen({ navigation, route }) {
     });
     if (!ok) return;
     setOcupada(r.id);
+    // Intenta cancelar la reserva mediante la API, mostrando un mensaje de éxito o error según corresponda
     try {
       await api.reservas.cancelar({ id: r.id });
       toast.success('Reserva cancelada.');
@@ -81,6 +87,7 @@ export default function ReservasScreen({ navigation, route }) {
     }
   };
 
+  // Función para atender una reserva: muestra un diálogo de confirmación, llama a la API para marcar la reserva como usada o crear un préstamo según corresponda, y navega a la pantalla de detalle del préstamo si se creó uno.
   const atender = async (r) => {
     const sala = r.tipo === 'sala';
     const ok = await confirm({
@@ -90,8 +97,10 @@ export default function ReservasScreen({ navigation, route }) {
         : `Se va a crear un préstamo de "${r.libro.titulo}" para ${r.usuario.nombre} y la reserva queda cumplida.`,
       confirmText: sala ? 'Marcar como usada' : 'Crear préstamo',
     });
+    // Intenta atender la reserva mediante la API, mostrando un mensaje de éxito o error según corresponda
     if (!ok) return;
     setOcupada(r.id);
+    // Intenta atender la reserva mediante la API, mostrando un mensaje de éxito o error según corresponda
     try {
       const res = await api.reservas.atender({ id: r.id });
       if (res.prestamo) {
@@ -115,6 +124,7 @@ export default function ReservasScreen({ navigation, route }) {
     </View>
   );
 
+  // Renderiza la pantalla de reservas: un contenedor con título, botón de retroceso o menú según corresponda, y una lista de reservas con opciones para filtrar, buscar, cancelar o atender reservas según el tipo de usuario.
   return (
     <ScreenContainer title="Libros reservados" back={!enTab} menu={enTab} tab={enTab} scroll={false}>
       <FlatList

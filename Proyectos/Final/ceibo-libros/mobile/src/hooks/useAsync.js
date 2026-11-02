@@ -2,12 +2,14 @@
 // `fn` se vuelve a ejecutar cuando cambian las dependencias (deps).
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+// Hook para manejar llamadas asíncronas a la API, con estado de carga y error.
 export function useAsync(fn, deps = [], { immediate = true } = {}) {
   const [state, setState] = useState({ data: null, loading: immediate, error: null });
   const vivo = useRef(true);
   const llamada = useRef(0);
   useEffect(() => () => { vivo.current = false; }, []);
 
+  // Ejecuta la función `fn` y actualiza el estado con los resultados. Si hay un error, lo captura y lo guarda en el estado.
   const run = useCallback(async (...args) => {
     const id = ++llamada.current;
     setState((s) => ({ ...s, loading: true, error: null }));

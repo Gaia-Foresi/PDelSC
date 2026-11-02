@@ -1,3 +1,4 @@
+// Rutas para préstamos y reservas de libros. Accesibles para todos los usuarios, pero algunas requieren rol de staff.
 const { Router } = require('express');
 const ctl = require('../controllers/prestamos');
 const autenticar = require('../middlewares/auth');
@@ -7,6 +8,7 @@ const asyncHandler = require('../utils/asyncHandler');
 const { z, id, texto, curso, dni } = require('../utils/esquemas');
 const { reglas } = require('../config/env');
 
+// Verifica que se ingrese una fecha y hora obligatoria con un formato válido (AAAA-MM-DDTHH:mm:ss.sssZ (ISO 8601))
 const vacio = z.object({}).passthrough();
 const dias = (max) => z.coerce.number({ invalid_type_error: 'Debe ser un número' }).int('Debe ser entero').min(1, 'Mínimo 1 día').max(max, `Máximo ${max} días`);
 const libroIds = z.array(id, { required_error: 'Obligatorio', invalid_type_error: 'Debe ser una lista' })
@@ -14,6 +16,8 @@ const libroIds = z.array(id, { required_error: 'Obligatorio', invalid_type_error
 
 const fechaHora = z.string({ required_error: 'Obligatorio' }).datetime({ message: 'Fecha y hora inválidas' });
 
+// no realiza los préstamos ni las reservas directamente, 
+// sino que comprueba que los datos necesarios para realizarlos sean válidos
 const S = {
   crear: z.object({
     usuario_id: id, libro_ids: libroIds, dias: dias(60).optional(),
@@ -42,6 +46,7 @@ const S = {
   atender: z.object({ id, dias: dias(60).optional() }),
 };
 
+// Rutas para préstamos y reservas de libros. Accesibles para todos los usuarios, pero algunas requieren rol de staff.
 const prestamos = Router();
 prestamos.use(autenticar);
 prestamos.post('/crear', requiereRol(...STAFF), validar(S.crear), asyncHandler(ctl.prestamosCrear));
@@ -52,6 +57,7 @@ prestamos.post('/agregar-libros', requiereRol(...STAFF), validar(S.agregar), asy
 prestamos.post('/devolver', requiereRol(...STAFF), validar(S.devolver), asyncHandler(ctl.prestamosDevolver));
 prestamos.post('/extender', requiereRol(...STAFF), validar(S.extender), asyncHandler(ctl.prestamosExtender));
 
+// Rutas para reservas de libros. Accesibles para todos los usuarios, pero algunas requieren rol de staff.
 const reservas = Router();
 reservas.use(autenticar);
 reservas.post('/horarios', validar(S.horarios), asyncHandler(ctl.reservasHorarios));

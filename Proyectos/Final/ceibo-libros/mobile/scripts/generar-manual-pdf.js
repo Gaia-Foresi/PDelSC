@@ -8,19 +8,23 @@ const PDFDocument = require('pdfkit');
 const manual = require('../src/content/manual.json');
 const { ROLES, seccionesDe } = require('../src/content/manualRoles');
 
+// define los colores, los nombres de los roles 
+// y los textos introductorios que se van a mostrar en una guía de ayuda de la biblioteca
 const COLORES = { texto: '#3E2723', suave: '#6B564D', verde: '#2E4A2E', crema: '#F3E5D8', linea: '#D9C4AE' };
-const ETIQUETAS = { todos: 'Todos los roles', usuario: 'Usuario (lector)', bibliotecario: 'Bibliotecario', dueno: 'Dueño' };
+const ETIQUETAS = { todos: 'Todos los roles', usuario: 'Usuario (lector)', bibliotecario: 'Bibliotecario', dueno: 'Gerente' };
 const INTRO_ROL = {
   usuario: 'Esta guía explica cómo usar la aplicación como usuario (lector): reservar libros, ver tus préstamos y consultar a la biblioteca.',
   bibliotecario: 'Esta guía explica cómo usar la aplicación como bibliotecario: administrar el stock, registrar préstamos y devoluciones, atender reservas y gestionar usuarios.',
-  dueno: 'Esta guía explica cómo usar la aplicación como dueño de la biblioteca. Incluye las tareas del bibliotecario y las funciones exclusivas del dueño.',
+  dueno: 'Esta guía explica cómo usar la aplicación como gerente de la biblioteca. Incluye las tareas del bibliotecario y las funciones exclusivas del gerente.',
 };
 
+// Crea las carpetas donde se van a guardar los manuales, si no existen
 const carpetaApp = path.join(__dirname, '../assets/manuales');
 const carpetaDocs = path.join(__dirname, '../../docs');
 fs.mkdirSync(carpetaApp, { recursive: true });
 fs.mkdirSync(carpetaDocs, { recursive: true });
 
+// Crea un PDF con el contenido de la guía de ayuda, y lo guarda en los destinos indicados
 function crearPdf({ titulo, subtitulo, intro, secciones, pie, destinos, mostrarRol }) {
   return new Promise((resolve) => {
     const doc = new PDFDocument({
@@ -96,6 +100,7 @@ function crearPdf({ titulo, subtitulo, intro, secciones, pie, destinos, mostrarR
   });
 }
 
+// Genera los manuales en PDF para cada rol, y una versión completa con todos los roles
 (async () => {
   const nombresDocs = { usuario: 'Manual_Usuario.pdf', bibliotecario: 'Manual_Bibliotecario.pdf', dueno: 'Manual_Dueno.pdf' };
   for (const [rol, info] of Object.entries(ROLES)) {

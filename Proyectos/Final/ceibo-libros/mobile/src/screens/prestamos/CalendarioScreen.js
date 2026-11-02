@@ -13,16 +13,19 @@ import Card from '../../components/Card';
 import ErrorState from '../../components/ErrorState';
 import ScreenContainer from '../../components/ScreenContainer';
 
+// Componente de calendario: muestra un calendario mensual con los días y las visitas registradas, permite navegar entre meses y ver los detalles de cada visita.
 const pad = (n) => String(n).padStart(2, '0');
 const iso = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;
 const SEMANA = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
+// Etiquetas para los tipos de eventos: reserva de sala, reserva de retiro y préstamo, con su texto, tono y icono correspondiente
 const ETIQUETA = {
   'reserva-sala': ['Reserva · sala', 'primary', 'book-open-variant'],
   'reserva-retiro': ['Reserva · retiro', 'warning', 'bookmark-outline'],
   prestamo: ['Préstamo', 'success', 'swap-horizontal'],
 };
 
+// Pantalla de calendario: muestra un calendario mensual con los días y las visitas registradas, permite navegar entre meses y ver los detalles de cada visita.
 export default function CalendarioScreen({ navigation }) {
   const { colors } = useTheme();
   const hoy = new Date();
@@ -30,18 +33,21 @@ export default function CalendarioScreen({ navigation }) {
   const [mes, setMes] = useState({ y: hoy.getFullYear(), m: hoy.getMonth() });
   const [dia, setDia] = useState(hoyIso);
 
+  // Carga los eventos del mes seleccionado, con manejo de errores y refresco al hacer pull-to-refresh
   const diasMes = new Date(mes.y, mes.m + 1, 0).getDate();
   const desde = iso(mes.y, mes.m, 1);
   const hasta = iso(mes.y, mes.m, diasMes);
   const datos = useAsync(() => api.calendario.listar({ desde, hasta }), [desde, hasta]);
   useRefreshOnFocus(datos.refresh);
 
+  // Mapea los eventos por día, para mostrarlos en el calendario y en la lista de visitas del día seleccionado
   const porDia = useMemo(() => {
     const mapa = {};
     for (const e of datos.data?.eventos || []) (mapa[e.visita.fecha] ||= []).push(e);
     return mapa;
   }, [datos.data]);
 
+  // Cambia el mes del calendario, actualizando el estado y el día seleccionado al primer día del mes
   const cambiarMes = (delta) => {
     const f = new Date(mes.y, mes.m + delta, 1);
     setMes({ y: f.getFullYear(), m: f.getMonth() });
@@ -55,6 +61,7 @@ export default function CalendarioScreen({ navigation }) {
 
   const abrir = (e) => navigation.navigate(e.tipo === 'prestamo' ? 'PrestamoDetalle' : 'ReservasTab', e.tipo === 'prestamo' ? { id: e.ref_id } : undefined);
 
+  // Renderiza la pantalla de calendario, con el mes y año, los días del mes, los eventos del día seleccionado y la lista de visitas del día
   return (
     <ScreenContainer title="Calendario de visitas" back refreshing={datos.loading && !!datos.data} onRefresh={datos.refresh}>
       <Card>
@@ -103,6 +110,7 @@ export default function CalendarioScreen({ navigation }) {
 
       {eventos.map((e) => {
         const [txt, tono, icono] = ETIQUETA[e.tipo === 'prestamo' ? 'prestamo' : `reserva-${e.subtipo || 'retiro'}`];
+        // Renderiza cada visita como una tarjeta con la hora, el nombre del usuario, los libros y las etiquetas correspondientes, y permite abrir los detalles al presionar
         return (
           <Card key={e.clave} onPress={() => abrir(e)} accessibilityLabel={`${e.visita.hora}, ${e.usuario.nombre} ${e.usuario.apellido}`} style={{ marginTop: spacing.sm }}>
             <View style={styles.fila}>

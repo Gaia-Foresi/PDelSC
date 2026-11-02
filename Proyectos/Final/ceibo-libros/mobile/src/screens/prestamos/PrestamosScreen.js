@@ -21,6 +21,7 @@ import ScreenContainer, { useListContentStyle } from '../../components/ScreenCon
 import SearchBar from '../../components/SearchBar';
 import { SkeletonList } from '../../components/Skeleton';
 
+// Filtros de estado para el usuario y el personal
 const FILTROS_USUARIO = [
   { value: 'todos', label: 'Todos' },
   { value: 'activo', label: 'Activos' },
@@ -33,6 +34,7 @@ const FILTROS_STAFF = [
   { value: 'cerrado', label: 'Cerrados' },
 ];
 
+// Componente para mostrar un préstamo en la lista, con información del usuario (si es personal), estado, días restantes, código de retiro y libros asociados. Cambia el color y el icono según el estado del préstamo.
 function PrestamoCard({ prestamo, staff, onPress }) {
   const { colors } = useTheme();
   const cerrado = prestamo.estado === 'cerrado';
@@ -40,6 +42,7 @@ function PrestamoCard({ prestamo, staff, onPress }) {
   const tono = cerrado ? 'neutral' : prestamo.vencido ? 'danger' : porVencer ? 'warning' : 'success';
   const icono = cerrado ? 'check-circle-outline' : prestamo.vencido ? 'alert-circle-outline' : 'clock-outline';
 
+  // Renderiza la tarjeta del préstamo con información relevante y un botón para ver más detalles
   return (
     <Card onPress={onPress} accessibilityLabel={`Préstamo ${prestamo.id}, ${diasTexto(prestamo)}`}>
       <View style={styles.cabecera}>
@@ -71,6 +74,7 @@ function PrestamoCard({ prestamo, staff, onPress }) {
   );
 }
 
+// Pantalla principal de préstamos, mostrando la lista de préstamos según el rol del usuario (personal o común), con filtros, búsqueda y acciones disponibles. Maneja la carga de datos y el estado de la lista.
 export default function PrestamosScreen({ navigation }) {
   const { esStaff } = useAuth();
   const contenido = useListContentStyle(true);
@@ -78,11 +82,13 @@ export default function PrestamosScreen({ navigation }) {
   const [q, setQ] = useState('');
   const [busqueda, setBusqueda] = useState('');
 
+  // Hook para manejar la búsqueda de préstamos, con debounce de 400ms
   useEffect(() => {
     const id = setTimeout(() => setBusqueda(q.trim()), 400);
     return () => clearTimeout(id);
   }, [q]);
 
+  // Hook para cargar los préstamos según el rol del usuario, el filtro y la búsqueda. Si es personal, se listan todos los préstamos con filtros; si es usuario común, se listan solo sus propios préstamos.
   const datos = useAsync(
     () => (esStaff
       ? api.prestamos.listar({ ...(filtro !== 'todos' ? { estado: filtro } : {}), ...(busqueda ? { q: busqueda } : {}) })
@@ -97,6 +103,7 @@ export default function PrestamosScreen({ navigation }) {
     return esStaff || filtro === 'todos' ? todos : todos.filter((p) => p.estado === filtro);
   }, [datos.data, esStaff, filtro]);
 
+  // Renderiza el encabezado de la pantalla, mostrando un banner de bloqueo si el usuario no es personal, un botón para crear un nuevo préstamo si es personal, una barra de búsqueda y chips de filtro según el rol del usuario.
   const encabezado = (
     <View>
       {!esStaff ? <BloqueoBanner /> : null}
@@ -108,6 +115,7 @@ export default function PrestamosScreen({ navigation }) {
     </View>
   );
 
+  // Renderiza la pantalla de préstamos con un contenedor de pantalla, una lista plana de préstamos, un encabezado con acciones y filtros, y componentes para manejar estados vacíos o de error.
   return (
     <ScreenContainer title={esStaff ? 'Préstamos hechos' : 'Mis préstamos'} menu tab scroll={false}>
       <FlatList

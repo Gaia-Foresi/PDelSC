@@ -5,6 +5,9 @@ const { HttpError } = require('../utils/httpError');
 
 const falla = (mensaje) => new HttpError(502, 'PROVEEDOR_SOCIAL', mensaje);
 
+// función que se encarga de hablar con un servidor, 
+// esperar su respuesta, recibir los datos y avisar si hubo algún problema de conexión. 
+// Además, evita que la petición quede esperando para siempre porque tiene un límite de 10 segundos.
 async function pedirJson(url, opciones = {}) {
   let r;
   try {

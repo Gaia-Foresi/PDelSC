@@ -5,7 +5,10 @@ const { consultar } = require('../config/db');
 const { HttpError, err } = require('../utils/httpError');
 const asyncHandler = require('../utils/asyncHandler');
 
+// Se usa en todas las rutas que requieren autenticación (login, códigos, registro no requieren).
 module.exports = asyncHandler(async (req, res, next) => {
+
+  // Se espera un header Authorization: "Bearer <token>"
   const [tipo, token] = (req.headers.authorization || '').split(' ');
   if (tipo !== 'Bearer' || !token) throw err.noAutenticado();
 

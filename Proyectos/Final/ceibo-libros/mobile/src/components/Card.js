@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { radius, shadow, spacing } from '../theme/tokens';
 
+// Componente Card que puede ser presionado o no, dependiendo de si se le pasa la prop onPress
 export default function Card({ children, onPress, style, accessibilityLabel }) {
   const { colors } = useTheme();
   const base = [styles.card, { backgroundColor: colors.card, borderColor: colors.border }, shadow(colors.shadow), style];

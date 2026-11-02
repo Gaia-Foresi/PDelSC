@@ -29,6 +29,7 @@ async function conCategorias(libros, conn = pool) {
   }));
 }
 
+// Devuelve el libro con sus categorías, o null si no existe o no está activo.
 async function obtenerLibro(id, conn = pool) {
   const [filas] = await conn.query(`${SQL_LIBRO} WHERE l.id = ? AND l.activo = 1`, [id]);
   return filas[0] ? (await conCategorias([filas[0]], conn))[0] : null;

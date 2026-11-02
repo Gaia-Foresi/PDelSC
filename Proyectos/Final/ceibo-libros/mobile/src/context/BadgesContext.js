@@ -16,6 +16,7 @@ function avisoDelSistema(texto) {
 
 const BadgesContext = createContext({ mensajes: 0, notificaciones: 0, refrescar: () => {} });
 
+// Contadores de mensajes y notificaciones. Se refrescan solos cada 30 s y al volver a la app.
 export function BadgesProvider({ children }) {
   const { usuario } = useAuth();
   const [mensajes, setMensajes] = useState(0);
@@ -25,6 +26,7 @@ export function BadgesProvider({ children }) {
   toastRef.current = toast;
   const previo = useRef(null); // null = todavía no se hizo la primera lectura (no avisar al abrir la app)
 
+  // Refresca los contadores de mensajes y notificaciones. Si hay un nuevo mensaje, muestra un aviso.
   const refrescar = useCallback(async () => {
     if (!usuario) return;
     try {

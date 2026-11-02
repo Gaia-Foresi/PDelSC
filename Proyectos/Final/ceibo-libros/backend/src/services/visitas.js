@@ -3,6 +3,7 @@
 const { visitas, tzOffsetHoras } = require('../config/env');
 const { err } = require('../utils/httpError');
 
+// Horarios de atención y validación de visitas
 const HORAS_VENTANA = { sala: 24, retiro: 72 }; // cuánto se guarda la reserva como mínimo según el tipo
 const DIAS_ELEGIBLES = 14; // hasta cuántos días adelante se puede elegir la visita
 const dos = (n) => String(n).padStart(2, '0');

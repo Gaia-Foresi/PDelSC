@@ -20,10 +20,12 @@ import { Skeleton } from '../../components/Skeleton';
 import BloqueoBanner from '../../components/BloqueoBanner';
 import HorarioAtencion from '../../components/HorarioAtencion';
 
+// Devuelve un icono seguro para la categoría: si el icono no existe, devuelve uno por defecto.
 export function iconoSeguro(nombre) {
   return MaterialCommunityIcons.glyphMap[nombre] ? nombre : 'book-open-page-variant';
 }
 
+// Componente que representa una categoría: muestra el icono, nombre y cantidad de libros, y llama a onPress al tocarla.
 function CategoriaCard({ categoria, ancho, onPress }) {
   const { colors } = useTheme();
   const color = categoria.color || colors.secondary;
@@ -43,6 +45,7 @@ function CategoriaCard({ categoria, ancho, onPress }) {
   );
 }
 
+// Componente que representa la tarjeta para crear una nueva categoría: muestra un icono de "+" y el texto "Nueva categoría", y llama a onPress al tocarla.
 function NuevaCategoriaCard({ ancho, onPress }) {
   const { colors } = useTheme();
   return (
@@ -60,6 +63,7 @@ function NuevaCategoriaCard({ ancho, onPress }) {
 
 const ANCHO_MAX_COMPU = 1240;
 
+// Componente que muestra el historial de búsquedas: lista las búsquedas recientes, permite usarlas de nuevo, quitarlas o borrar todo el historial.
 function HistorialBusquedas({ historial, onUsar, onQuitar, onBorrarTodo }) {
   const { colors } = useTheme();
   return (
@@ -89,6 +93,7 @@ function HistorialBusquedas({ historial, onUsar, onQuitar, onBorrarTodo }) {
   );
 }
 
+// Pantalla principal: buscador + grilla de categorías (boceto 2).
 export default function HomeScreen({ navigation }) {
   const { colors } = useTheme();
   const { bloqueado, usuario, esDueno } = useAuth();
@@ -118,6 +123,7 @@ export default function HomeScreen({ navigation }) {
     return () => { vivo = false; };
   }, [claveHistorial]);
 
+  // Guarda el historial de búsquedas en el estado y en el almacenamiento local, limitando a 8 elementos y evitando duplicados.
   const guardarHistorial = (lista) => { setHistorial(lista); guardar(claveHistorial, lista); };
   const recordarBusqueda = () => {
     const texto = q.trim();
@@ -127,11 +133,13 @@ export default function HomeScreen({ navigation }) {
   const usarBusqueda = (texto) => { setQ(texto); setBusqueda(texto); };
   const quitarBusqueda = (texto) => guardarHistorial(historial.filter((h) => h !== texto));
 
+  // Calcula el ancho de cada categoría en la grilla, considerando el espacio disponible, el número de columnas y el espacio entre ellas.
   const areaUtil = Math.min(width, maxWidth || width) - spacing.lg * 2;
   const gap = spacing.md;
   const ancho = Math.floor((areaUtil - gap * (columns - 1)) / columns);
   const buscando = !!busqueda;
 
+  // Renderiza la pantalla de inicio, con buscador, historial de búsquedas, categorías y resultados de búsqueda, adaptándose a la pantalla y al estado de búsqueda.
   const encabezado = (
     <View>
       <BloqueoBanner />
@@ -143,6 +151,7 @@ export default function HomeScreen({ navigation }) {
     </View>
   );
 
+  // Versión compu (pantalla ancha): buscador + historial a la izquierda y categorías a la derecha
   if (compu) {
     const ANCHO_IZQ = 360;
     const anchoDer = Math.min(width, ANCHO_MAX_COMPU) - spacing.lg * 3 - ANCHO_IZQ;
@@ -200,6 +209,7 @@ export default function HomeScreen({ navigation }) {
     );
   }
 
+  // Versión móvil: buscador + categorías o resultados en una sola columna
   return (
     <ScreenContainer brand menu tab scroll={false}>
       {buscando ? (

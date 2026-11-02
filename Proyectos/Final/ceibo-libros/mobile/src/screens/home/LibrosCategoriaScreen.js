@@ -32,6 +32,7 @@ export default function LibrosCategoriaScreen(props) {
   return categoria ? <ListaCategoria {...props} categoria={categoria} /> : null;
 }
 
+// Lista de libros de una categoría, con buscador, filtro "solo disponibles" y reserva (leer en sala / llevar).
 function ListaCategoria({ navigation, categoria }) {
   const { bloqueado, usuario, esStaff, esDueno } = useAuth();
   const confirm = useConfirm();
@@ -47,6 +48,7 @@ function ListaCategoria({ navigation, categoria }) {
     return () => clearTimeout(id);
   }, [q]);
 
+  // Lista de libros de la categoría, filtrando por búsqueda y disponibilidad
   const libros = useAsync(
     () => api.libros.listar({
       categoria_id: categoria.id,
@@ -58,6 +60,7 @@ function ListaCategoria({ navigation, categoria }) {
   useRefreshOnFocus(libros.refresh);
   const reservar = useReservar(libros.refresh);
 
+  // Elimina un libro de la categoría, con confirmación y manejo de errores
   const eliminar = async (libro) => {
     const ok = await confirm({
       title: '¿Eliminar este libro?',
@@ -75,6 +78,7 @@ function ListaCategoria({ navigation, categoria }) {
     }
   };
 
+  // Renderiza el encabezado de la lista: banner de bloqueo, botón de agregar libro (si es staff), buscador y chips de filtro
   const encabezado = (
     <View>
       <BloqueoBanner />
@@ -86,6 +90,7 @@ function ListaCategoria({ navigation, categoria }) {
     </View>
   );
 
+  // Renderiza la pantalla de libros de la categoría, con lista de libros, encabezado y manejo de estados vacíos o de error
   return (
     <ScreenContainer title={categoria.nombre} back scroll={false}>
       <FlatList

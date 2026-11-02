@@ -4,6 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../theme/ThemeContext';
 import { MIN_TAP, radius, spacing } from '../theme/tokens';
 
+// Componente que representa una barra de búsqueda con ícono, campo de texto y botón para borrar el contenido. Se adapta al tema de la aplicación y permite manejar eventos de cambio, envío y desenfoque del campo de búsqueda.
 export default function SearchBar({ value, onChangeText, placeholder = 'Buscar…', onSubmit, onBlur, style }) {
   const { colors } = useTheme();
   return (

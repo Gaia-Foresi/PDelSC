@@ -19,6 +19,7 @@ import { useConfirm } from '../../components/Confirm';
 import ScreenContainer from '../../components/ScreenContainer';
 import { useToast } from '../../components/Toast';
 
+// Componente de línea de información: icono, etiqueta y valor
 function Linea({ icon, label, value }) {
   const { colors } = useTheme();
   return (
@@ -32,6 +33,7 @@ function Linea({ icon, label, value }) {
   );
 }
 
+// Pantalla de perfil: muestra la foto, nombre, rol (si es staff) y datos del usuario, además de botones para editar perfil, seguridad y cerrar sesión.
 export default function PerfilScreen({ navigation }) {
   const { colors } = useTheme();
   const { usuario, esStaff, cerrarSesion, recargarPerfil, resumen, actualizarUsuario } = useAuth();
@@ -42,6 +44,7 @@ export default function PerfilScreen({ navigation }) {
   // Tocar la foto abre la galería y la guarda en el momento
   const cambiarFoto = async () => {
     setSubiendo(true);
+    // Intenta elegir una foto de perfil, subirla y actualizar el usuario, mostrando errores si falla
     try {
       const r = await elegirFotoDePerfil();
       if (r.error) { toast.error(r.error); return; }
@@ -56,17 +59,21 @@ export default function PerfilScreen({ navigation }) {
     }
   };
 
+  // Carga el perfil y permite refrescarlo al hacer pull-to-refresh
   const perfil = useAsync(() => recargarPerfil(), []);
   useRefreshOnFocus(perfil.refresh);
 
+  // Cierra sesión con confirmación
   const salir = useCallback(async () => {
     const ok = await confirm({ title: '¿Cerrar sesión?', message: 'Vas a tener que ingresar de nuevo para usar la biblioteca.', confirmText: 'Cerrar sesión', destructive: true });
     if (ok) cerrarSesion();
   }, [confirm, cerrarSesion]);
 
+  // Si no hay usuario, no renderiza nada (pantalla en blanco)
   if (!usuario) return null;
   const datos = perfil.data?.resumen || resumen;
 
+  // Renderiza la pantalla de perfil, con foto, nombre, rol (si es staff), datos y botones de acción
   return (
     <ScreenContainer title="Mi perfil" menu tab refreshing={perfil.loading && !!perfil.data} onRefresh={perfil.refresh}>
       <BloqueoBanner />

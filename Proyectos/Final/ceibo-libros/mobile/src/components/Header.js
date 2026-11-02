@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import Logo from './Logo';
 import NavAcciones from './NavAcciones';
 
+// Componente que representa un botón de ícono con un posible indicador de notificaciones (badge). Se utiliza en la barra superior para acciones como abrir el menú o mostrar notificaciones.
 export function IconButton({ icon, onPress, label, badge, color }) {
   const { colors } = useTheme();
   return (
@@ -26,6 +27,7 @@ export function IconButton({ icon, onPress, label, badge, color }) {
   );
 }
 
+// Componente que representa la barra superior de la aplicación, mostrando el título, el logo, y botones de navegación según el contexto (menú, volver, notificaciones). Se adapta a diferentes tamaños de pantalla y condiciones de uso.
 export default function Header({ title, brand, menu, back, right, showBell = true }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
@@ -35,6 +37,7 @@ export default function Header({ title, brand, menu, back, right, showBell = tru
   const angosto = useWindowDimensions().width < 420;
   const menuFijo = useMenuFijo(); // compu: sin menú lateral ni botón ☰; los accesos van en esta barra
 
+  // Renderiza la barra superior con el título, logo, y botones de navegación según las props y el estado de la aplicación.
   return (
     <View style={[styles.bar, { paddingTop: insets.top, backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
       <View style={styles.row}>

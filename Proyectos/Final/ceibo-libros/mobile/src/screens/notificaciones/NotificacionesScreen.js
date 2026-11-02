@@ -14,6 +14,7 @@ import ErrorState from '../../components/ErrorState';
 import ScreenContainer, { useListContentStyle } from '../../components/ScreenContainer';
 import { SkeletonList } from '../../components/Skeleton';
 
+// Tipos de notificaciones, con su icono y tono de color
 const TIPOS = {
   recordatorio_devolucion: { icon: 'calendar-clock-outline', tono: 'warning' },
   vencimiento: { icon: 'clock-alert-outline', tono: 'danger' },
@@ -23,6 +24,7 @@ const TIPOS = {
   sistema: { icon: 'bell-outline', tono: 'primary' },
 };
 
+// Pantalla de notificaciones: lista de avisos, con actualización al volver a la pantalla y marcado automático como leídas 
 export default function NotificacionesScreen() {
   const { colors } = useTheme();
   const { refrescar } = useBadges();
@@ -36,6 +38,7 @@ export default function NotificacionesScreen() {
     api.notificaciones.marcarLeidas({}).then(refrescar).catch(() => {});
   }, [cargadas, refrescar]);
 
+  // Función auxiliar para obtener el color de fondo y de primer plano según el tono de la notificación
   const color = (tono) => ({
     warning: [colors.warningSoft, colors.warning],
     danger: [colors.dangerSoft, colors.danger],
@@ -43,6 +46,7 @@ export default function NotificacionesScreen() {
     primary: [colors.primarySoft, colors.primary],
   }[tono]);
 
+  // Renderiza la pantalla de notificaciones, con lista de avisos y manejo de estados vacíos o de error 
   return (
     <ScreenContainer title="Notificaciones" back showBell={false} scroll={false}>
       <FlatList

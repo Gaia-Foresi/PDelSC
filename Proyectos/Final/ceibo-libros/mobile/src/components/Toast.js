@@ -9,6 +9,7 @@ import { radius, shadow, spacing } from '../theme/tokens';
 const ToastContext = createContext(null);
 export const useToast = () => useContext(ToastContext);
 
+// Proveedor de contexto para los avisos
 export function ToastProvider({ children }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
@@ -16,10 +17,12 @@ export function ToastProvider({ children }) {
   const op = useRef(new Animated.Value(0)).current;
   const timer = useRef(null);
 
+  // Oculta el aviso
   const hide = useCallback(() => {
     Animated.timing(op, { toValue: 0, duration: 180, useNativeDriver: Platform.OS !== 'web' }).start(() => setToast(null));
   }, [op]);
 
+  // Muestra un aviso con mensaje y tipo (success, error, info)
   const show = useCallback((mensaje, tipo = 'info') => {
     clearTimeout(timer.current);
     setToast({ mensaje, tipo });
@@ -29,18 +32,24 @@ export function ToastProvider({ children }) {
 
   useEffect(() => () => clearTimeout(timer.current), []);
 
+  // API de avisos que se proporciona a los componentes hijos a través del contexto
   const api = useRef({}).current;
   api.success = (m) => show(m, 'success');
   api.error = (m) => show(m, 'error');
   api.info = (m) => show(m, 'info');
   api.fromError = (e, fallback = 'Ocurrió un error. Probá de nuevo.') => show(e?.message || fallback, 'error');
 
+  // Determina el estilo del aviso según el tipo (success, error, info)
   const tono = toast && {
     success: { bg: colors.success, icon: 'check-circle-outline', fg: colors.mode === 'dark' ? '#14210F' : '#FFFFFF' },
     error: { bg: colors.danger, icon: 'alert-circle-outline', fg: colors.onDanger },
     info: { bg: colors.primary, icon: 'information-outline', fg: colors.onPrimary },
   }[toast.tipo];
 
+  // Renderiza el proveedor de contexto y el aviso si está activo, 
+  // con animación de aparición y desaparición. 
+  // El aviso se muestra en la parte inferior de la pantalla, 
+  // respetando los márgenes de seguridad (safe area) y con un estilo acorde al tema actual.
   return (
     <ToastContext.Provider value={api}>
       {children}

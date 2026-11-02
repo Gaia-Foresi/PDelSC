@@ -1,4 +1,5 @@
-// Perfil propio, seguridad de la cuenta y administración de usuarios (bloqueo y roles). Nunca se borran usuarios.
+// Perfil propio, seguridad de la cuenta y administración de usuarios (bloqueo y roles). 
+// Nunca se borran usuarios.
 const bcrypt = require('bcryptjs');
 const { consultar } = require('../config/db');
 const { err } = require('../utils/httpError');
@@ -16,6 +17,7 @@ function validarAlcance(actor, objetivo) {
   }
 }
 
+// Devuelve el perfil del usuario logueado, con un resumen de sus préstamos y reservas activas
 exports.perfil = async (req, res) => {
   const u = await cargar(req.usuario.id);
   const [{ prestamos_activos }] = await consultar(
@@ -26,6 +28,7 @@ exports.perfil = async (req, res) => {
   res.json({ ok: true, data: { usuario: usuarioPublico(u), resumen: { prestamos_activos, reservas_activas } } });
 };
 
+// Actualiza los datos del perfil del usuario logueado. No se puede cambiar el rol ni el estado.
 exports.actualizarPerfil = async (req, res) => {
   const campos = {};
   for (const k of ['nombre', 'apellido', 'telefono', 'curso', 'dni', 'foto_url']) {
@@ -37,6 +40,7 @@ exports.actualizarPerfil = async (req, res) => {
   res.json({ ok: true, data: { usuario: usuarioPublico(await cargar(req.usuario.id)) } });
 };
 
+// Cambia la contraseña del usuario logueado. Si ya tenía contraseña, hay que demostrar que la conoce.
 exports.cambiarPassword = async (req, res) => {
   const { password_actual, password_nueva } = req.body;
   const [u] = await consultar('SELECT password_hash FROM usuarios WHERE id = ?', [req.usuario.id]);
@@ -50,11 +54,13 @@ exports.cambiarPassword = async (req, res) => {
   res.json({ ok: true, data: { actualizado: true } });
 };
 
+// Activa o desactiva la verificación en dos pasos para el usuario logueado
 exports.dosPasos = async (req, res) => {
   await consultar('UPDATE usuarios SET dos_pasos_activo = ? WHERE id = ?', [req.body.activar ? 1 : 0, req.usuario.id]);
   res.json({ ok: true, data: { usuario: usuarioPublico(await cargar(req.usuario.id)) } });
 };
 
+// Panel de administración (dueño y bibliotecario)
 exports.listar = async (req, res) => {
   const { q, rol, estado, pagina, limite } = req.body;
   const donde = [];
@@ -69,6 +75,8 @@ exports.listar = async (req, res) => {
   }
   const W = donde.length ? `WHERE ${donde.join(' AND ')}` : '';
 
+  // Devuelve la lista de usuarios con un resumen de sus préstamos activos. 
+  // No se envían las fotos subidas (pesan); la app muestra las iniciales.
   const [{ total }] = await consultar(`SELECT COUNT(*) AS total FROM usuarios u JOIN roles r ON r.id = u.rol_id ${W}`, params);
   const filas = await consultar(
     `SELECT x.*, (SELECT COUNT(*) FROM prestamo_items pi JOIN prestamos p ON p.id = pi.prestamo_id
@@ -86,6 +94,9 @@ exports.listar = async (req, res) => {
   });
 };
 
+// Devuelve el perfil de un usuario, con un resumen de sus préstamos y reservas activas.
+// Solo el dueño y el bibliotecario pueden ver a otros usuarios; 
+// los usuarios comunes solo ven su propio perfil.
 exports.detalle = async (req, res) => {
   const u = await cargar(req.body.id);
   if (!u) throw err.noEncontrado('El usuario');
@@ -97,6 +108,8 @@ exports.detalle = async (req, res) => {
   res.json({ ok: true, data: { usuario: usuarioPublico(u), prestamos, reservas } });
 };
 
+// Cambia el estado de un usuario a bloqueado o activo. 
+// Solo el dueño y el bibliotecario pueden bloquear usuarios comunes.
 exports.bloquear = async (req, res) => {
   const u = await cargar(req.body.id);
   if (!u) throw err.noEncontrado('El usuario');
@@ -106,6 +119,8 @@ exports.bloquear = async (req, res) => {
   res.json({ ok: true, data: { usuario: usuarioPublico(await cargar(u.id)) } });
 };
 
+// Cambia el estado de un usuario a activo. 
+// Solo el dueño y el bibliotecario pueden desbloquear usuarios comunes.
 exports.desbloquear = async (req, res) => {
   const u = await cargar(req.body.id);
   if (!u) throw err.noEncontrado('El usuario');

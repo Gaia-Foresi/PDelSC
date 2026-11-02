@@ -6,6 +6,7 @@ import { spacing } from '../theme/tokens';
 import { useResponsive } from '../utils/useResponsive';
 import Header from './Header';
 
+// Componente que representa un contenedor de pantalla con encabezado, contenido centrado y soporte para desplazamiento y actualización. Permite personalizar el título, el logotipo, los botones de navegación y el estilo del contenido.
 export default function ScreenContainer({ title, brand, menu, back, right, showBell, scroll = true, refreshing, onRefresh, children, padded = true, header = true, anchoMax }) {
   const { colors } = useTheme();
   const { maxWidth } = useResponsive();
@@ -13,6 +14,7 @@ export default function ScreenContainer({ title, brand, menu, back, right, showB
 
   const contenido = { width: '100%', maxWidth: anchoMax || maxWidth, alignSelf: 'center' };
 
+  // Renderiza el contenedor de pantalla con encabezado, contenido centrado y soporte para desplazamiento y actualización. Aplica estilos según el tema y las props proporcionadas.
   return (
     <View style={[styles.flex, { backgroundColor: colors.bg }]}>
       {header ? <Header title={title} brand={brand} menu={menu} back={back} right={right} showBell={showBell} /> : null}

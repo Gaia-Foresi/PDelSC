@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../theme/ThemeContext';
 import { font, radius, spacing } from '../theme/tokens';
 
+// Componente que muestra un código de retiro con un estilo destacado, incluyendo un ícono y un texto opcional. Puede mostrarse en formato compacto o normal.
 export default function CodigoRetiro({ codigo, compacto, texto = 'Código de retiro' }) {
   const { colors } = useTheme();
   if (!codigo) return null;

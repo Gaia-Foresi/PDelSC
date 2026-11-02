@@ -12,6 +12,7 @@ import Input from '../../components/Input';
 import ScreenContainer from '../../components/ScreenContainer';
 import { useToast } from '../../components/Toast';
 
+// Pantalla de edición de perfil: permite cambiar nombre, apellido, teléfono, DNI y foto de perfil.
 export default function EditarPerfilScreen({ navigation }) {
   const toast = useToast();
   const { usuario, actualizarUsuario } = useAuth();
@@ -22,6 +23,7 @@ export default function EditarPerfilScreen({ navigation }) {
   const [procesando, setProcesando] = useState(false);
   const set = (k) => (t) => { setForm((f) => ({ ...f, [k]: t })); setErrores((e) => ({ ...e, [k]: '' })); };
 
+  // Permite elegir una foto de perfil de la galería, con reducción de tamaño y manejo de errores
   const elegirFoto = async () => {
     setProcesando(true);
     const r = await elegirFotoDePerfil();
@@ -30,14 +32,17 @@ export default function EditarPerfilScreen({ navigation }) {
     else if (r.foto) setFoto(r.foto);
   };
 
+  // Guarda los cambios de perfil, con validación de campos, manejo de errores y actualización del contexto de usuario
   const guardar = async () => {
     const e = {
       nombre: v.requerido(form.nombre, 'El nombre'),
       dni: form.dni && !/^\d{6,9}$/.test(form.dni.replace(/\D/g, '')) ? 'El DNI debe tener entre 6 y 9 números' : '',
     };
+    // Si hay errores, los muestra y no guarda los cambios
     setErrores(e);
     if (!v.sinErrores(e)) return;
     setCargando(true);
+    // Intenta actualizar el perfil y el contexto de usuario, o muestra errores si falla
     try {
       const data = await api.usuarios.actualizarPerfil({
         nombre: form.nombre.trim(), apellido: form.apellido.trim(), telefono: form.telefono.trim(), foto_url: foto || '',
@@ -54,6 +59,7 @@ export default function EditarPerfilScreen({ navigation }) {
     }
   };
 
+  // Renderiza la pantalla de edición de perfil, con campos de nombre, apellido, teléfono, DNI y foto de perfil
   return (
     <ScreenContainer title="Editar perfil" back>
       <View style={styles.foto}>

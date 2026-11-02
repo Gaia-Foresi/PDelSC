@@ -7,6 +7,9 @@ import { getSesion, guardarSesion, limpiarSesion, notificarSesionPerdida } from 
 
 const TIMEOUT_MS = 15000;
 
+// sirve para guardar los errores de la API de manera ordenada. 
+// En vez de tener solamente un mensaje de error, permite saber qué tipo de error ocurrió, 
+// qué pasó, qué detalles tiene y qué código HTTP devolvió el servidor
 export class ApiError extends Error {
   constructor({ codigo, mensaje, detalles, status }) {
     super(mensaje);
@@ -16,6 +19,8 @@ export class ApiError extends Error {
   }
 }
 
+//centraliza el envío de datos al servidor y el control de errores de conexión, 
+// para no tener que repetir todo ese procedimiento en cada operación de la aplicación
 async function enviar(ruta, cuerpo, token) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -66,6 +71,7 @@ function renovarTokens() {
   return renovando;
 }
 
+// Llamada a la API con manejo de tokens y errores
 export async function post(ruta, cuerpo = {}, { auth = true } = {}) {
   if (!auth) return enviar(ruta, cuerpo, null);
   try {
