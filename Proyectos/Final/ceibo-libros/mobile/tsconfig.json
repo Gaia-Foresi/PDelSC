@@ -9,6 +9,14 @@
     "skipLibCheck": true,
     "jsx": "react-jsx"
   },
-  "include": ["App.tsx", "index.tsx", "src/**/*", "expo-env.d.ts"],
-  "exclude": ["node_modules", "dist", "scripts"]
+  "include": [
+    "App.tsx",
+    "index.tsx",
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "scripts"
+  ]
 }
