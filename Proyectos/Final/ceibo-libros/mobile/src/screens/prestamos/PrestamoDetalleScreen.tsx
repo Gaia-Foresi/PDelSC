@@ -72,6 +72,30 @@ export default function PrestamoDetalleScreen({ navigation, route }: PantallaPro
     }
   };
 
+  // Libro devuelto que está en espera: el personal decide si vuelve al stock o se da de baja por dañado
+  const revisar = async (item, resultado) => {
+    const danado = resultado === 'danado';
+    const ok = await confirm({
+      title: danado ? '¿Dar de baja por dañado?' : '¿Volver al stock?',
+      message: danado
+        ? `"${item.titulo}" se descuenta del stock y queda registrado como dañado.`
+        : `"${item.titulo}" vuelve a estar disponible para prestar.`,
+      confirmText: danado ? 'Dar de baja' : 'Volver al stock',
+      destructive: danado,
+    });
+    if (!ok) return;
+    setOcupado(true);
+    try {
+      await api.prestamos.revisar({ prestamo_id: id, libro_id: item.libro_id, resultado });
+      toast.success(danado ? 'Libro dado de baja.' : 'El libro volvió al stock.');
+      detalle.refresh();
+    } catch (e) {
+      toast.fromError(e);
+    } finally {
+      setOcupado(false);
+    }
+  };
+
   const abiertos = prestamo ? prestamo.items.filter((i) => !i.devuelto_en).length : 0;
   const cupo = Math.max(0, MAX_ABIERTOS - abiertos);
 
@@ -157,6 +181,12 @@ export default function PrestamoDetalleScreen({ navigation, route }: PantallaPro
                     {i.devuelto_en && i.revision === 'danado' ? <Text style={{ color: colors.danger, fontSize: 12, fontWeight: '700', marginTop: 2 }}>Dañado: se dio de baja del stock</Text> : null}
                     {i.devuelto_en && i.revision === 'repuesto' ? <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: 2 }}>Volvió al stock</Text> : null}
                   </View>
+                  {esStaff && i.devuelto_en && i.revision === 'pendiente' ? (
+                    <View style={{ gap: spacing.xs }}>
+                      <Button title="Volver al stock" icon="check" small fullWidth={false} disabled={ocupado} onPress={() => revisar(i, 'repuesto')} />
+                      <Button title="Dañado" icon="alert-octagon-outline" small fullWidth={false} variant="secondary" disabled={ocupado} onPress={() => revisar(i, 'danado')} />
+                    </View>
+                  ) : null}
                   {esStaff && !i.devuelto_en && activo ? <Button title="Marcar devuelto" small fullWidth={false} variant="soft" disabled={ocupado} onPress={() => devolver(i)} /> : null}
                 </View>
               </Card>
