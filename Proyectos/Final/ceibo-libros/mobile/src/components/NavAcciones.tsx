@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import { useBadges } from '../context/BadgesContext';
@@ -64,13 +64,31 @@ interface MenuPerfilProps {
 }
 
 // Accesos que van debajo de "Seguridad de la cuenta", según el rol
-interface Acceso { icon: IconName; texto: string; pantalla: string }
+export interface Acceso { icon: IconName; texto: string; pantalla: string }
+
+/** Accesos del menú de la aplicación según el rol (celular: menú lateral; compu: menú de la cuenta). */
+export function useAccesos(): Acceso[] {
+  const { esGerente, esStaff } = useAuth();
+  return [
+    { icon: 'history', texto: 'Historial de búsquedas', pantalla: 'HistorialBusquedas' },
+    ...(esGerente ? [
+      { icon: 'chart-box-outline', texto: 'Estadísticas', pantalla: 'Estadisticas' },
+      { icon: 'file-chart-outline', texto: 'Informes y descargas', pantalla: 'Informes' },
+      { icon: 'shield-crown-outline', texto: 'Panel de administración', pantalla: 'Admin' },
+      { icon: 'truck-delivery-outline', texto: 'Pedir libros', pantalla: 'PedirLibros' },
+    ] as Acceso[] : []),
+    ...(esStaff ? [{ icon: 'calendar-month-outline', texto: 'Calendario de visitas', pantalla: 'Calendario' }] as Acceso[] : []),
+  ];
+}
+
 
 function MenuPerfil({ visible, onClose, onIr, onSalir }: MenuPerfilProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   const { usuario } = useAuth();
+  const compu = useMenuFijo();
+  const accesos = useAccesos();
   const Fila = ({ icon, texto, onPress, danger }: { icon: IconName; texto: string; onPress: () => unknown; danger?: boolean }) => (
     <Pressable onPress={onPress} accessibilityRole="button" style={({ pressed }) => [styles.fila, pressed && { backgroundColor: colors.primarySoft }]}>
       <MaterialCommunityIcons name={icon} size={22} color={danger ? colors.danger : colors.primary} />
@@ -92,6 +110,7 @@ function MenuPerfil({ visible, onClose, onIr, onSalir }: MenuPerfilProps) {
           <ScrollView showsVerticalScrollIndicator={false}>
           <Fila icon="account-circle-outline" texto="Mi perfil" onPress={() => onIr('perfil')} />
           <Fila icon="shield-lock-outline" texto="Seguridad de la cuenta" onPress={() => onIr('seguridad')} />
+          {compu ? accesos.map((a) => <Fila key={a.pantalla} icon={a.icon} texto={a.texto} onPress={() => onIr(a.pantalla)} />) : null}
           <View style={[styles.linea, { backgroundColor: colors.border }]} />
           <Fila icon="logout" texto="Cerrar sesión" danger onPress={onSalir} />
           </ScrollView>
@@ -102,49 +121,19 @@ function MenuPerfil({ visible, onClose, onIr, onSalir }: MenuPerfilProps) {
 }
 
 
-// Menú desplegable de la aplicación (junto al nombre): todos los accesos que no son de la cuenta
-export function MenuApp({ alineado = 'izquierda' }: { alineado?: 'izquierda' }) {
+// Botón ☰ (solo celular): abre el menú lateral con los accesos
+export function MenuApp() {
   const navigation = useNavigation<any>();
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
-  const { height } = useWindowDimensions();
-  const { esGerente, esStaff } = useAuth();
-  const [abierto, setAbierto] = useState(false);
-  const accesos: Acceso[] = [
-    { icon: 'history', texto: 'Historial de búsquedas', pantalla: 'HistorialBusquedas' },
-    ...(esGerente ? [
-      { icon: 'chart-box-outline', texto: 'Estadísticas', pantalla: 'Estadisticas' },
-      { icon: 'file-chart-outline', texto: 'Informes y descargas', pantalla: 'Informes' },
-      { icon: 'shield-crown-outline', texto: 'Panel de administración', pantalla: 'Admin' },
-      { icon: 'truck-delivery-outline', texto: 'Pedir libros', pantalla: 'PedirLibros' },
-    ] as Acceso[] : []),
-    ...(esStaff ? [{ icon: 'calendar-month-outline', texto: 'Calendario de visitas', pantalla: 'Calendario' }] as Acceso[] : []),
-  ];
   return (
-    <View>
-      <Pressable
-        onPress={() => setAbierto(true)}
-        accessibilityRole="button"
-        accessibilityLabel="Menú de la aplicación"
-        style={[styles.iconBtn, abierto && { backgroundColor: colors.primarySoft }]}
-      >
-        <MaterialCommunityIcons name="menu" size={26} color={colors.text} />
-      </Pressable>
-      <Modal visible={abierto} transparent animationType="fade" onRequestClose={() => setAbierto(false)}>
-        <Pressable style={styles.fondo} onPress={() => setAbierto(false)} accessibilityLabel="Cerrar menú">
-          <View style={[styles.menu, { left: spacing.md, right: undefined, top: insets.top + 54, maxHeight: height - insets.top - 70, backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {accesos.map((a) => (
-                <Pressable key={a.pantalla} onPress={() => { setAbierto(false); navigation.navigate(a.pantalla); }} accessibilityRole="button" style={({ pressed }) => [styles.fila, pressed && { backgroundColor: colors.primarySoft }]}>
-                  <MaterialCommunityIcons name={a.icon} size={22} color={colors.primary} />
-                  <Text style={{ color: colors.text, fontSize: 15, fontWeight: '600', marginLeft: spacing.md }}>{a.texto}</Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-          </View>
-        </Pressable>
-      </Modal>
-    </View>
+    <Pressable
+      onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+      accessibilityRole="button"
+      accessibilityLabel="Abrir el menú"
+      style={styles.iconBtn}
+    >
+      <MaterialCommunityIcons name="menu" size={26} color={colors.text} />
+    </Pressable>
   );
 }
 

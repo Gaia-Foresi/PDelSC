@@ -54,8 +54,10 @@ export default function Header({ title, brand, menu, back, right, showBell = tru
   return (
     <View style={[styles.bar, { paddingTop: insets.top, backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
       <View style={styles.row}>
-        {menu ? (
+        {menu && !menuFijo ? (
           <View style={{ marginLeft: 2 }}><MenuApp /></View>
+        ) : menu ? (
+          <View style={{ width: spacing.md }} />
         ) : back ? (
           <IconButton icon="arrow-left" label="Volver" onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Tabs'))} />
         ) : <View style={{ width: spacing.md }} />}
