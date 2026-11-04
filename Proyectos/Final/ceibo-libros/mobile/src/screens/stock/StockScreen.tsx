@@ -39,7 +39,8 @@ function Dato({ valor, titulo, alerta }: DatoProps) {
 
 export default function StockScreen({ navigation }: PantallaProps) {
   const { ref: refLista, onScroll: onScrollLista, boton: botonArriba } = useVolverArriba();
-  const { esDueno } = useAuth();
+  const { esGerente } = useAuth();
+  const { colors } = useTheme();
   const confirm = useConfirm();
   const toast = useToast();
   const contenido = useListContentStyle(true);
@@ -48,7 +49,8 @@ export default function StockScreen({ navigation }: PantallaProps) {
 
   const libros = useAsync(() => api.libros.listar({}), []);
   const cats = useAsync(() => api.categorias.listar(), []);
-  const recargar = () => { libros.refresh(); cats.refresh(); };
+  const pendientes = useAsync(() => api.prestamos.pendientes(), []);
+  const recargar = () => { libros.refresh(); cats.refresh(); pendientes.refresh(); };
   useRefreshOnFocus(recargar);
 
   const todos = useMemo(() => libros.data?.libros || [], [libros.data]);
@@ -73,6 +75,31 @@ export default function StockScreen({ navigation }: PantallaProps) {
     { value: 'agotados', label: `Agotados (${resumen.agotados})` },
     ...(cats.data?.categorias || []).map((c) => ({ value: c.id, label: c.nombre })),
   ];
+
+  // Devolución en espera: el bibliotecario o el gerente decide si el libro vuelve al stock o está dañado
+  const [revisando, setRevisando] = useState(null);
+  const revisar = async (p, resultado) => {
+    const danado = resultado === 'danado';
+    const ok = await confirm({
+      title: danado ? '¿Dar de baja por dañado?' : '¿Volver al stock?',
+      message: danado
+        ? `"${p.titulo}" se descuenta del stock y queda registrado como dañado.`
+        : `"${p.titulo}" vuelve a estar disponible para prestar.`,
+      confirmText: danado ? 'Dar de baja' : 'Volver al stock',
+      destructive: danado,
+    });
+    if (!ok) return;
+    setRevisando(`${p.prestamo_id}-${p.libro_id}`);
+    try {
+      await api.prestamos.revisar({ prestamo_id: p.prestamo_id, libro_id: p.libro_id, resultado });
+      toast.success(danado ? 'Libro dado de baja.' : 'El libro volvió al stock.');
+      recargar();
+    } catch (e) {
+      toast.fromError(e);
+    } finally {
+      setRevisando(null);
+    }
+  };
 
   const eliminar = async (libro) => {
     const ok = await confirm({
@@ -101,8 +128,28 @@ export default function StockScreen({ navigation }: PantallaProps) {
       <View style={styles.acciones}>
         <Button title="Agregar libro" icon="plus" small fullWidth={false} onPress={() => navigation.navigate('LibroForm')} />
         <Button title="Categorías" icon="shape-outline" variant="secondary" small fullWidth={false} onPress={() => navigation.navigate('Categorias')} />
-        {esDueno ? <Button title="Pedir libros" icon="truck-delivery-outline" variant="soft" small fullWidth={false} onPress={() => navigation.navigate('PedirLibros')} /> : null}
+        {esGerente ? <Button title="Pedir libros" icon="truck-delivery-outline" variant="soft" small fullWidth={false} onPress={() => navigation.navigate('PedirLibros')} /> : null}
       </View>
+      {(pendientes.data?.pendientes || []).length ? (
+        <View style={[styles.espera, { backgroundColor: colors.warningSoft || colors.card, borderColor: colors.warning }]}>
+          <Text style={{ color: colors.text, fontWeight: '800', fontSize: 15, fontFamily: font.title }}>
+            Devoluciones en espera ({pendientes.data.pendientes.length})
+          </Text>
+          <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: 2, marginBottom: spacing.sm }}>
+            Estos libros ya se devolvieron pero siguen fuera del stock hasta que decidas qué hacer con cada uno.
+          </Text>
+          {pendientes.data.pendientes.map((p) => (
+            <View key={`${p.prestamo_id}-${p.libro_id}`} style={styles.espItem}>
+              <Text style={{ color: colors.text, fontWeight: '700', fontSize: 14 }} numberOfLines={2}>{p.titulo}</Text>
+              <Text style={{ color: colors.textMuted, fontSize: 12 }} numberOfLines={1}>Lo devolvió {p.lector}</Text>
+              <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs }}>
+                <Button title="Volver al stock" icon="check" small fullWidth={false} disabled={revisando === `${p.prestamo_id}-${p.libro_id}`} onPress={() => revisar(p, 'repuesto')} />
+                <Button title="Dañado" icon="alert-octagon-outline" small fullWidth={false} variant="secondary" disabled={revisando === `${p.prestamo_id}-${p.libro_id}`} onPress={() => revisar(p, 'danado')} />
+              </View>
+            </View>
+          ))}
+        </View>
+      ) : null}
       <SearchBar value={q} onChangeText={setQ} placeholder="Buscar por título o autor" />
       <Chips options={opciones} value={filtro} onChange={setFiltro} />
     </View>
@@ -139,7 +186,7 @@ export default function StockScreen({ navigation }: PantallaProps) {
                 mostrarCategoria
                 staff
                 onEdit={() => navigation.navigate('LibroForm', { libro: item })}
-                onDelete={esDueno ? () => eliminar(item) : undefined}
+                onDelete={esGerente ? () => eliminar(item) : undefined}
               />
             </View>
           );
@@ -164,5 +211,7 @@ export default function StockScreen({ navigation }: PantallaProps) {
 const styles = StyleSheet.create({
   datos: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
   dato: { flex: 1, borderWidth: 1, borderRadius: radius.md, padding: spacing.md, alignItems: 'center' },
+  espera: { borderWidth: 1, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.md },
+  espItem: { paddingVertical: spacing.sm },
   acciones: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.md },
 });

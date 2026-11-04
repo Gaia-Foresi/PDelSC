@@ -82,6 +82,26 @@ const existeIndice = async (tabla, indice) => {
     CONSTRAINT fk_ediciones_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
 
+  // Devoluciones: el libro devuelto queda "en espera" hasta que el personal lo repone al stock o lo da de baja por daño
+  await agregar('prestamo_items', 'revision', "ENUM('pendiente','repuesto','danado') NULL AFTER devuelto_en");
+  await agregar('prestamo_items', 'revisado_en', 'DATETIME NULL AFTER revision');
+  await agregar('prestamo_items', 'revisado_por', 'INT UNSIGNED NULL AFTER revisado_en');
+  // Lo que se devolvió antes de este cambio ya estaba de vuelta en el stock
+  await pool.query("UPDATE prestamo_items SET revision = 'repuesto' WHERE devuelto_en IS NOT NULL AND revision IS NULL");
+
+  // Renovación de sesión: se anota cuándo se usó cada token para tolerar dos pedidos casi simultáneos
+  await agregar('refresh_tokens', 'revocado_en', 'DATETIME NULL AFTER revocado');
+  await pool.query('UPDATE refresh_tokens SET revocado_en = creado_en WHERE revocado = 1 AND revocado_en IS NULL');
+
+  // El rol "dueño" pasa a llamarse "gerente"
+  await pool.query("UPDATE roles SET nombre = 'gerente' WHERE nombre = 'dueno'");
+  if (await existeColumna('pedidos_reposicion', 'dueno_id')) {
+    try { await pool.query('ALTER TABLE pedidos_reposicion DROP FOREIGN KEY fk_pedidos_dueno'); } catch (e) { /* ya no estaba */ }
+    await pool.query('ALTER TABLE pedidos_reposicion CHANGE dueno_id gerente_id INT UNSIGNED NOT NULL');
+    await pool.query('ALTER TABLE pedidos_reposicion ADD CONSTRAINT fk_pedidos_gerente FOREIGN KEY (gerente_id) REFERENCES usuarios(id)');
+    hechos.push('pedidos_reposicion.gerente_id');
+  }
+
   return hechos;
 }
 

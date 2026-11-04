@@ -56,7 +56,7 @@ const USUARIOS = [
 async function main() {
   const soloCatalogo = process.argv.includes('--solo-catalogo');
 
-  for (const [rolId, nombre] of [[1, 'dueno'], [2, 'bibliotecario'], [3, 'usuario']]) {
+  for (const [rolId, nombre] of [[1, 'gerente'], [2, 'bibliotecario'], [3, 'usuario']]) {
     await pool.query('INSERT IGNORE INTO roles (id, nombre) VALUES (?, ?)', [rolId, nombre]);
   }
   for (const [codigo, nombre, descripcion, icono, color] of CATEGORIAS) {
@@ -115,7 +115,7 @@ async function main() {
     const [p] = await pool.query(
       "INSERT INTO prestamos (usuario_id, registrado_por, fecha_inicio, fecha_vencimiento, estado, cerrado_en, visita_en, codigo_retiro) VALUES (?, ?, ?, ?, 'cerrado', ?, ?, ?)",
       [lucia, staff, inicio, sumarDias(inicio, 14), `${sumarDias(inicio, 10)} 12:00:00`, `${inicio} 13:00:00`, await codigoRetiroUnico(pool)]);
-    await pool.query('INSERT INTO prestamo_items (prestamo_id, libro_id, devuelto_en) VALUES (?, ?, ?)', [p.insertId, await libro(titulo), `${sumarDias(inicio, 10)} 12:00:00`]);
+    await pool.query('INSERT INTO prestamo_items (prestamo_id, libro_id, devuelto_en, revision) VALUES (?, ?, ?, ?)', [p.insertId, await libro(titulo), `${sumarDias(inicio, 10)} 12:00:00`, 'repuesto']);
   }
 
   // Lucía: un préstamo que vence en 2 días (dispara el recordatorio)
@@ -131,8 +131,8 @@ async function main() {
   await pool.query("UPDATE usuarios SET estado = 'bloqueado', motivo_bloqueo = ?, tipo_bloqueo = 'atraso', bloqueado_en = NOW() WHERE id = ?", [motivo, tomas]);
   await pool.query("INSERT INTO notificaciones (usuario_id, tipo, titulo, cuerpo, prestamo_id) VALUES (?, 'bloqueo', 'Cuenta bloqueada', ?, NULL)", [tomas, motivo]);
 
-  // Mensajes de ejemplo: una consulta respondida y un hilo interno dueño -> bibliotecario
-  const dueno = ids['dueno@ceibolibros.com'];
+  // Mensajes de ejemplo: una consulta respondida y un hilo interno gerente -> bibliotecario
+  const gerente = ids['dueno@ceibolibros.com'];
   const hilo = async (tipo, asunto, creador, participantes, mensajes) => {
     const [x] = await pool.query('INSERT INTO hilos (tipo, asunto, creado_por) VALUES (?, ?, ?)', [tipo, asunto, creador]);
     let ultimo = 0;
@@ -146,8 +146,8 @@ async function main() {
     [lucia, 'Hola, ¿hasta qué hora puedo pasar a devolver los libros los sábados?'],
     [staff, '¡Hola Lucía! Los sábados atendemos de 9 a 13 hs. Te esperamos.'],
   ]);
-  await hilo('interno', 'Reposición de Sapiens', dueno, [[dueno, true], [staff, false]], [
-    [dueno, 'Bruno, "Sapiens" se está prestando mucho. ¿Pedimos más ejemplares a la distribuidora?'],
+  await hilo('interno', 'Reposición de Sapiens', gerente, [[gerente, true], [staff, false]], [
+    [gerente, 'Bruno, "Sapiens" se está prestando mucho. ¿Pedimos más ejemplares a la distribuidora?'],
   ]);
   console.log('✔ Datos de demostración cargados (préstamos, reservas, mensajes, un usuario bloqueado)');
 }

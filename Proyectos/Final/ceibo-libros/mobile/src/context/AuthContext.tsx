@@ -9,7 +9,7 @@ interface AuthValue {
   usuario: Usuario | null;
   resumen: ResumenPerfil | null;
   restaurando: boolean;
-  esDueno: boolean;
+  esGerente: boolean;
   esStaff: boolean;
   bloqueado: boolean;
   iniciarSesion: (data: Sesion) => Promise<void>;
@@ -41,7 +41,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setResumen(data.resumen);
         await guardarSesion({ usuario: data.usuario });
       } catch (e: any) {
-        if (e.codigo === 'SIN_CONEXION' && guardada.usuario) setUsuario(guardada.usuario); // sin internet: seguimos con lo guardado
+        // Solo se cierra la sesión si el servidor la rechaza; ante cualquier otro fallo (red, servidor caído) seguimos con lo guardado
+        if (e.status === 401 || e.status === 403 && e.codigo !== 'USUARIO_BLOQUEADO') await limpiarSesion();
+        else if (guardada.usuario) setUsuario(guardada.usuario);
         else await limpiarSesion();
       }
       setRestaurando(false);
@@ -76,8 +78,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo(() => ({
     usuario, resumen, restaurando,
-    esDueno: usuario?.rol === 'dueno',
-    esStaff: usuario?.rol === 'dueno' || usuario?.rol === 'bibliotecario',
+    esGerente: usuario?.rol === 'gerente',
+    esStaff: usuario?.rol === 'gerente' || usuario?.rol === 'bibliotecario',
     bloqueado: usuario?.estado === 'bloqueado',
     iniciarSesion, cerrarSesion, actualizarUsuario, recargarPerfil,
   }), [usuario, resumen, restaurando, iniciarSesion, cerrarSesion, actualizarUsuario, recargarPerfil]);

@@ -19,7 +19,7 @@ export default asyncHandler(async (req, res, next) => {
     throw err.noAutenticado('Sesión inválida.');
   }
 
-  // El rol se lee de la base en cada request: si el dueño cambia un rol, aplica de inmediato.
+  // El rol se lee de la base en cada request: si el gerente cambia un rol, aplica de inmediato.
   const [u] = await consultar(
     `SELECT u.id, u.estado, u.motivo_bloqueo, r.nombre AS rol
      FROM usuarios u JOIN roles r ON r.id = u.rol_id WHERE u.id = ?`, [payload.sub]);

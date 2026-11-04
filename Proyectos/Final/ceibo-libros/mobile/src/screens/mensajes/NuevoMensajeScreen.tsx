@@ -1,4 +1,4 @@
-// Nueva conversación. Usuario: consulta a la biblioteca. Staff: mensaje interno dueño ↔ bibliotecario.
+// Nueva conversación. Usuario: consulta a la biblioteca. Staff: mensaje interno gerente ↔ bibliotecario.
 import React, { useState } from 'react';
 import { Text } from 'react-native';
 import { api } from '../../api';
@@ -56,8 +56,8 @@ export default function NuevoMensajeScreen({ navigation }: PantallaProps) {
     <ScreenContainer title={esStaff ? 'Mensaje al equipo' : 'Nueva consulta'} back showBell={false}>
       <Text style={{ color: colors.textMuted, marginBottom: spacing.lg, lineHeight: 20 }}>
         {esStaff
-          ? `Escribile ${usuario.rol === 'dueno' ? 'a un bibliotecario' : 'al dueño'} para mantenerse informados. El resto del equipo no ve este mensaje.`
-          : 'Tu consulta le llega al bibliotecario y al dueño de la biblioteca. Te respondemos acá mismo.'}
+          ? `Escribile ${usuario.rol === 'gerente' ? 'a un bibliotecario' : 'al gerente'} para mantenerse informados. El resto del equipo no ve este mensaje.`
+          : 'Tu consulta le llega al bibliotecario y al gerente de la biblioteca. Te respondemos acá mismo.'}
       </Text>
       {esStaff ? (
         <SelectField

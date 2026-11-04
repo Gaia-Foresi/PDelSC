@@ -53,7 +53,7 @@ interface BookCardProps {
 export default function BookCard({ libro, color, onReservar, bloqueado, motivoBloqueo, staff, onEdit, onDelete, mostrarCategoria }: BookCardProps) {
   const { colors } = useTheme();
   const sinStock = libro.disponibles <= 0;
-  const puedeReservar = !!onReservar && !sinStock && !bloqueado;
+  const puedeReservar = (!!onReservar && !sinStock && !bloqueado) && !libro.reservado_por_mi;
   const [expandida, setExpandida] = useState(false);
   // Descripción larga (o con saltos de línea): se muestra recortada y se puede desplegar
   const larga = (libro.descripcion || '').length > 150 || (libro.descripcion || '').split('\n').length > 3;
@@ -112,6 +112,9 @@ export default function BookCard({ libro, color, onReservar, bloqueado, motivoBl
             <Text style={{ color: colors.danger, fontSize: 13, marginBottom: 8 }}>
               Tu cuenta está bloqueada{motivoBloqueo ? `: ${motivoBloqueo}` : '.'} No podés reservar hasta devolver los libros.
             </Text>
+          ) : null}
+          {libro.reservado_por_mi ? (
+            <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '700', marginBottom: 8 }}>Ya lo reservaste. Lo podés ver en Reservas; no hace falta reservarlo de nuevo.</Text>
           ) : null}
           <View style={styles.actions}>
             <Button title="Leer en sala" icon="seat-outline" variant="secondary" small disabled={!puedeReservar} onPress={() => onReservar('sala')} style={{ flex: 1 }} accessibilityLabel={`Reservar ${libro.titulo} para leer en sala`} />

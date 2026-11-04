@@ -1,4 +1,4 @@
-// Préstamos. Usuario: "Mis préstamos". Personal (dueño / bibliotecario): todos los préstamos con filtros y búsqueda.
+// Préstamos. Usuario: "Mis préstamos". Personal (gerente / bibliotecario): todos los préstamos con filtros y búsqueda.
 import React, { useEffect, useMemo, useState } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';

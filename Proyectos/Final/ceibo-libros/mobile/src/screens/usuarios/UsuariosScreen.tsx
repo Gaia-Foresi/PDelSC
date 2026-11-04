@@ -1,4 +1,4 @@
-// Usuarios registrados (staff). El dueño ve usuarios y bibliotecarios; el bibliotecario solo usuarios.
+// Usuarios registrados (staff). El gerente ve usuarios y bibliotecarios; el bibliotecario solo usuarios.
 import React, { useEffect, useState } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { api } from '../../api';
@@ -20,7 +20,7 @@ import SearchBar from '../../components/SearchBar';
 import { SkeletonList } from '../../components/Skeleton';
 
 import type { PantallaProps } from '../../types';
-const FILTROS_DUENO = [
+const FILTROS_GERENTE = [
   { value: 'todos', label: 'Todos' },
   { value: 'usuario', label: 'Usuarios' },
   { value: 'bibliotecario', label: 'Bibliotecarios' },
@@ -34,7 +34,7 @@ const FILTROS_BIBLIO = [
 export default function UsuariosScreen({ navigation }: PantallaProps) {
   const { ref: refLista, onScroll: onScrollLista, boton: botonArriba } = useVolverArriba();
   const { colors } = useTheme();
-  const { esDueno, esStaff } = useAuth();
+  const { esGerente, esStaff } = useAuth();
   const contenido = useListContentStyle(true);
   const [q, setQ] = useState('');
   const [busqueda, setBusqueda] = useState('');
@@ -58,13 +58,13 @@ export default function UsuariosScreen({ navigation }: PantallaProps) {
   const encabezado = (
     <View>
       <SearchBar value={q} onChangeText={setQ} placeholder="Buscar por nombre o email" />
-      <Chips options={esDueno ? FILTROS_DUENO : FILTROS_BIBLIO} value={filtro} onChange={setFiltro} />
+      <Chips options={esGerente ? FILTROS_GERENTE : FILTROS_BIBLIO} value={filtro} onChange={setFiltro} />
       {datos.data ? <Text style={{ color: colors.textMuted, fontSize: 13, marginBottom: spacing.md }}>{datos.data.total} {datos.data.total === 1 ? 'persona' : 'personas'}</Text> : null}
     </View>
   );
 
   return (
-    <ScreenContainer title={esDueno ? 'Usuarios y bibliotecarios' : 'Usuarios'} menu tab scroll={false}>
+    <ScreenContainer title={esGerente ? 'Usuarios y bibliotecarios' : 'Usuarios'} menu tab scroll={false}>
       <FlatList
         ref={refLista}
         onScroll={onScrollLista}

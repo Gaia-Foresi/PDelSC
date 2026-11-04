@@ -1,6 +1,6 @@
 // Manual de usuario dentro de la app, según el rol, con botón para descargarlo en PDF.
 import React, { useState } from 'react';
-import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Asset } from 'expo-asset';
 import * as Sharing from 'expo-sharing';
@@ -20,7 +20,7 @@ import { seccionesDe } from '../content/manualRoles';
 const PDFS = {
   usuario: require('../../assets/manuales/manual-usuario.pdf'),
   bibliotecario: require('../../assets/manuales/manual-bibliotecario.pdf'),
-  dueno: require('../../assets/manuales/manual-dueno.pdf'),
+  gerente: require('../../assets/manuales/manual-gerente.pdf'),
 };
 
 
@@ -28,9 +28,9 @@ interface SeccionProps {
   seccion?: any;
 }
 
-function Seccion({ seccion }: SeccionProps) {
+function Seccion({ seccion, abiertaInicial }: SeccionProps & { abiertaInicial?: boolean }) {
   const { colors } = useTheme();
-  const [abierta, setAbierta] = useState(false);
+  const [abierta, setAbierta] = useState(!!abiertaInicial);
   return (
     <Card style={{ padding: 0, overflow: 'hidden' }}>
       <Pressable
@@ -61,6 +61,8 @@ export default function ManualScreen() {
   const { usuario } = useAuth();
   const toast = useToast();
   const [descargando, setDescargando] = useState(false);
+  const [visor, setVisor] = useState<string | null>(null); // web: dirección del PDF abierto dentro de la app
+  const [todoAbierto, setTodoAbierto] = useState(false);
   const rol = usuario?.rol || 'usuario';
 
   const descargar = async () => {
@@ -70,7 +72,7 @@ export default function ManualScreen() {
       await asset.downloadAsync();
       const uri = asset.localUri || asset.uri;
       if (Platform.OS === 'web') {
-        await Linking.openURL(uri); // en el navegador se abre/descarga el PDF
+        setVisor(uri); // se abre dentro de la app, en un visor
       } else if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Manual de usuario - Ceibo Libros', UTI: 'com.adobe.pdf' });
       } else {
@@ -89,9 +91,30 @@ export default function ManualScreen() {
       <Text style={{ color: colors.text, fontWeight: '700', marginVertical: spacing.md }}>
         Guía para tu rol: <Text style={{ color: colors.primary }}>{ROL_TEXTO[rol]}</Text>
       </Text>
-      <Button title="Descargar manual en PDF" icon="file-pdf-box" onPress={descargar} loading={descargando} style={{ marginBottom: spacing.lg }} />
+      <Button title={Platform.OS === 'web' ? 'Abrir el manual en PDF' : 'Guardar o compartir el PDF'} icon="file-pdf-box" onPress={descargar} loading={descargando} />
+      <Button
+        title={todoAbierto ? 'Cerrar todas las secciones' : 'Leer todo el manual acá'}
+        icon={todoAbierto ? 'unfold-less-horizontal' : 'unfold-more-horizontal'}
+        variant="secondary"
+        onPress={() => setTodoAbierto((v) => !v)}
+        style={{ marginTop: spacing.sm, marginBottom: spacing.lg }}
+      />
 
-      {seccionesDe(rol).map((s) => <Seccion key={s.id} seccion={s} />)}
+      {Platform.OS === 'web' ? (
+        <Modal visible={!!visor} animationType="slide" onRequestClose={() => setVisor(null)}>
+          <View style={{ flex: 1, backgroundColor: colors.bg }}>
+            <View style={[styles.visorBarra, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+              <Text style={{ flex: 1, color: colors.text, fontWeight: '700', fontSize: 16, fontFamily: font.title }}>Manual de usuario</Text>
+              <Pressable onPress={() => setVisor(null)} accessibilityRole="button" accessibilityLabel="Cerrar el manual" style={styles.cerrar}>
+                <MaterialCommunityIcons name="close" size={26} color={colors.text} />
+              </Pressable>
+            </View>
+            {visor ? React.createElement('iframe', { src: visor, title: 'Manual de usuario', style: { flex: 1, width: '100%', border: 0 } }) : null}
+          </View>
+        </Modal>
+      ) : null}
+
+      {seccionesDe(rol).map((s) => <Seccion key={`${s.id}-${todoAbierto}`} seccion={s} abiertaInicial={todoAbierto} />)}
 
       <Text style={[styles.faq, { color: colors.text, fontFamily: font.title }]}>Preguntas frecuentes</Text>
       {manual.faq.map((f) => (
@@ -107,5 +130,7 @@ export default function ManualScreen() {
 const styles = StyleSheet.create({
   cabecera: { flexDirection: 'row', alignItems: 'center', padding: spacing.lg, minHeight: 56 },
   tituloSec: { flex: 1, fontSize: 17, fontWeight: '700', paddingRight: spacing.sm },
+  visorBarra: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, minHeight: 56, borderBottomWidth: StyleSheet.hairlineWidth },
+  cerrar: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   faq: { fontSize: 20, fontWeight: '700', marginTop: spacing.lg, marginBottom: spacing.md, borderRadius: radius.sm },
 });

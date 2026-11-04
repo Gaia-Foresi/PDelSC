@@ -53,18 +53,18 @@ export default function PrestamoDetalleScreen({ navigation, route }: PantallaPro
   const devolver = async (item) => {
     const todos = !item;
     const ok = await confirm({
-      title: todos ? '¿Devolver todos los libros?' : '¿Registrar la devolución?',
+      title: todos ? '¿Marcar todos como devueltos?' : '¿Marcar como devuelto?',
       message: todos
-        ? 'Se van a marcar como devueltos todos los libros pendientes de este préstamo.'
-        : `Se va a marcar como devuelto "${item.titulo}".`,
-      confirmText: 'Devolver',
+        ? 'Se van a marcar como devueltos todos los libros pendientes. Quedan en espera hasta que el bibliotecario o el gerente decida si vuelven al stock.'
+        : `Se va a marcar como devuelto "${item.titulo}". Queda en espera hasta que el bibliotecario o el gerente decida si vuelve al stock.`,
+      confirmText: 'Marcar como devuelto',
     });
     if (!ok) return;
     setOcupado(true);
     try {
       const r = await api.prestamos.devolver({ prestamo_id: id, ...(item ? { libro_id: item.libro_id } : {}) });
       aplicar(r.prestamo);
-      toast.success(r.usuario_desbloqueado ? 'Devolución registrada. Cuenta del usuario habilitada.' : 'Devolución registrada.');
+      toast.success(r.usuario_desbloqueado ? 'Marcado como devuelto (en espera de revisión). Cuenta del usuario habilitada.' : 'Marcado como devuelto. Queda en espera de revisión.');
     } catch (e) {
       toast.fromError(e);
     } finally {
@@ -153,8 +153,11 @@ export default function PrestamoDetalleScreen({ navigation, route }: PantallaPro
                     <Text style={{ color: colors.text, fontSize: 16, fontWeight: '700', fontFamily: font.title }}>{i.titulo}</Text>
                     <Text style={{ color: colors.textMuted, fontSize: 13 }}>{i.autor}</Text>
                     {i.devuelto_en ? <Text style={{ color: colors.success, fontSize: 12, marginTop: 2 }}>Devuelto el {fechaHora(i.devuelto_en)}</Text> : null}
+                    {i.devuelto_en && i.revision === 'pendiente' ? <Text style={{ color: colors.warning, fontSize: 12, fontWeight: '700', marginTop: 2 }}>En espera: todavía no vuelve al stock</Text> : null}
+                    {i.devuelto_en && i.revision === 'danado' ? <Text style={{ color: colors.danger, fontSize: 12, fontWeight: '700', marginTop: 2 }}>Dañado: se dio de baja del stock</Text> : null}
+                    {i.devuelto_en && i.revision === 'repuesto' ? <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: 2 }}>Volvió al stock</Text> : null}
                   </View>
-                  {esStaff && !i.devuelto_en && activo ? <Button title="Devolver" small fullWidth={false} variant="soft" disabled={ocupado} onPress={() => devolver(i)} /> : null}
+                  {esStaff && !i.devuelto_en && activo ? <Button title="Marcar devuelto" small fullWidth={false} variant="soft" disabled={ocupado} onPress={() => devolver(i)} /> : null}
                 </View>
               </Card>
             ))}
@@ -181,7 +184,7 @@ export default function PrestamoDetalleScreen({ navigation, route }: PantallaPro
 
             {esStaff && activo ? (
               <View style={{ marginTop: spacing.sm }}>
-                <Button title="Devolver todos" icon="check-all" disabled={ocupado} onPress={() => devolver(null)} />
+                <Button title="Marcar todos como devueltos" icon="check-all" disabled={ocupado} onPress={() => devolver(null)} />
                 <Button title={cupo > 0 ? 'Agregar libros' : 'Límite de libros alcanzado'} icon="plus" variant="secondary" disabled={ocupado || cupo === 0} onPress={() => setAgregando(true)} style={{ marginTop: spacing.sm }} />
                 <Button title="Extender plazo" icon="calendar-plus" variant="secondary" disabled={ocupado} onPress={() => setExtendiendo(true)} style={{ marginTop: spacing.sm }} />
               </View>

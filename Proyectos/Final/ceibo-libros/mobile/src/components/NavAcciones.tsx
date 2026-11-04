@@ -70,16 +70,7 @@ function MenuPerfil({ visible, onClose, onIr, onSalir }: MenuPerfilProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
-  const { usuario, esDueno, esStaff } = useAuth();
-  const accesos: Acceso[] = [
-    { icon: 'history', texto: 'Historial de búsquedas', pantalla: 'HistorialBusquedas' },
-    ...(esDueno ? [
-      { icon: 'chart-box-outline', texto: 'Estadísticas', pantalla: 'Estadisticas' },
-      { icon: 'shield-crown-outline', texto: 'Panel de administración', pantalla: 'Admin' },
-      { icon: 'truck-delivery-outline', texto: 'Pedir libros', pantalla: 'PedirLibros' },
-    ] as Acceso[] : []),
-    ...(esStaff ? [{ icon: 'calendar-month-outline', texto: 'Calendario de visitas', pantalla: 'Calendario' }] as Acceso[] : []),
-  ];
+  const { usuario } = useAuth();
   const Fila = ({ icon, texto, onPress, danger }: { icon: IconName; texto: string; onPress: () => unknown; danger?: boolean }) => (
     <Pressable onPress={onPress} accessibilityRole="button" style={({ pressed }) => [styles.fila, pressed && { backgroundColor: colors.primarySoft }]}>
       <MaterialCommunityIcons name={icon} size={22} color={danger ? colors.danger : colors.primary} />
@@ -101,13 +92,59 @@ function MenuPerfil({ visible, onClose, onIr, onSalir }: MenuPerfilProps) {
           <ScrollView showsVerticalScrollIndicator={false}>
           <Fila icon="account-circle-outline" texto="Mi perfil" onPress={() => onIr('perfil')} />
           <Fila icon="shield-lock-outline" texto="Seguridad de la cuenta" onPress={() => onIr('seguridad')} />
-          {accesos.map((a) => <Fila key={a.pantalla} icon={a.icon} texto={a.texto} onPress={() => onIr(a.pantalla)} />)}
           <View style={[styles.linea, { backgroundColor: colors.border }]} />
           <Fila icon="logout" texto="Cerrar sesión" danger onPress={onSalir} />
           </ScrollView>
         </View>
       </Pressable>
     </Modal>
+  );
+}
+
+
+// Menú desplegable de la aplicación (junto al nombre): todos los accesos que no son de la cuenta
+export function MenuApp({ alineado = 'izquierda' }: { alineado?: 'izquierda' }) {
+  const navigation = useNavigation<any>();
+  const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
+  const { esGerente, esStaff } = useAuth();
+  const [abierto, setAbierto] = useState(false);
+  const accesos: Acceso[] = [
+    { icon: 'history', texto: 'Historial de búsquedas', pantalla: 'HistorialBusquedas' },
+    ...(esGerente ? [
+      { icon: 'chart-box-outline', texto: 'Estadísticas', pantalla: 'Estadisticas' },
+      { icon: 'file-chart-outline', texto: 'Informes y descargas', pantalla: 'Informes' },
+      { icon: 'shield-crown-outline', texto: 'Panel de administración', pantalla: 'Admin' },
+      { icon: 'truck-delivery-outline', texto: 'Pedir libros', pantalla: 'PedirLibros' },
+    ] as Acceso[] : []),
+    ...(esStaff ? [{ icon: 'calendar-month-outline', texto: 'Calendario de visitas', pantalla: 'Calendario' }] as Acceso[] : []),
+  ];
+  return (
+    <View>
+      <Pressable
+        onPress={() => setAbierto(true)}
+        accessibilityRole="button"
+        accessibilityLabel="Menú de la aplicación"
+        style={[styles.iconBtn, abierto && { backgroundColor: colors.primarySoft }]}
+      >
+        <MaterialCommunityIcons name="menu" size={26} color={colors.text} />
+      </Pressable>
+      <Modal visible={abierto} transparent animationType="fade" onRequestClose={() => setAbierto(false)}>
+        <Pressable style={styles.fondo} onPress={() => setAbierto(false)} accessibilityLabel="Cerrar menú">
+          <View style={[styles.menu, { left: spacing.md, right: undefined, top: insets.top + 54, maxHeight: height - insets.top - 70, backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {accesos.map((a) => (
+                <Pressable key={a.pantalla} onPress={() => { setAbierto(false); navigation.navigate(a.pantalla); }} accessibilityRole="button" style={({ pressed }) => [styles.fila, pressed && { backgroundColor: colors.primarySoft }]}>
+                  <MaterialCommunityIcons name={a.icon} size={22} color={colors.primary} />
+                  <Text style={{ color: colors.text, fontSize: 15, fontWeight: '600', marginLeft: spacing.md }}>{a.texto}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        </Pressable>
+      </Modal>
+    </View>
   );
 }
 
@@ -170,7 +207,7 @@ const styles = StyleSheet.create({
   iconBtn: { width: MIN_TAP - 4, height: MIN_TAP - 4, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
   badge: { position: 'absolute', top: 2, right: 1, minWidth: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
   badgeText: { fontSize: 10, fontWeight: '800' },
-  tip: { position: 'absolute', top: MIN_TAP, right: 0, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, zIndex: 50, minWidth: 60, alignItems: 'center' },
+  tip: { position: 'absolute', top: MIN_TAP, right: 0, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, zIndex: 200, elevation: 200, minWidth: 60, alignItems: 'center' },
   perfil: { flexDirection: 'row', alignItems: 'center', marginLeft: spacing.xs, marginRight: spacing.xs, padding: 3, borderRadius: 30 },
   fondo: { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)' },
   menu: { position: 'absolute', right: spacing.md, width: 270, borderRadius: radius.md, borderWidth: 1, paddingVertical: spacing.sm, elevation: 8, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } },

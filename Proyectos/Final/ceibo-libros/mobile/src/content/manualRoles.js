@@ -4,13 +4,13 @@ const manual = require('./manual.json');
 const ROLES = {
   usuario: { etiqueta: 'Usuario (lector)', titulo: 'Manual del usuario', archivo: 'manual-usuario' },
   bibliotecario: { etiqueta: 'Bibliotecario', titulo: 'Manual del bibliotecario', archivo: 'manual-bibliotecario' },
-  dueno: { etiqueta: 'Dueño', titulo: 'Manual del dueño', archivo: 'manual-dueno' },
+  gerente: { etiqueta: 'Gerente', titulo: 'Manual del gerente', archivo: 'manual-gerente' },
 };
 
-// Cada rol ve las secciones generales + las propias (el dueño ve también todo lo del personal)
+// Cada rol ve las secciones generales + las propias (el gerente ve también todo lo del personal)
 const veSeccion = (seccion, rol) => {
   if (seccion.para === 'todos') return true;
-  if (rol === 'dueno') return seccion.para !== 'usuario';
+  if (rol === 'gerente') return seccion.para !== 'usuario';
   return seccion.para === rol;
 };
 

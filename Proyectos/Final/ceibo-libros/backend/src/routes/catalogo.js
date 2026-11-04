@@ -59,7 +59,7 @@ categorias.use(autenticar);
 categorias.post('/listar', validar(vacio), asyncHandler(ctl.categoriasListar));
 categorias.post('/crear', requiereRol(...STAFF), validar(S.catCrear), asyncHandler(ctl.categoriasCrear));
 categorias.post('/actualizar', requiereRol(...STAFF), validar(S.catActualizar), asyncHandler(ctl.categoriasActualizar));
-categorias.post('/eliminar', requiereRol('dueno'), validar(soloId), asyncHandler(ctl.categoriasEliminar));
+categorias.post('/eliminar', requiereRol('gerente'), validar(soloId), asyncHandler(ctl.categoriasEliminar));
 
 const libros = Router();
 libros.use(autenticar);
@@ -69,6 +69,6 @@ libros.post('/historial', requiereRol(...STAFF), validar(soloId), asyncHandler(c
 libros.post('/crear', requiereRol(...STAFF), validar(S.libroCrear), asyncHandler(ctl.librosCrear));
 libros.post('/actualizar', requiereRol(...STAFF), validar(S.libroActualizar), asyncHandler(ctl.librosActualizar));
 libros.post('/buscar-portada', requiereRol(...STAFF), validar(z.object({ titulo: texto(160), autor: textoOpc(120) })), asyncHandler(ctl.librosBuscarPortada));
-libros.post('/eliminar', requiereRol('dueno'), validar(soloId), asyncHandler(ctl.librosEliminar));
+libros.post('/eliminar', requiereRol('gerente'), validar(soloId), asyncHandler(ctl.librosEliminar));
 
 export { categorias, libros };

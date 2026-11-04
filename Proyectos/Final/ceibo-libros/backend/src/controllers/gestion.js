@@ -3,6 +3,7 @@ import { consultar, transaccion } from '../config/db.js';
 import { err } from '../utils/httpError.js';
 import { hoy } from '../utils/fechas.js';
 import { enviarEmail, plantilla, escapar } from '../services/mailer.js';
+import { generarExcel, analizarArchivos } from '../services/informes.js';
 
 // ------------------------------------------------------------ notificaciones
 export const notifListar = async (req, res) => {
@@ -95,7 +96,7 @@ export const reposicionCrear = async (req, res) => {
 
   const pedidoId = await transaccion(async (conn) => {
     const [p] = await conn.query(
-      'INSERT INTO pedidos_reposicion (distribuidora_id, dueno_id, mensaje, estado_envio) VALUES (?, ?, ?, ?)',
+      'INSERT INTO pedidos_reposicion (distribuidora_id, gerente_id, mensaje, estado_envio) VALUES (?, ?, ?, ?)',
       [distribuidora_id, req.usuario.id, mensaje || null, estado]);
     await conn.query('INSERT INTO pedido_items (pedido_id, libro_id, titulo_solicitado, cantidad) VALUES ?',
       [lineas.map((l) => [p.insertId, l.libro_id, l.titulo_solicitado, l.cantidad])]);
@@ -163,3 +164,14 @@ export const resumen = async (req, res) => {
   });
 };
 
+
+/** Descarga: devuelve el Excel (en base64) con toda la información del período pedido. */
+export const exportar = async (req, res) => {
+  const { buffer, nombre, resumen } = await generarExcel(req.body.periodo);
+  res.json({ ok: true, data: { nombre, base64: buffer.toString('base64'), resumen } });
+};
+
+/** Análisis de uno o varios Excel descargados antes (libros más prestados, no devueltos, dañados...). */
+export const analizar = async (req, res) => {
+  res.json({ ok: true, data: { analisis: await analizarArchivos(req.body.archivos) } });
+};

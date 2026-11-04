@@ -8,7 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../theme/ThemeContext';
 import { font, radius, shadow, spacing } from '../../theme/tokens';
 import { useMenuFijo, useResponsive } from '../../utils/useResponsive';
-import { borrarHistorial, leerHistorial, quitarBusqueda, recordarBusqueda } from '../../utils/historialBusquedas';
+import { borrarRapido, leerRapido, quitarDelRapido, recordarBusqueda } from '../../utils/historialBusquedas';
 import type { BusquedaGuardada } from '../../utils/historialBusquedas';
 import { useAsync } from '../../hooks/useAsync';
 import { useRefreshOnFocus } from '../../hooks/useFocus';
@@ -125,7 +125,7 @@ function HistorialBusquedas({ historial, onUsar, onQuitar, onBorrarTodo, altoMax
 
 export default function HomeScreen({ navigation, route }: PantallaProps) {
   const { colors } = useTheme();
-  const { bloqueado, usuario, esDueno } = useAuth();
+  const { bloqueado, usuario, esGerente } = useAuth();
   const { width, columns, maxWidth } = useResponsive();
   const [q, setQ] = useState('');
   const [busqueda, setBusqueda] = useState('');
@@ -153,7 +153,7 @@ export default function HomeScreen({ navigation, route }: PantallaProps) {
   const [historial, setHistorial] = useState<BusquedaGuardada[]>([]);
   useEffect(() => {
     let vivo = true;
-    leerHistorial(usuario?.id).then((h) => { if (vivo) setHistorial(h); });
+    leerRapido(usuario?.id).then((h) => { if (vivo) setHistorial(h); });
     return () => { vivo = false; };
   }, [usuario?.id]);
 
@@ -209,7 +209,7 @@ export default function HomeScreen({ navigation, route }: PantallaProps) {
     </View>
   );
 
-  const items: any[] = cats.data ? [...cats.data.categorias, ...(esDueno ? [{ id: 'nueva', nueva: true }] : [])] : [];
+  const items: any[] = cats.data ? [...cats.data.categorias, ...(esGerente ? [{ id: 'nueva', nueva: true }] : [])] : [];
   const grilla = (anchoCat: number, alto?: number) => (
     cats.loading && !items.length ? (
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap }}>
@@ -245,8 +245,8 @@ export default function HomeScreen({ navigation, route }: PantallaProps) {
               altoMax={altoHistorial}
               historial={historial}
               onUsar={usarBusqueda}
-              onQuitar={async (t) => setHistorial(await quitarBusqueda(usuario?.id, t))}
-              onBorrarTodo={async () => { await borrarHistorial(usuario?.id); setHistorial([]); }}
+              onQuitar={async (t) => setHistorial(await quitarDelRapido(usuario?.id, t))}
+              onBorrarTodo={async () => { await borrarRapido(usuario?.id); setHistorial([]); }}
             />
             </View>
           </ScrollView>

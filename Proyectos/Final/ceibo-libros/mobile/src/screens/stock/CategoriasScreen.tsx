@@ -1,4 +1,4 @@
-// Categorías de libros: crear y editar (dueño y bibliotecario), agregar libros a cada una y eliminar (solo dueño, con confirmación).
+// Categorías de libros: crear y editar (gerente y bibliotecario), agregar libros a cada una y eliminar (solo gerente, con confirmación).
 import React, { useEffect, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -29,7 +29,7 @@ const VACIO = { codigo: '', nombre: '', descripcion: '', icono: 'book-open-varia
 export default function CategoriasScreen({ navigation, route }: PantallaProps) {
   const { ref: refLista, onScroll: onScrollLista, boton: botonArriba } = useVolverArriba();
   const { colors } = useTheme();
-  const { esDueno } = useAuth();
+  const { esGerente } = useAuth();
   const confirm = useConfirm();
   const toast = useToast();
   const contenido = useListContentStyle(false);
@@ -136,7 +136,7 @@ export default function CategoriasScreen({ navigation, route }: PantallaProps) {
               <Pressable onPress={() => abrir(item)} accessibilityRole="button" accessibilityLabel={`Editar ${item.nombre}`} style={styles.btnIcono}>
                 <MaterialCommunityIcons name="pencil-outline" size={22} color={colors.primary} />
               </Pressable>
-              {esDueno ? (
+              {esGerente ? (
                 <Pressable onPress={() => eliminar(item)} accessibilityRole="button" accessibilityLabel={`Eliminar ${item.nombre}`} style={styles.btnIcono}>
                   <MaterialCommunityIcons name="trash-can-outline" size={22} color={colors.danger} />
                 </Pressable>

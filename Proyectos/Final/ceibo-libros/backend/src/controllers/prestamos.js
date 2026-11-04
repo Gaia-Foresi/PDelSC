@@ -53,6 +53,16 @@ export const prestamosDetalle = async (req, res) => {
   res.json({ ok: true, data: { prestamo } });
 };
 
+export const prestamosPendientes = async (req, res) => {
+  res.json({ ok: true, data: { pendientes: await P.pendientesRevision() } });
+};
+
+export const prestamosRevisar = async (req, res) => {
+  const { prestamo_id, libro_id, resultado } = req.body;
+  const prestamo = await P.revisarDevolucion({ prestamoId: prestamo_id, libroId: libro_id, resultado, staffId: req.usuario.id });
+  res.json({ ok: true, data: { prestamo, pendientes: await P.pendientesRevision() } });
+};
+
 export const prestamosAgregarLibros = async (req, res) => {
   const prestamo = await P.agregarLibros({ prestamoId: req.body.prestamo_id, libroIds: req.body.libro_ids });
   res.json({ ok: true, data: { prestamo } });
@@ -125,7 +135,7 @@ export const reservasCrear = async (req, res) => {
 
     const [[{ disponibles }]] = await conn.query(
       `SELECT CAST(? AS SIGNED)
-         - (SELECT COUNT(*) FROM prestamo_items WHERE libro_id = ? AND devuelto_en IS NULL)
+         - (SELECT COUNT(*) FROM prestamo_items WHERE libro_id = ? AND (devuelto_en IS NULL OR revision = 'pendiente'))
          - (SELECT COUNT(*) FROM reservas WHERE libro_id = ? AND estado = 'activa' AND fecha_limite > NOW()) AS disponibles`,
       [libro.stock_total, libro_id, libro_id]);
     if (Number(disponibles) < 1) throw err.conflicto('SIN_STOCK', `No quedan ejemplares disponibles de "${libro.titulo}".`);

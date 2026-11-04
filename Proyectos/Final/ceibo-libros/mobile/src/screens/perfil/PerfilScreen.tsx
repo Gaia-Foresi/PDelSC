@@ -1,4 +1,4 @@
-// Perfil (boceto 3): foto grande arriba y debajo la información. Dueño/bibliotecario ven además su rol.
+// Perfil (boceto 3): foto grande arriba y debajo la información. Gerente/bibliotecario ven además su rol.
 import React, { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';

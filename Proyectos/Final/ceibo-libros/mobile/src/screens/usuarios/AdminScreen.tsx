@@ -1,4 +1,4 @@
-// Panel de administración (solo dueño): administrar roles de usuarios y bibliotecarios registrados.
+// Panel de administración (solo gerente): administrar roles de usuarios y bibliotecarios registrados.
 import React, { useEffect, useState } from 'react';
 import { FlatList, StyleSheet, Pressable, Text, View } from 'react-native';
 import { api } from '../../api';
@@ -33,13 +33,13 @@ const FILTROS = [
 const ROLES = [
   { value: 'usuario', label: 'Usuario', texto: 'Reserva libros, ve sus préstamos y le escribe a la biblioteca.', icono: 'account-outline' },
   { value: 'bibliotecario', label: 'Bibliotecario', texto: 'Gestiona stock, préstamos, reservas y usuarios, y responde consultas.', icono: 'account-tie-outline' },
-  { value: 'dueno', label: 'Dueño', texto: 'Acceso total: estadísticas, panel de admin y pedidos a la distribuidora.', icono: 'shield-crown-outline' },
+  { value: 'gerente', label: 'Gerente', texto: 'Acceso total: estadísticas, panel de admin y pedidos a la distribuidora.', icono: 'shield-crown-outline' },
 ];
 
 export default function AdminScreen({ navigation }: PantallaProps) {
   const { ref: refLista, onScroll: onScrollLista, boton: botonArriba } = useVolverArriba();
   const { colors } = useTheme();
-  const { esDueno, usuario: yo } = useAuth();
+  const { esGerente, usuario: yo } = useAuth();
   const confirm = useConfirm();
   const toast = useToast();
   const contenido = useListContentStyle(false);
@@ -57,14 +57,14 @@ export default function AdminScreen({ navigation }: PantallaProps) {
     const body: Record<string, any> = { ...(busqueda ? { q: busqueda } : {}), limite: 100 };
     if (filtro === 'bloqueado') body.estado = 'bloqueado';
     else if (filtro !== 'todos') body.rol = filtro;
-    return esDueno ? api.usuarios.listar(body) : Promise.resolve(null);
-  }, [busqueda, filtro, esDueno]);
+    return esGerente ? api.usuarios.listar(body) : Promise.resolve(null);
+  }, [busqueda, filtro, esGerente]);
   useRefreshOnFocus(datos.refresh);
 
-  if (!esDueno) {
+  if (!esGerente) {
     return (
       <ScreenContainer title="Panel de admin" back>
-        <EmptyState icon="shield-lock-outline" title="Solo para el dueño" text="Este panel es exclusivo del dueño de la biblioteca." />
+        <EmptyState icon="shield-lock-outline" title="Solo para el gerente" text="Este panel es exclusivo del gerente de la biblioteca." />
       </ScreenContainer>
     );
   }
@@ -78,7 +78,7 @@ export default function AdminScreen({ navigation }: PantallaProps) {
     const ok = await confirm({
       title: `¿Cambiar el rol a ${rol.label}?`,
       message: `${nombreCompleto(u)} pasa de ${ROL_TEXTO[u.rol]} a ${rol.label}. ${rol.texto}`,
-      confirmText: 'Cambiar rol', destructive: rol.value === 'dueno',
+      confirmText: 'Cambiar rol', destructive: rol.value === 'gerente',
     });
     if (!ok) { setElegido(u); return; }
     try {

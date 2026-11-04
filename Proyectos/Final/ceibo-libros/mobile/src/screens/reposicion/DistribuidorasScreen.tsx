@@ -1,4 +1,4 @@
-// Distribuidoras a las que el dueño les pide libros (solo dueño).
+// Distribuidoras a las que el gerente les pide libros (solo gerente).
 import React, { useState } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { api } from '../../api';
@@ -24,7 +24,7 @@ const VACIO = { nombre: '', email: '', telefono: '' };
 export default function DistribuidorasScreen() {
   const { ref: refLista, onScroll: onScrollLista, boton: botonArriba } = useVolverArriba();
   const { colors } = useTheme();
-  const { esDueno } = useAuth();
+  const { esGerente } = useAuth();
   const confirm = useConfirm();
   const toast = useToast();
   const contenido = useListContentStyle(false);
@@ -34,9 +34,9 @@ export default function DistribuidorasScreen() {
   const [guardando, setGuardando] = useState(false);
   const set = (k) => (t) => { setForm((f) => ({ ...f, [k]: t })); setErrores((e) => ({ ...e, [k]: '' })); };
 
-  const datos = useAsync(() => (esDueno ? api.distribuidoras.listar() : Promise.resolve(null)), [esDueno]);
+  const datos = useAsync(() => (esGerente ? api.distribuidoras.listar() : Promise.resolve(null)), [esGerente]);
 
-  if (!esDueno) return <ScreenContainer title="Distribuidoras" back><EmptyState icon="lock-outline" title="Solo para el dueño" /></ScreenContainer>;
+  if (!esGerente) return <ScreenContainer title="Distribuidoras" back><EmptyState icon="lock-outline" title="Solo para el gerente" /></ScreenContainer>;
 
   const abrir = (d) => {
     setEditando(d || {});

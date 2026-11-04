@@ -30,7 +30,7 @@ export default function OrigenFoto({ visible, onClose, onElegir, onQuitar }: Pro
   );
   return (
     <SheetModal visible={visible} title="Foto de perfil" onClose={onClose}>
-      <Opcion icon="camera-outline" titulo="Sacarme una foto" texto="Usa la cámara del teléfono" onPress={() => { onClose(); onElegir('camara'); }} />
+      <Opcion icon="camera-outline" titulo="Sacarme una foto" texto="Usa la cámara de tu dispositivo" onPress={() => { onClose(); onElegir('camara'); }} />
       <Opcion icon="image-multiple-outline" titulo="Elegir de la galería" texto="Una foto que ya tengas guardada" onPress={() => { onClose(); onElegir('galeria'); }} />
       {onQuitar ? <Opcion icon="trash-can-outline" titulo="Quitar foto" danger onPress={() => { onClose(); onQuitar(); }} /> : null}
     </SheetModal>

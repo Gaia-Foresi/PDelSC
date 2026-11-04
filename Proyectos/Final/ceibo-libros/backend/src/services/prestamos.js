@@ -23,7 +23,7 @@ async function cargarPrestamos(where = '', params = [], { limite = 200, conn = p
   if (!filas.length) return [];
 
   const [items] = await conn.query(
-    `SELECT pi.prestamo_id, pi.libro_id, l.titulo, a.nombre AS autor, pi.devuelto_en
+    `SELECT pi.prestamo_id, pi.libro_id, l.titulo, a.nombre AS autor, pi.devuelto_en, pi.revision
      FROM prestamo_items pi
      JOIN libros l ON l.id = pi.libro_id
      JOIN autores a ON a.id = l.autor_id
@@ -43,7 +43,7 @@ async function cargarPrestamos(where = '', params = [], { limite = 200, conn = p
     dias_restantes: f.estado === 'activo' ? diasEntre(hoyStr, f.fecha_vencimiento) : null,
     items: items
       .filter((i) => i.prestamo_id === f.id)
-      .map((i) => ({ libro_id: i.libro_id, titulo: i.titulo, autor: i.autor, devuelto_en: i.devuelto_en })),
+      .map((i) => ({ libro_id: i.libro_id, titulo: i.titulo, autor: i.autor, devuelto_en: i.devuelto_en, revision: i.revision })),
   }));
 }
 
@@ -70,7 +70,7 @@ async function verificarStock(conn, libroIds) {
   const [filas] = await conn.query(
     `SELECT l.id, l.titulo, l.activo,
         CAST(l.stock_total AS SIGNED)
-          - (SELECT COUNT(*) FROM prestamo_items pi WHERE pi.libro_id = l.id AND pi.devuelto_en IS NULL)
+          - (SELECT COUNT(*) FROM prestamo_items pi WHERE pi.libro_id = l.id AND (pi.devuelto_en IS NULL OR pi.revision = 'pendiente'))
           - (SELECT COUNT(*) FROM reservas r WHERE r.libro_id = l.id AND r.estado = 'activa' AND r.fecha_limite > NOW())
           AS disponibles
      FROM libros l WHERE l.id IN (?) FOR UPDATE`, [libroIds]);
@@ -164,7 +164,7 @@ async function devolver({ prestamoId, libroId }) {
     if (p.estado !== 'activo') throw err.estado('El préstamo ya está cerrado.');
 
     const [r] = await conn.query(
-      `UPDATE prestamo_items SET devuelto_en = NOW() WHERE prestamo_id = ? AND devuelto_en IS NULL ${libroId ? 'AND libro_id = ?' : ''}`,
+      `UPDATE prestamo_items SET devuelto_en = NOW(), revision = 'pendiente' WHERE prestamo_id = ? AND devuelto_en IS NULL ${libroId ? 'AND libro_id = ?' : ''}`,
       libroId ? [prestamoId, libroId] : [prestamoId]);
     if (r.affectedRows === 0) throw err.estado('Ese libro ya fue devuelto o no pertenece al préstamo.');
 
@@ -198,4 +198,40 @@ async function desbloquearSiNoDebe(conn, usuarioId) {
   return true;
 }
 
-export { ediciones, guardarDatosLector, cargarPrestamos, obtenerPrestamo, crearPrestamo, agregarLibros, devolver, desbloquearSiNoDebe };
+/** Libros devueltos por los lectores que todavía esperan que el personal decida si vuelven al stock o se dan de baja por daño. */
+async function pendientesRevision(conn = pool) {
+  const [filas] = await conn.query(
+    `SELECT pi.prestamo_id, pi.libro_id, pi.devuelto_en, l.titulo, a.nombre AS autor,
+            CONCAT(u.nombre, ' ', u.apellido) AS lector, u.id AS usuario_id
+     FROM prestamo_items pi
+     JOIN prestamos p ON p.id = pi.prestamo_id
+     JOIN usuarios u ON u.id = p.usuario_id
+     JOIN libros l ON l.id = pi.libro_id
+     JOIN autores a ON a.id = l.autor_id
+     WHERE pi.revision = 'pendiente' ORDER BY pi.devuelto_en`);
+  return filas.map((f) => ({
+    prestamo_id: f.prestamo_id, libro_id: f.libro_id, titulo: f.titulo, autor: f.autor,
+    lector: f.lector.trim(), usuario_id: f.usuario_id, devuelto_en: f.devuelto_en,
+  }));
+}
+
+/**
+ * El personal decide qué pasa con un libro devuelto en espera:
+ *  - 'repuesto': vuelve al stock (queda disponible de nuevo).
+ *  - 'danado':   se da de baja ese ejemplar (baja el stock total en 1) y queda registrado como dañado.
+ */
+async function revisarDevolucion({ prestamoId, libroId, resultado, staffId }) {
+  await transaccion(async (conn) => {
+    const [[item]] = await conn.query(
+      'SELECT id, revision FROM prestamo_items WHERE prestamo_id = ? AND libro_id = ? FOR UPDATE', [prestamoId, libroId]);
+    if (!item) throw err.noEncontrado('El libro de ese préstamo');
+    if (item.revision !== 'pendiente') throw err.estado('Ese libro no está en espera de revisión.');
+    await conn.query('UPDATE prestamo_items SET revision = ?, revisado_en = NOW(), revisado_por = ? WHERE id = ?', [resultado, staffId, item.id]);
+    if (resultado === 'danado') {
+      await conn.query('UPDATE libros SET stock_total = GREATEST(CAST(stock_total AS SIGNED) - 1, 0) WHERE id = ?', [libroId]);
+    }
+  });
+  return obtenerPrestamo(prestamoId);
+}
+
+export { pendientesRevision, revisarDevolucion, ediciones, guardarDatosLector, cargarPrestamos, obtenerPrestamo, crearPrestamo, agregarLibros, devolver, desbloquearSiNoDebe };

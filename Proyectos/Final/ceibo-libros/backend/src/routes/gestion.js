@@ -6,6 +6,7 @@ import { requiereRol, STAFF } from '../middlewares/roles.js';
 import validar from '../middlewares/validate.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { z, id, texto, textoOpc, email } from '../utils/esquemas.js';
+import { PERIODOS } from '../services/informes.js';
 
 const { Router } = express;
 
@@ -38,7 +39,7 @@ notificaciones.post('/cantidad', validar(vacio), w(gestion.notifCantidad));
 // ------------------------------------------------------------- distribuidoras
 const telefono = textoOpc(30);
 const distribuidoras = Router();
-distribuidoras.use(autenticar, requiereRol('dueno'));
+distribuidoras.use(autenticar, requiereRol('gerente'));
 distribuidoras.post('/listar', validar(vacio), w(gestion.distListar));
 distribuidoras.post('/crear', validar(z.object({ nombre: texto(100), email, telefono })), w(gestion.distCrear));
 distribuidoras.post('/actualizar', validar(z.object({ id, nombre: texto(100).optional(), email: email.optional(), telefono })), w(gestion.distActualizar));
@@ -52,7 +53,7 @@ const item = z.object({
 }).refine((i) => i.libro_id || i.titulo, { message: 'Elegí un libro o escribí un título', path: ['titulo'] });
 
 const reposicion = Router();
-reposicion.use(autenticar, requiereRol('dueno'));
+reposicion.use(autenticar, requiereRol('gerente'));
 reposicion.post('/crear', validar(z.object({
   distribuidora_id: id,
   mensaje: textoOpc(1000),
@@ -62,7 +63,13 @@ reposicion.post('/listar', validar(vacio), w(gestion.reposicionListar));
 
 // ---------------------------------------------------------------- estadísticas
 const estadisticas = Router();
-estadisticas.use(autenticar, requiereRol('dueno'));
+estadisticas.use(autenticar, requiereRol('gerente'));
 estadisticas.post('/resumen', validar(vacio), w(gestion.resumen));
+estadisticas.post('/exportar', validar(z.object({ periodo: z.enum(PERIODOS, { message: 'Período inválido' }).optional() })), w(gestion.exportar));
+estadisticas.post('/analizar', validar(z.object({
+  archivos: z.array(z.object({ nombre: texto(200), contenido: z.string().min(20, 'Archivo vacío') }))
+    .min(1, 'Subí al menos un archivo').max(12, 'Máximo 12 archivos')
+    .refine((a) => a.reduce((s, x) => s + x.contenido.length, 0) <= 5_500_000, 'Los archivos pesan demasiado (máximo 4 MB en total)'),
+})), w(gestion.analizar));
 
 export { mensajesRouter as mensajes, notificaciones, distribuidoras, reposicion, estadisticas };

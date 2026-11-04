@@ -10,7 +10,7 @@ import { listarReservas } from '../services/reservas.js';
 
 const cargar = async (id) => (await consultar(`${SQL_USUARIO} WHERE u.id = ?`, [id]))[0];
 
-/** El bibliotecario solo gestiona usuarios comunes; el dueño gestiona a todos. */
+/** El bibliotecario solo gestiona usuarios comunes; el gerente gestiona a todos. */
 function validarAlcance(actor, objetivo) {
   if (actor.rol === 'bibliotecario' && objetivo.rol !== 'usuario') {
     throw err.sinPermiso('Solo podés gestionar usuarios comunes.');
@@ -122,7 +122,7 @@ export const desbloquear = async (req, res) => {
   res.json({ ok: true, data: { usuario: usuarioPublico(await cargar(u.id)) } });
 };
 
-// Panel de administración (solo dueño)
+// Panel de administración (solo gerente)
 export const cambiarRol = async (req, res) => {
   const { id, rol } = req.body;
   if (id === req.usuario.id) throw err.sinPermiso('No podés cambiar tu propio rol.');

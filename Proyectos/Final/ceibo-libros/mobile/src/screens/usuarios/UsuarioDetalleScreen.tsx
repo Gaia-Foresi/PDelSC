@@ -1,4 +1,4 @@
-// Perfil de un usuario para el personal: préstamos, reservas, bloqueo con mensaje y (dueño) cambio de rol.
+// Perfil de un usuario para el personal: préstamos, reservas, bloqueo con mensaje y (gerente) cambio de rol.
 import React, { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { api } from '../../api';
@@ -29,14 +29,14 @@ const MOTIVO_BASE = TIPOS_BLOQUEO[0].mensaje;
 const ROLES = [
   { value: 'usuario', label: 'Usuario', description: 'Reserva libros, ve sus préstamos y consulta a la biblioteca.' },
   { value: 'bibliotecario', label: 'Bibliotecario', description: 'Gestiona stock, préstamos, reservas y usuarios.' },
-  { value: 'dueno', label: 'Dueño', description: 'Acceso total: estadísticas, panel de admin y pedidos.' },
+  { value: 'gerente', label: 'Gerente', description: 'Acceso total: estadísticas, panel de admin y pedidos.' },
 ];
 const ESTADO_RESERVA = { activa: 'primary', cumplida: 'success', cancelada: 'neutral', vencida: 'warning' };
 
 export default function UsuarioDetalleScreen({ navigation, route }: PantallaProps) {
   const { id } = route.params;
   const { colors } = useTheme();
-  const { esDueno, usuario: yo } = useAuth();
+  const { esGerente, usuario: yo } = useAuth();
   const confirm = useConfirm();
   const toast = useToast();
   const [sheetBloqueo, setSheetBloqueo] = useState(false);
@@ -95,7 +95,7 @@ export default function UsuarioDetalleScreen({ navigation, route }: PantallaProp
     const ok = await confirm({
       title: `¿Cambiar el rol a ${ROL_TEXTO[rol]}?`,
       message: `${nombreCompleto(u)} pasa a ser ${ROL_TEXTO[rol]}. ${ROLES.find((r) => r.value === rol).description}`,
-      confirmText: 'Cambiar rol', destructive: rol === 'dueno',
+      confirmText: 'Cambiar rol', destructive: rol === 'gerente',
     });
     if (!ok) return;
     try {
@@ -144,7 +144,7 @@ export default function UsuarioDetalleScreen({ navigation, route }: PantallaProp
         </View>
       ) : null}
 
-      {esDueno && !soyYo ? (
+      {esGerente && !soyYo ? (
         <Card>
           <SelectField label="Rol en la biblioteca" title="Cambiar rol" value={u.rol} options={ROLES} onChange={cambiarRol} />
         </Card>

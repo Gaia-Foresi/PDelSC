@@ -59,6 +59,16 @@ export const categoriasEliminar = async (req, res) => {
 };
 
 // -------------------------------------------------------------------- libros
+/** Marca con `reservado_por_mi` los libros que la persona ya tiene reservados (reserva activa y vigente). */
+async function marcarMisReservas(libros, usuarioId) {
+  if (!libros.length) return libros;
+  const filas = await consultar(
+    "SELECT DISTINCT libro_id FROM reservas WHERE usuario_id = ? AND estado = 'activa' AND fecha_limite > NOW() AND libro_id IN (?)",
+    [usuarioId, libros.map((l) => l.id)]);
+  const mias = new Set(filas.map((f) => f.libro_id));
+  return libros.map((l) => ({ ...l, reservado_por_mi: mias.has(l.id) }));
+}
+
 export const librosListar = async (req, res) => {
   const { categoria_id, q, solo_disponibles } = req.body;
   const donde = ['l.activo = 1'];
@@ -68,7 +78,7 @@ export const librosListar = async (req, res) => {
   const filtroStock = solo_disponibles ? 'WHERE t.disponibles > 0' : '';
   const [filas] = await pool.query(
     `SELECT t.* FROM (${SQL_LIBRO} WHERE ${donde.join(' AND ')}) t ${filtroStock} ORDER BY t.titulo LIMIT 500`, params);
-  const libros = await conCategorias(filas.map((l) => ({ ...l, disponibles: Number(l.disponibles) })));
+  const libros = await marcarMisReservas(await conCategorias(filas.map((l) => ({ ...l, disponibles: Number(l.disponibles) }))), req.usuario.id);
   res.json({ ok: true, data: { libros } });
 };
 
@@ -77,7 +87,8 @@ const normalizar = (l) => (l ? { ...l, disponibles: Number(l.disponibles) } : l)
 export const librosDetalle = async (req, res) => {
   const libro = await obtenerLibro(req.body.id);
   if (!libro) throw err.noEncontrado('El libro');
-  res.json({ ok: true, data: { libro: normalizar(libro) } });
+  const [conMarca] = await marcarMisReservas([libro], req.usuario.id);
+  res.json({ ok: true, data: { libro: normalizar(conMarca) } });
 };
 
 /** Las últimas 10 personas que usaron el libro, con fecha de retiro y de devolución (solo personal). */

@@ -1,4 +1,4 @@
-// Pedir libros a la distribuidora (solo dueño): arma el pedido y lo envía por email.
+// Pedir libros a la distribuidora (solo gerente): arma el pedido y lo envía por email.
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -54,7 +54,7 @@ function Cantidad({ valor, onChange, nombre }: CantidadProps) {
 
 export default function PedirLibrosScreen({ navigation }: PantallaProps) {
   const { colors } = useTheme();
-  const { esDueno } = useAuth();
+  const { esGerente } = useAuth();
   const confirm = useConfirm();
   const toast = useToast();
   const [distribuidora, setDistribuidora] = useState(null);
@@ -67,8 +67,8 @@ export default function PedirLibrosScreen({ navigation }: PantallaProps) {
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState(null);
 
-  const dists = useAsync(() => (esDueno ? api.distribuidoras.listar() : Promise.resolve(null)), [esDueno]);
-  const historial = useAsync(() => (esDueno ? api.reposicion.listar() : Promise.resolve(null)), [esDueno]);
+  const dists = useAsync(() => (esGerente ? api.distribuidoras.listar() : Promise.resolve(null)), [esGerente]);
+  const historial = useAsync(() => (esGerente ? api.reposicion.listar() : Promise.resolve(null)), [esGerente]);
   useRefreshOnFocus(() => { dists.refresh(); historial.refresh(); });
 
   useEffect(() => {
@@ -83,8 +83,8 @@ export default function PedirLibrosScreen({ navigation }: PantallaProps) {
     if (!distribuidora && lista.length === 1) setDistribuidora(lista[0].id);
   }, [lista, distribuidora]);
 
-  if (!esDueno) {
-    return <ScreenContainer title="Pedir libros" back><EmptyState icon="lock-outline" title="Solo para el dueño" text="Los pedidos a la distribuidora los hace el dueño de la biblioteca." /></ScreenContainer>;
+  if (!esGerente) {
+    return <ScreenContainer title="Pedir libros" back><EmptyState icon="lock-outline" title="Solo para el gerente" text="Los pedidos a la distribuidora los hace el gerente de la biblioteca." /></ScreenContainer>;
   }
 
   // Se pueden sumar varios libros al mismo pedido: la búsqueda queda abierta y, si el libro ya estaba, se suma un ejemplar

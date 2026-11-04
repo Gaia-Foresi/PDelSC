@@ -1,4 +1,4 @@
-// Alta y edición de un libro (si llega params.libro es edición). Eliminar es solo del dueño.
+// Alta y edición de un libro (si llega params.libro es edición). Eliminar es solo del gerente.
 import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -21,7 +21,7 @@ import type { PantallaProps } from '../../types';
 export default function LibroFormScreen({ navigation, route }: PantallaProps) {
   const libro = route.params?.libro;
   const editando = !!libro;
-  const { esDueno } = useAuth();
+  const { esGerente } = useAuth();
   const { colors } = useTheme();
   const confirm = useConfirm();
   const toast = useToast();
@@ -203,7 +203,7 @@ export default function LibroFormScreen({ navigation, route }: PantallaProps) {
 
       <View style={{ marginTop: spacing.sm }}>
         <Button title={editando ? 'Guardar cambios' : 'Agregar libro'} icon="content-save-outline" onPress={guardar} loading={cargando} />
-        {editando && esDueno ? <Button title="Eliminar libro" icon="trash-can-outline" variant="danger" onPress={eliminar} style={{ marginTop: spacing.md }} /> : null}
+        {editando && esGerente ? <Button title="Eliminar libro" icon="trash-can-outline" variant="danger" onPress={eliminar} style={{ marginTop: spacing.md }} /> : null}
         <Button title="Cancelar" variant="ghost" small onPress={() => navigation.goBack()} style={{ marginTop: spacing.xs }} />
       </View>
     </ScreenContainer>

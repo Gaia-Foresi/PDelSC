@@ -3,7 +3,7 @@
 //   con sesión  -> Menú desplegable (Drawer) > Pila (Main) > Botones principales (Tabs, según el rol)
 import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
-import { DarkTheme, DefaultTheme, NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, NavigationContainer, createNavigationContainerRef, useIsFocused } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createDrawerNavigator } from '@react-navigation/drawer';
@@ -40,6 +40,7 @@ import UsuariosScreen from '../screens/usuarios/UsuariosScreen';
 import UsuarioDetalleScreen from '../screens/usuarios/UsuarioDetalleScreen';
 import AdminScreen from '../screens/usuarios/AdminScreen';
 import EstadisticasScreen from '../screens/estadisticas/EstadisticasScreen';
+import InformesScreen from '../screens/estadisticas/InformesScreen';
 import PedirLibrosScreen from '../screens/reposicion/PedirLibrosScreen';
 import DistribuidorasScreen from '../screens/reposicion/DistribuidorasScreen';
 import NotificacionesScreen from '../screens/notificaciones/NotificacionesScreen';
@@ -73,7 +74,7 @@ const linking = {
           Hilo: { path: 'mensajes/:id', ...numero },
           PrestamoDetalle: { path: 'prestamos/:id', ...numero },
           UsuarioDetalle: { path: 'usuarios/:id', ...numero },
-          Reservas: 'libros-reservados', Calendario: 'calendario', Estadisticas: 'estadisticas',
+          Reservas: 'libros-reservados', Calendario: 'calendario', Estadisticas: 'estadisticas', Informes: 'informes',
           Categorias: 'categorias', EditarPerfil: 'perfil/editar', Seguridad: 'perfil/seguridad', Admin: 'administracion',
           PedirLibros: 'pedir-libros', Distribuidoras: 'distribuidoras', Notificaciones: 'notificaciones', Manual: 'manual', HistorialBusquedas: 'historial-busquedas',
         },
@@ -93,22 +94,37 @@ function AuthNavigator() {
   );
 }
 
+// En la compu las pantallas son transparentes (se ve el dibujo de fondo): una pestaña que no se está mirando
+// no debe dibujarse, si no se transparenta detrás de la pestaña activa.
+const soloEnfocada = (Pantalla: React.ComponentType<any>) => {
+  const Envuelta = (props: any) => (useIsFocused() ? <Pantalla {...props} /> : null);
+  Envuelta.displayName = `Enfocada(${Pantalla.displayName || Pantalla.name || 'Pantalla'})`;
+  return Envuelta;
+};
+const TInicio = soloEnfocada(HomeScreen);
+const TMensajes = soloEnfocada(MensajesScreen);
+const TStock = soloEnfocada(StockScreen);
+const TReservas = soloEnfocada(ReservasScreen);
+const TPrestamos = soloEnfocada(PrestamosScreen);
+const TUsuarios = soloEnfocada(UsuariosScreen);
+const TPerfil = soloEnfocada(PerfilScreen);
+
 // Botones principales según el rol:
 //   usuario:       Inicio · Mensajes · Reservas · Préstamos · Perfil
 //   bibliotecario: Inicio · Mensajes · Stock · Reservas · Préstamos · Usuarios · Perfil
-//   dueño:         Inicio · Mensajes · Stock · Reservas · Préstamos · Usuarios · Perfil
+//   gerente:         Inicio · Mensajes · Stock · Reservas · Préstamos · Usuarios · Perfil
 function Tabs() {
   const { usuario } = useAuth();
   const staff = usuario.rol !== 'usuario';
   return (
     <Tab.Navigator key={usuario.rol} tabBar={() => null} screenOptions={{ headerShown: false }}>
-      <Tab.Screen name="Inicio" component={HomeScreen} />
-      <Tab.Screen name="Mensajes" component={MensajesScreen} />
-      {staff ? <Tab.Screen name="Stock" component={StockScreen} /> : null}
-      <Tab.Screen name="ReservasTab" component={ReservasScreen} />
-      <Tab.Screen name="Prestamos" component={PrestamosScreen} />
-      {staff ? <Tab.Screen name="Usuarios" component={UsuariosScreen} /> : null}
-      <Tab.Screen name="Perfil" component={PerfilScreen} />
+      <Tab.Screen name="Inicio" component={TInicio} />
+      <Tab.Screen name="Mensajes" component={TMensajes} />
+      {staff ? <Tab.Screen name="Stock" component={TStock} /> : null}
+      <Tab.Screen name="ReservasTab" component={TReservas} />
+      <Tab.Screen name="Prestamos" component={TPrestamos} />
+      {staff ? <Tab.Screen name="Usuarios" component={TUsuarios} /> : null}
+      <Tab.Screen name="Perfil" component={TPerfil} />
     </Tab.Navigator>
   );
 }
@@ -151,6 +167,7 @@ function PilaPrincipal() {
       <Stack.Screen name="Reservas" component={ReservasScreen} />
       <Stack.Screen name="Calendario" component={CalendarioScreen} />
       <Stack.Screen name="Estadisticas" component={EstadisticasScreen} />
+      <Stack.Screen name="Informes" component={InformesScreen} />
       <Stack.Screen name="Hilo" component={HiloScreen} />
       <Stack.Screen name="NuevoMensaje" component={NuevoMensajeScreen} />
       <Stack.Screen name="UsuarioDetalle" component={UsuarioDetalleScreen} />

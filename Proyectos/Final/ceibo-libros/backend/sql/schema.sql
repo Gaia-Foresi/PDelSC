@@ -43,10 +43,10 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- ---------------------------------------------------------------------
 CREATE TABLE roles (
   id      TINYINT UNSIGNED PRIMARY KEY,
-  nombre  VARCHAR(20) NOT NULL UNIQUE          -- dueno | bibliotecario | usuario
+  nombre  VARCHAR(20) NOT NULL UNIQUE          -- gerente | bibliotecario | usuario
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO roles (id, nombre) VALUES (1, 'dueno'), (2, 'bibliotecario'), (3, 'usuario');
+INSERT INTO roles (id, nombre) VALUES (1, 'gerente'), (2, 'bibliotecario'), (3, 'usuario');
 
 CREATE TABLE usuarios (
   id                INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -104,6 +104,7 @@ CREATE TABLE refresh_tokens (
   token_hash  CHAR(64) NOT NULL UNIQUE,
   expira_en   DATETIME NOT NULL,
   revocado    TINYINT(1) NOT NULL DEFAULT 0,
+  revocado_en DATETIME NULL,
   creado_en   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_refresh_usuario (usuario_id),
   CONSTRAINT fk_refresh_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
@@ -175,7 +176,7 @@ CREATE TABLE reservas (
 CREATE TABLE prestamos (
   id                INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   usuario_id        INT UNSIGNED NOT NULL,        -- quien se lleva los libros
-  registrado_por    INT UNSIGNED NOT NULL,        -- bibliotecario / dueño que lo cargó
+  registrado_por    INT UNSIGNED NOT NULL,        -- bibliotecario / gerente que lo cargó
   fecha_inicio      DATE NOT NULL,
   fecha_vencimiento DATE NOT NULL,
   estado            ENUM('activo','cerrado') NOT NULL DEFAULT 'activo',  -- "vencido" se calcula
@@ -195,6 +196,9 @@ CREATE TABLE prestamo_items (
   prestamo_id  INT UNSIGNED NOT NULL,
   libro_id     INT UNSIGNED NOT NULL,
   devuelto_en  DATETIME NULL,                     -- NULL = todavía lo tiene el usuario
+  revision     ENUM('pendiente','repuesto','danado') NULL,  -- devuelto: 'pendiente' = en espera, 'repuesto' = volvió al stock, 'danado' = dado de baja
+  revisado_en  DATETIME NULL,
+  revisado_por INT UNSIGNED NULL,
   UNIQUE KEY uq_prestamo_libro (prestamo_id, libro_id),
   CONSTRAINT fk_items_prestamo FOREIGN KEY (prestamo_id) REFERENCES prestamos(id) ON DELETE CASCADE,
   CONSTRAINT fk_items_libro    FOREIGN KEY (libro_id)    REFERENCES libros(id),
@@ -217,7 +221,7 @@ CREATE TABLE prestamo_ediciones (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ---------------------------------------------------------------------
--- Mensajería (consultas usuario→biblioteca y mensajes internos dueño↔bibliotecario)
+-- Mensajería (consultas usuario→biblioteca y mensajes internos gerente↔bibliotecario)
 -- ---------------------------------------------------------------------
 CREATE TABLE hilos (
   id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -252,7 +256,7 @@ CREATE TABLE mensajes (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ---------------------------------------------------------------------
--- Reposición de stock (dueño → distribuidora)
+-- Reposición de stock (gerente → distribuidora)
 -- ---------------------------------------------------------------------
 CREATE TABLE distribuidoras (
   id        INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -265,12 +269,12 @@ CREATE TABLE distribuidoras (
 CREATE TABLE pedidos_reposicion (
   id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   distribuidora_id INT UNSIGNED NOT NULL,
-  dueno_id         INT UNSIGNED NOT NULL,
+  gerente_id       INT UNSIGNED NOT NULL,
   mensaje          TEXT NULL,
   estado_envio     ENUM('enviado','error') NOT NULL,
   creado_en        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_pedidos_distribuidora FOREIGN KEY (distribuidora_id) REFERENCES distribuidoras(id),
-  CONSTRAINT fk_pedidos_dueno         FOREIGN KEY (dueno_id)         REFERENCES usuarios(id)
+  CONSTRAINT fk_pedidos_gerente       FOREIGN KEY (gerente_id)       REFERENCES usuarios(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Si el libro ya existe se referencia por libro_id; si es un título nuevo va solo el texto

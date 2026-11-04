@@ -61,7 +61,10 @@ export default function ScreenContainer({ title, brand, menu, back, right, showB
         >
           <RevelaProvider value={revelador.valor}>{children}</RevelaProvider>
         </ScrollView>
-        {boton}
+        {/* El botón siempre queda en la esquina de la columna central, igual que en las pantallas con lista */}
+        <View pointerEvents="box-none" style={[StyleSheet.absoluteFill, { alignItems: 'center' }]}>
+          <View pointerEvents="box-none" style={{ flex: 1, width: '100%', maxWidth: anchoColumna }}>{boton}</View>
+        </View>
         </View>
       ) : (
         <View style={[styles.flex, contenido]}>{children}</View>

@@ -25,7 +25,9 @@ api.post('/mantenimiento/recordatorios', asyncHandler(async (req, res) => {
   res.json({ ok: true, data: await ejecutarRecordatorios() });
 }));
 
-api.use('/auth', limiteAuth, authRouter);
+// El límite estricto es contra fuerza bruta en login/códigos; renovar o cerrar sesión no cuentan
+const SIN_LIMITE_AUTH = new Set(['/refresh', '/logout']);
+api.use('/auth', (req, res, next) => (SIN_LIMITE_AUTH.has(req.path) ? next() : limiteAuth(req, res, next)), authRouter);
 api.use('/usuarios', usuarios);
 api.use('/admin', admin);
 api.use('/categorias', categorias);

@@ -32,6 +32,7 @@ const S = {
   agregar: z.object({ prestamo_id: id, libro_ids: libroIds }),
   devolver: z.object({ prestamo_id: id, libro_id: id.optional() }),
   extender: z.object({ prestamo_id: id, dias: dias(30) }),
+  revisar: z.object({ prestamo_id: id, libro_id: id, resultado: z.enum(['repuesto', 'danado'], { message: 'Elegí si vuelve al stock o está dañado' }) }),
   reservaCrear: z.object({
     libro_id: id, tipo: z.enum(['sala', 'retiro'], { message: 'Tipo inválido' }),
     nombre: texto(60), apellido: texto(60), curso: curso.optional(), dni, visita: fechaHora,
@@ -53,6 +54,8 @@ prestamos.post('/listar', requiereRol(...STAFF), validar(S.listar), asyncHandler
 prestamos.post('/detalle', validar(S.soloId), asyncHandler(ctl.prestamosDetalle));
 prestamos.post('/agregar-libros', requiereRol(...STAFF), validar(S.agregar), asyncHandler(ctl.prestamosAgregarLibros));
 prestamos.post('/devolver', requiereRol(...STAFF), validar(S.devolver), asyncHandler(ctl.prestamosDevolver));
+prestamos.post('/pendientes', requiereRol(...STAFF), validar(vacio), asyncHandler(ctl.prestamosPendientes));
+prestamos.post('/revisar', requiereRol(...STAFF), validar(S.revisar), asyncHandler(ctl.prestamosRevisar));
 prestamos.post('/extender', requiereRol(...STAFF), validar(S.extender), asyncHandler(ctl.prestamosExtender));
 
 const reservas = Router();

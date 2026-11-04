@@ -1,4 +1,4 @@
-// Estadísticas (solo dueño): resumen en tarjetas explicadas y gráficos de barras dibujados con Views.
+// Estadísticas (solo gerente): resumen en tarjetas explicadas y gráficos de barras dibujados con Views.
 // Cada bloque dice qué mide, qué representa cada barra y cómo leerlo.
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -17,7 +17,8 @@ import ErrorState from '../../components/ErrorState';
 import ScreenContainer from '../../components/ScreenContainer';
 import { SkeletonList } from '../../components/Skeleton';
 
-import type { IconName } from '../../types';
+import Button from '../../components/Button';
+import type { IconName, PantallaProps } from '../../types';
 const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;
 
 interface TarjetaProps {
@@ -185,14 +186,14 @@ function Ranking({ datos, etiqueta, vacio, conPorcentaje }: RankingProps) {
   );
 }
 
-export default function EstadisticasScreen() {
+export default function EstadisticasScreen({ navigation }: PantallaProps) {
   const { colors } = useTheme();
-  const { esDueno } = useAuth();
+  const { esGerente } = useAuth();
   const { width, maxWidth, columns } = useResponsive();
-  const stats = useAsync(() => (esDueno ? api.estadisticas.resumen() : Promise.resolve(null)), [esDueno]);
+  const stats = useAsync(() => (esGerente ? api.estadisticas.resumen() : Promise.resolve(null)), [esGerente]);
   useRefreshOnFocus(stats.refresh);
 
-  if (!esDueno) return <ScreenContainer title="Estadísticas" back><EmptyState icon="lock-outline" title="Solo para el dueño" /></ScreenContainer>;
+  if (!esGerente) return <ScreenContainer title="Estadísticas" back><EmptyState icon="lock-outline" title="Solo para el gerente" /></ScreenContainer>;
 
   const area = Math.min(width, maxWidth || width) - spacing.lg * 2;
   const cols = columns >= 3 ? 3 : 2;
@@ -215,6 +216,8 @@ export default function EstadisticasScreen() {
                 </Text>
               </View>
             </Card>
+
+            <Button title="Descargar Excel / Analizar varios meses" icon="file-excel-outline" onPress={() => navigation.navigate('Informes')} style={{ marginTop: spacing.md }} />
 
             <Seccion titulo="Resumen de hoy" explicacion="Cantidades actuales. Se actualizan cada vez que entrás o deslizás para recargar." />
             <View style={[styles.grilla, { gap }]}>

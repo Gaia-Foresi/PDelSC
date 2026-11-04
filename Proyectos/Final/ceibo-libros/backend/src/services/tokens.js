@@ -8,6 +8,7 @@ import { usuarioPublico, SQL_USUARIO } from '../utils/serializers.js';
 
 const { jwt: cfg } = env;
 
+const GRACIA_MS = 2 * 60 * 1000;
 const refreshInvalido = () => new HttpError(401, 'REFRESH_INVALIDO', 'Tu sesión venció. Volvé a iniciar sesión.');
 
 function firmarAccess(usuario) {
@@ -34,11 +35,13 @@ async function emitirSesion(usuario) {
 /** Rota el refresh token: invalida el recibido y entrega uno nuevo + access nuevo. */
 async function rotarRefresh(token) {
   const hash = sha256(token);
-  const [fila] = await consultar('SELECT id, usuario_id, revocado, expira_en FROM refresh_tokens WHERE token_hash = ?', [hash]);
+  const [fila] = await consultar('SELECT id, usuario_id, revocado, revocado_en, expira_en FROM refresh_tokens WHERE token_hash = ?', [hash]);
   if (!fila) throw refreshInvalido();
 
-  // Reutilizar un token ya rotado indica robo: se cierran todas las sesiones de esa cuenta.
-  if (fila.revocado) {
+  // Un token ya rotado se tolera unos minutos (dos pestañas o dos pedidos que renuevan a la vez);
+  // pasado ese margen, reutilizarlo indica robo y se cierran todas las sesiones de esa cuenta.
+  const reciente = fila.revocado && fila.revocado_en && Date.now() - new Date(fila.revocado_en).getTime() < GRACIA_MS;
+  if (fila.revocado && !reciente) {
     await consultar('UPDATE refresh_tokens SET revocado = 1 WHERE usuario_id = ?', [fila.usuario_id]);
     throw refreshInvalido();
   }
@@ -51,7 +54,7 @@ async function rotarRefresh(token) {
     throw err.bloqueado('Tu cuenta está bloqueada. Acercate a la biblioteca para regularizarla.');
   }
 
-  await consultar('UPDATE refresh_tokens SET revocado = 1 WHERE id = ?', [fila.id]);
+  if (!fila.revocado) await consultar('UPDATE refresh_tokens SET revocado = 1, revocado_en = NOW() WHERE id = ?', [fila.id]);
   return { access_token: firmarAccess(usuario), refresh_token: await crearRefresh(usuario.id) };
 }
 

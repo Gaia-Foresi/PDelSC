@@ -1,7 +1,7 @@
 {
   "titulo": "Manual de usuario",
   "subtitulo": "Ceibo Libros · Biblioteca",
-  "intro": "Esta guía explica cómo usar la aplicación según tu rol. La biblioteca tiene tres tipos de usuario: Usuario (lector), Bibliotecario y Dueño. Cada uno ve solo las funciones que le corresponden.",
+  "intro": "Esta guía explica cómo usar la aplicación según tu rol. La biblioteca tiene tres tipos de usuario: Usuario (lector), Bibliotecario y Gerente. Cada uno ve solo las funciones que le corresponden.",
   "secciones": [
     {
       "id": "empezar",
@@ -37,11 +37,11 @@
         },
         {
           "t": "Botones principales (barra inferior)",
-          "p": "Abajo están los accesos principales según tu rol: Inicio, Mensajes, Reservas (libros reservados), Préstamos y Perfil. Los bibliotecarios y el dueño además ven Stock y Usuarios. Estadísticas, Panel de administración, Pedir libros y Calendario están en el menú de tu cuenta (arriba a la derecha)."
+          "p": "Abajo están los accesos principales según tu rol: Inicio, Mensajes, Reservas (libros reservados), Préstamos y Perfil. Los bibliotecarios y el gerente además ven Stock y Usuarios. Estadísticas, Panel de administración, Pedir libros y Calendario están en el menú de tu cuenta (arriba a la derecha)."
         },
         {
           "t": "Barra superior y menú",
-          "p": "Arriba a la derecha están el botón de modo claro/oscuro (sol/luna), el manual (ícono del libro), la campana de notificaciones y tu perfil. Al tocar tu nombre o foto se abre el menú de la cuenta, con Mi perfil, Seguridad de la cuenta, Historial de búsquedas y, debajo, los accesos según tu rol: el dueño ve Estadísticas, Panel de administración, Pedir libros y Calendario de visitas; el bibliotecario ve el Calendario de visitas. Al final está Cerrar sesión. Es el mismo menú en el celular y en la computadora. Tu perfil también se abre desde tu foto, no desde la barra de abajo."
+          "p": "En el celular la barra de arriba muestra el nombre de la biblioteca, las notificaciones y tu foto. Al tocar tu foto se abre un menú desplegable con Mi perfil, Seguridad, Historial de búsquedas, Estadísticas, Informes, Panel de administración, Pedir libros, Calendario de visitas (según tu rol), el Manual de usuario, el modo claro/oscuro y Cerrar sesión. En la compu esos accesos se ven como íconos."
         },
         {
           "t": "Notificaciones",
@@ -84,7 +84,7 @@
         },
         {
           "t": "Libros reservados",
-          "p": "En el botón Reservas de la barra inferior ves tus reservas. Desde ahí podés cancelarlas (la app te pregunta antes de confirmar)."
+          "p": "En el botón Reservas de la barra inferior ves tus reservas. Desde ahí podés cancelarlas (la app te pregunta antes de confirmar). Si ya tenés una reserva activa de un libro, no podés reservarlo de nuevo: el botón muestra \"Ya lo reservaste\" hasta que la retires, la canceles o venza."
         }
       ]
     },
@@ -95,11 +95,11 @@
       "items": [
         {
           "t": "Consultar a la biblioteca",
-          "p": "En Mensajes tocá \"Nueva consulta\", escribí el asunto y tu pregunta. Las consultas las reciben y responden el dueño y los bibliotecarios; vas a ver la respuesta en la misma conversación."
+          "p": "En Mensajes tocá \"Nueva consulta\", escribí el asunto y tu pregunta. Las consultas las reciben y responden el gerente y los bibliotecarios; vas a ver la respuesta en la misma conversación."
         },
         {
           "t": "Mensajes del equipo",
-          "p": "El dueño y los bibliotecarios pueden escribirse entre sí desde Mensajes > \"Mensaje al equipo\" para mantenerse informados. Cuando respondés una consulta, la conversación pasa sola al filtro \"Respondidos\" y vuelve a la lista principal cuando el usuario escribe de nuevo."
+          "p": "El gerente y los bibliotecarios pueden escribirse entre sí desde Mensajes > \"Mensaje al equipo\" para mantenerse informados. Cuando respondés una consulta, la conversación pasa sola al filtro \"Respondidos\" y vuelve a la lista principal cuando el usuario escribe de nuevo."
         },
         {
           "t": "Sin leer",
@@ -114,7 +114,7 @@
       "items": [
         {
           "t": "Tu perfil",
-          "p": "Muestra tu foto y tus datos. El dueño y los bibliotecarios ven además su rol."
+          "p": "Muestra tu foto y tus datos. El gerente y los bibliotecarios ven además su rol."
         },
         {
           "t": "Editar datos y foto",
@@ -191,11 +191,15 @@
         },
         {
           "t": "Categorías",
-          "p": "Desde Stock > Categorías podés crear y editar categorías (nombre, abreviatura, ícono y color) y agregar libros a cada una con el ícono del libro con \"+\". También podés entrar a una categoría desde Inicio y tocar \"Agregar libro\". El dueño además puede crear una categoría nueva desde Inicio con la tarjeta \"Nueva categoría\"."
+          "p": "Desde Stock > Categorías podés crear y editar categorías (nombre, abreviatura, ícono y color) y agregar libros a cada una con el ícono del libro con \"+\". También podés entrar a una categoría desde Inicio y tocar \"Agregar libro\". El gerente además puede crear una categoría nueva desde Inicio con la tarjeta \"Nueva categoría\"."
         },
         {
           "t": "Eliminar",
-          "p": "Solo el dueño puede eliminar libros y categorías. Un libro prestado o reservado no se puede eliminar."
+          "p": "Solo el gerente puede eliminar libros y categorías. Un libro prestado o reservado no se puede eliminar."
+        },
+        {
+          "t": "Devoluciones en espera",
+          "p": "Los libros devueltos aparecen en un aviso arriba del Stock hasta que decidas si vuelven al stock o están dañados."
         }
       ]
     },
@@ -214,7 +218,7 @@
         },
         {
           "t": "Registrar devoluciones",
-          "p": "Dentro del préstamo, devolvé un libro o todos. Al devolver el último libro, si el usuario estaba bloqueado, se habilita automáticamente."
+          "p": "Abrí el préstamo y tocá \"Marcar como devuelto\". El libro NO vuelve al stock enseguida: queda \"En espera de revisión\" hasta que el bibliotecario o el gerente lo revise. Después elegí \"Volver al stock\" si está en condiciones, o \"Dañado\" si no se puede prestar más (se descuenta del stock y queda registrado). Los libros en espera se ven también en la pantalla Stock."
         },
         {
           "t": "Extender el plazo",
@@ -269,13 +273,13 @@
       ]
     },
     {
-      "id": "dueno",
-      "para": "dueno",
-      "titulo": "Funciones del dueño",
+      "id": "gerente",
+      "para": "gerente",
+      "titulo": "Funciones del gerente",
       "items": [
         {
           "t": "Estadísticas",
-          "p": "Tocá tu foto (arriba a la derecha) y elegí \"Estadísticas\": muestra, arriba, cómo está la biblioteca hoy (títulos, ejemplares, usuarios, préstamos activos y vencidos, reservas y bloqueados, cada uno con su explicación). Abajo hay tres gráficos: préstamos por mes, libros más prestados y préstamos por categoría. Cada gráfico explica qué representa cada barra."
+          "p": "Tocá tu foto (arriba a la derecha) y elegí \"Estadísticas\": muestra, arriba, cómo está la biblioteca hoy (títulos, ejemplares, usuarios, préstamos activos y vencidos, reservas y bloqueados, cada uno con su explicación). Abajo hay tres gráficos: préstamos por mes, libros más prestados y préstamos por categoría. Cada gráfico explica qué representa cada barra. Desde ahí podés descargar un Excel con las estadísticas y toda la información (préstamos, detalle de libros, usuarios, reservas, dañados), eligiendo el período."
         },
         {
           "t": "Pedir libros a la distribuidora",
@@ -295,7 +299,11 @@
         },
         {
           "t": "Eliminar libros y categorías",
-          "p": "Solo el dueño puede hacerlo, siempre con confirmación previa. Una categoría se puede eliminar cuando no tiene libros a la vista: si tenía libros y los eliminaste o los pasaste a otra categoría, ya se puede borrar."
+          "p": "Solo el gerente puede hacerlo, siempre con confirmación previa. Una categoría se puede eliminar cuando no tiene libros a la vista: si tenía libros y los eliminaste o los pasaste a otra categoría, ya se puede borrar."
+        },
+        {
+          "t": "Informes: analizar varios meses",
+          "p": "En el menú de tu foto elegí \"Informes y descargas\". Descargá el Excel de cada mes y volvé a subirlos todos juntos en la sección \"Analizar archivos\": la app te muestra los libros más prestados, los no devueltos y vencidos, cuántos libros se dañaron, el movimiento por mes y por categoría. Los libros que aparecen en dos archivos no se cuentan dos veces."
         }
       ]
     }

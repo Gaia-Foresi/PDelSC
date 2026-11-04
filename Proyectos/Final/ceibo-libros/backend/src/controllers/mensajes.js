@@ -1,6 +1,6 @@
 // Mensajería. Dos tipos de hilo:
-//   consulta: la inicia un usuario; la ven y responden el dueño y los bibliotecarios.
-//   interno : entre el dueño y un bibliotecario; solo lo ven sus dos participantes.
+//   consulta: la inicia un usuario; la ven y responden el gerente y los bibliotecarios.
+//   interno : entre el gerente y un bibliotecario; solo lo ven sus dos participantes.
 import { pool, consultar, transaccion } from '../config/db.js';
 import { err } from '../utils/httpError.js';
 import { crearNotificacion } from '../services/notificaciones.js';
@@ -62,12 +62,12 @@ export const hilos = async (req, res) => {
   const filas = await consultar(
     `SELECT h.id, h.tipo, h.asunto, h.creado_por,
             lm.cuerpo AS ultimo_mensaje, lm.creado_en AS ultimo_en,
-            (h.tipo = 'consulta' AND lr.nombre IN ('dueno', 'bibliotecario')) AS es_respondido,
+            (h.tipo = 'consulta' AND lr.nombre IN ('gerente', 'bibliotecario')) AS es_respondido,
             (SELECT COUNT(*) FROM mensajes m
               WHERE m.hilo_id = h.id AND m.remitente_id <> ? AND m.id > COALESCE(hp.ultimo_leido_id, 0)) AS no_leidos
      ${SQL_VISIBLES.replace('FROM hilos h', `FROM hilos h JOIN mensajes lm ON lm.id = (SELECT MAX(id) FROM mensajes WHERE hilo_id = h.id)
        JOIN usuarios lu ON lu.id = lm.remitente_id JOIN roles lr ON lr.id = lu.rol_id`)}
-       ${staff ? `AND ((h.tipo = 'consulta' AND lr.nombre IN ('dueno', 'bibliotecario')) = ${req.body.respondidos ? 'TRUE' : 'FALSE'})` : ''}
+       ${staff ? `AND ((h.tipo = 'consulta' AND lr.nombre IN ('gerente', 'bibliotecario')) = ${req.body.respondidos ? 'TRUE' : 'FALSE'})` : ''}
      ORDER BY lm.id DESC LIMIT 200`,
     [req.usuario.id, req.usuario.id, staff]);
 
@@ -92,7 +92,7 @@ export const hilo = async (req, res) => {
        FROM mensajes m JOIN usuarios u ON u.id = m.remitente_id JOIN roles r ON r.id = u.rol_id
        WHERE m.hilo_id = ? ORDER BY m.id`, [h.id]);
 
-    // Marcar como leído (si es un bibliotecario/dueño que mira una consulta, pasa a ser participante)
+    // Marcar como leído (si es un bibliotecario/gerente que mira una consulta, pasa a ser participante)
     if (mensajes.length) {
       await conn.query(
         `INSERT INTO hilo_participantes (hilo_id, usuario_id, ultimo_leido_id) VALUES (?, ?, ?)
@@ -126,7 +126,7 @@ async function avisarMensaje(hilo, req, cuerpo) {
     if (hilo.tipo === 'consulta' && !staffRemitente) {
       destinos = await consultar(
         `SELECT u.id FROM usuarios u JOIN roles r ON r.id = u.rol_id
-         WHERE r.nombre IN ('dueno','bibliotecario') AND u.estado = 'activo' AND u.id <> ?`, [req.usuario.id]);
+         WHERE r.nombre IN ('gerente','bibliotecario') AND u.estado = 'activo' AND u.id <> ?`, [req.usuario.id]);
     } else if (hilo.tipo === 'consulta') {
       destinos = await consultar('SELECT creado_por AS id FROM hilos WHERE id = ? AND creado_por <> ?', [hilo.id, req.usuario.id]);
     } else {
@@ -153,8 +153,8 @@ export const crear = async (req, res) => {
     const [dest] = await consultar(
       'SELECT u.id, r.nombre AS rol FROM usuarios u JOIN roles r ON r.id = u.rol_id WHERE u.id = ?', [destinatario_id]);
     if (!dest || !esStaff(dest) || dest.id === req.usuario.id) throw err.validacion('Ese destinatario no es válido.', { destinatario_id: 'Destinatario inválido' });
-    // Los mensajes internos son entre dueño y bibliotecario
-    if (dest.rol === req.usuario.rol) throw err.validacion('Los mensajes internos son entre el dueño y un bibliotecario.', { destinatario_id: 'Destinatario inválido' });
+    // Los mensajes internos son entre gerente y bibliotecario
+    if (dest.rol === req.usuario.rol) throw err.validacion('Los mensajes internos son entre el gerente y un bibliotecario.', { destinatario_id: 'Destinatario inválido' });
   }
 
   const hiloId = await transaccion(async (conn) => {
@@ -203,14 +203,14 @@ export const noLeidos = async (req, res) => {
      WHERE (hp.usuario_id IS NOT NULL OR (h.tipo = 'consulta' AND ?))
        AND NOT (h.tipo = 'consulta' AND ? AND EXISTS (
              SELECT 1 FROM mensajes lm JOIN usuarios lu ON lu.id = lm.remitente_id JOIN roles lr ON lr.id = lu.rol_id
-             WHERE lm.id = (SELECT MAX(id) FROM mensajes WHERE hilo_id = h.id) AND lr.nombre IN ('dueno', 'bibliotecario')))
+             WHERE lm.id = (SELECT MAX(id) FROM mensajes WHERE hilo_id = h.id) AND lr.nombre IN ('gerente', 'bibliotecario')))
        AND m.remitente_id <> ? AND m.id > COALESCE(hp.ultimo_leido_id, 0)`,
     [req.usuario.id, staff, staff, req.usuario.id]);
   res.json({ ok: true, data: { total: Number(total) } });
 };
 
 export const contactos = async (req, res) => {
-  const buscado = req.usuario.rol === 'dueno' ? 'bibliotecario' : 'dueno';
+  const buscado = req.usuario.rol === 'gerente' ? 'bibliotecario' : 'gerente';
   const filas = await consultar(
     "SELECT u.id, u.nombre, u.apellido, r.nombre AS rol FROM usuarios u JOIN roles r ON r.id = u.rol_id WHERE r.nombre = ? ORDER BY u.nombre",
     [buscado]);

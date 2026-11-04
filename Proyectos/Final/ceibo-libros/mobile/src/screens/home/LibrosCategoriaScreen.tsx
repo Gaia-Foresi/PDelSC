@@ -41,7 +41,7 @@ interface ListaCategoriaProps {
 
 function ListaCategoria({ navigation, categoria }: ListaCategoriaProps) {
   const { ref: refLista, onScroll: onScrollLista, boton: botonArriba } = useVolverArriba();
-  const { bloqueado, usuario, esStaff, esDueno } = useAuth();
+  const { bloqueado, usuario, esStaff, esGerente } = useAuth();
   const confirm = useConfirm();
   const toast = useToast();
   const contenido = useListContentStyle(false);
@@ -116,7 +116,7 @@ function ListaCategoria({ navigation, categoria }: ListaCategoriaProps) {
             motivoBloqueo={usuario?.motivo_bloqueo}
             staff={esStaff}
             onEdit={() => navigation.navigate('LibroForm', { libro: item })}
-            onDelete={esDueno ? () => eliminar(item) : undefined}
+            onDelete={esGerente ? () => eliminar(item) : undefined}
           />
         )}
         ListEmptyComponent={

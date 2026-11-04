@@ -57,7 +57,7 @@ export default {
 
   jwt: {
     accessSecret: requerida('JWT_ACCESS_SECRET'),
-    accessExp: process.env.JWT_ACCESS_EXP || '15m',
+    accessExp: process.env.JWT_ACCESS_EXP || '60m',
     refreshDias: numero('JWT_REFRESH_DIAS', 30),
   },
 

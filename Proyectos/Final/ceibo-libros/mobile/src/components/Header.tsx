@@ -9,7 +9,7 @@ import { MIN_TAP, font, spacing } from '../theme/tokens';
 import { useMenuFijo } from '../utils/useResponsive';
 import { useBadges } from '../context/BadgesContext';
 import Logo from './Logo';
-import NavAcciones from './NavAcciones';
+import NavAcciones, { MenuApp } from './NavAcciones';
 
 import type { IconName } from '../types';
 interface IconButtonProps {
@@ -55,14 +55,14 @@ export default function Header({ title, brand, menu, back, right, showBell = tru
     <View style={[styles.bar, { paddingTop: insets.top, backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
       <View style={styles.row}>
         {menu ? (
-          <View style={{ width: spacing.md }} />
+          <View style={{ marginLeft: 2 }}><MenuApp /></View>
         ) : back ? (
           <IconButton icon="arrow-left" label="Volver" onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Tabs'))} />
         ) : <View style={{ width: spacing.md }} />}
 
         {brand ? (
           <View style={styles.brand} accessibilityRole="header">
-            <Logo size={angosto ? 30 : 36} />
+            {menuFijo ? <Logo size={36} /> : null}
             <Text style={[styles.brandText, { color: colors.primary, fontFamily: font.title }, angosto && { fontSize: 18 }]} numberOfLines={1}>Ceibo Libros</Text>
           </View>
         ) : (
@@ -84,7 +84,7 @@ export default function Header({ title, brand, menu, back, right, showBell = tru
 }
 
 const styles = StyleSheet.create({
-  bar: { borderBottomWidth: StyleSheet.hairlineWidth },
+  bar: { borderBottomWidth: StyleSheet.hairlineWidth, zIndex: 100, elevation: 100, overflow: 'visible' },
   row: { flexDirection: 'row', alignItems: 'center', minHeight: 56, paddingHorizontal: spacing.xs },
   iconBtn: { width: MIN_TAP, height: MIN_TAP, alignItems: 'center', justifyContent: 'center' },
   brand: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: 2 },

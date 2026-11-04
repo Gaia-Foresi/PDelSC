@@ -67,7 +67,7 @@ backend/
   "rol": "usuario", "estado": "activo", "motivo_bloqueo": null,
   "telefono": null, "foto_url": null, "dos_pasos_activo": false, "creado_en": "2026-10-01T12:00:00.000Z" }
 ```
-`rol` ∈ `dueno | bibliotecario | usuario` · `estado` ∈ `activo | bloqueado`.
+`rol` ∈ `gerente | bibliotecario | usuario` · `estado` ∈ `activo | bloqueado`.
 
 **Objeto `libro`**:
 
@@ -101,7 +101,7 @@ backend/
 
 | Símbolo | Rol |
 |---|---|
-| **D** | `dueno` |
+| **D** | `gerente` |
 | **B** | `bibliotecario` |
 | **U** | `usuario` |
 | **S** | staff = D + B |
@@ -178,7 +178,7 @@ Los endpoints indican qué roles pueden usarlos; el middleware `requiereRol` res
 | `POST /prestamos/crear` | S | `usuario_id, libro_ids: number[], dias? (14), nombre?, apellido?, curso?, dni?` (si al lector le faltan apellido, curso o DNI y no se mandan → `400` con el detalle) | `{ prestamo }` con `codigo_retiro` y `usuario.curso/dni` |
 | `POST /prestamos/mis` | todos | — | `{ prestamos: [prestamo] }` |
 | `POST /prestamos/listar` | S | `estado? (activo · cerrado · vencido), usuario_id?, q?` | `{ prestamos: [prestamo] }` |
-| `POST /prestamos/detalle` | dueño del préstamo o S | `id` | `{ prestamo }` |
+| `POST /prestamos/detalle` | gerente del préstamo o S | `id` | `{ prestamo }` |
 | `POST /prestamos/agregar-libros` | S | `prestamo_id, libro_ids` | `{ prestamo }` |
 | `POST /prestamos/devolver` | S | `prestamo_id, libro_id?` (sin `libro_id` devuelve todos) | `{ prestamo, usuario_desbloqueado: boolean }` |
 | `POST /prestamos/extender` | S | `prestamo_id, dias` (1–30) | `{ prestamo }` |
@@ -194,7 +194,7 @@ Dos tipos de hilo: **`consulta`** (usuario → biblioteca; lo ven y responden D 
 | `POST /mensajes/crear` | U: `consulta` · S: `interno` | `tipo, asunto, cuerpo, destinatario_id?` (obligatorio en `interno`) | `{ hilo }` |
 | `POST /mensajes/enviar` | participante o S | `hilo_id, cuerpo` | `{ mensaje }` |
 | `POST /mensajes/no-leidos` | todos | — | `{ total }` |
-| `POST /mensajes/contactos` | S | — | `{ contactos: [{ id, nombre, rol }] }` — el dueño ve bibliotecarios; el bibliotecario ve dueños |
+| `POST /mensajes/contactos` | S | — | `{ contactos: [{ id, nombre, rol }] }` — el gerente ve bibliotecarios; el bibliotecario ve gerentes |
 
 ### 5.8 Distribuidoras y reposición (`/api/distribuidoras`, `/api/reposicion`)
 
@@ -244,12 +244,12 @@ Dos tipos de hilo: **`consulta`** (usuario → biblioteca; lo ven y responden D 
 
 ## 7. Reglas de negocio
 
-* **Registro:** crea siempre rol `usuario`. Solo el dueño puede cambiar roles (panel de admin).
+* **Registro:** crea siempre rol `usuario`. Solo el gerente puede cambiar roles (panel de admin).
 * **Disponibilidad:** `disponibles = stock_total − ejemplares prestados sin devolver − reservas activas`.
 * **Reservas:** máx. 3 activas por usuario. `sala` vence a las 24 h, `retiro` a los 3 días. Un usuario bloqueado no puede reservar.
 * **Préstamos:** máx. 5 libros por préstamo, plazo por defecto 14 días. Se pueden agregar libros a un préstamo abierto.
 * **No se eliminan usuarios:** se **bloquean** con un mensaje. El bloqueo se levanta automáticamente cuando devuelve el último libro (o a mano con `/usuarios/desbloquear`).
 * **Bloqueo automático:** si un préstamo está vencido, la tarea diaria bloquea al usuario con un mensaje para que devuelva los libros.
 * **Recordatorios:** la tarea diaria (cron) avisa por notificación y email **2 días antes** del vencimiento (configurable con `RECORDATORIO_DIAS`).
-* **Eliminar** un libro/categoría/distribuidora es una baja lógica o falla si está en uso; la app siempre pide confirmación antes. **Solo el dueño** puede eliminar libros y categorías (el bibliotecario puede crearlos y editarlos).
+* **Eliminar** un libro/categoría/distribuidora es una baja lógica o falla si está en uso; la app siempre pide confirmación antes. **Solo el gerente** puede eliminar libros y categorías (el bibliotecario puede crearlos y editarlos).
 * **Fotos de perfil:** la app reduce la imagen (256 px, JPEG) y la guarda en la base (`usuarios.foto_url`); en los listados de usuarios no se envían las fotos subidas, solo en el perfil/detalle.

@@ -6,9 +6,10 @@ const SQL_LIBRO = `
   SELECT l.id, l.titulo, a.nombre AS autor, l.categoria_id, c.nombre AS categoria, c.codigo AS categoria_codigo,
          l.descripcion, l.portada_url, l.stock_total,
          GREATEST(0, CAST(l.stock_total AS SIGNED)
-           - (SELECT COUNT(*) FROM prestamo_items pi WHERE pi.libro_id = l.id AND pi.devuelto_en IS NULL)
+           - (SELECT COUNT(*) FROM prestamo_items pi WHERE pi.libro_id = l.id AND (pi.devuelto_en IS NULL OR pi.revision = 'pendiente'))
            - (SELECT COUNT(*) FROM reservas r WHERE r.libro_id = l.id AND r.estado = 'activa' AND r.fecha_limite > NOW())
-         ) AS disponibles
+         ) AS disponibles,
+         (SELECT COUNT(*) FROM prestamo_items pi WHERE pi.libro_id = l.id AND pi.revision = 'pendiente') AS en_espera
   FROM libros l
   JOIN autores a ON a.id = l.autor_id
   JOIN categorias c ON c.id = l.categoria_id`;
@@ -60,7 +61,7 @@ async function autorId(nombre, conn = pool) {
 async function ejemplaresEnUso(libroId, conn = pool) {
   const [[r]] = await conn.query(
     `SELECT
-       (SELECT COUNT(*) FROM prestamo_items WHERE libro_id = ? AND devuelto_en IS NULL) +
+       (SELECT COUNT(*) FROM prestamo_items WHERE libro_id = ? AND (devuelto_en IS NULL OR revision = 'pendiente')) +
        (SELECT COUNT(*) FROM reservas WHERE libro_id = ? AND estado = 'activa' AND fecha_limite > NOW()) AS usados`,
     [libroId, libroId]);
   return Number(r.usados);

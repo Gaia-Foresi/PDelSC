@@ -15,7 +15,7 @@ import { ejecutarRecordatorios } from '../src/services/recordatorios.js';
 const { puerto } = env;
 
 const BASE = process.env.API_URL || `http://localhost:${puerto}/api`;
-const CLAVES = { dueno: ['dueno@ceibolibros.com', 'Dueno2026'], biblio: ['biblioteca@ceibolibros.com', 'Biblio2026'], lucia: ['lucia@ejemplo.com', 'Lector2026'], tomas: ['tomas@ejemplo.com', 'Lector2026'] };
+const CLAVES = { gerente: ['dueno@ceibolibros.com', 'Dueno2026'], biblio: ['biblioteca@ceibolibros.com', 'Biblio2026'], lucia: ['lucia@ejemplo.com', 'Lector2026'], tomas: ['tomas@ejemplo.com', 'Lector2026'] };
 
 const DATOS = { nombre: 'Lucía', apellido: 'Lectora', dni: '40.123.456' };
 
@@ -60,7 +60,7 @@ async function main() {
   console.log('\n# Login y roles');
   const mala = await post('/auth/login', { email: CLAVES.lucia[0], password: 'incorrecta1' });
   check('Contraseña incorrecta → 401', mala.status === 401 && mala.error.codigo === 'CREDENCIALES_INVALIDAS');
-  const dueno = await login('dueno');
+  const gerente = await login('gerente');
   const biblio = await login('biblio');
   const lucia = await login('lucia');
   // Un usuario bloqueado no puede iniciar sesión (ni por contraseña ni renovando el token)
@@ -73,7 +73,7 @@ async function main() {
   const refT = await post('/auth/refresh', { refresh_token: tomas.refresh });
   check('Tampoco puede renovar la sesión estando bloqueado (403)', refT.status === 403 && refT.error?.codigo === 'USUARIO_BLOQUEADO');
   tomas.usuario.estado = 'bloqueado'; tomas.usuario.motivo_bloqueo = estadoT.motivo_bloqueo;
-  check('Roles correctos', dueno.usuario.rol === 'dueno' && biblio.usuario.rol === 'bibliotecario' && lucia.usuario.rol === 'usuario');
+  check('Roles correctos', gerente.usuario.rol === 'gerente' && biblio.usuario.rol === 'bibliotecario' && lucia.usuario.rol === 'usuario');
   check('Tomás entra pero está bloqueado con mensaje', tomas.usuario.estado === 'bloqueado' && /devolv/i.test(tomas.usuario.motivo_bloqueo));
   check('Usuario no puede ver estadísticas (403)', (await post('/estadisticas/resumen', {}, lucia.token)).status === 403);
   check('Bibliotecario no puede ver estadísticas (403)', (await post('/estadisticas/resumen', {}, biblio.token)).status === 403);
@@ -107,10 +107,14 @@ async function main() {
   console.log('\n# Tokens: refresh con rotación');
   const rf = await post('/auth/refresh', { refresh_token: l2b.data.refresh_token });
   check('Refresh entrega tokens nuevos', rf.data?.access_token && rf.data.refresh_token !== l2b.data.refresh_token);
+  // Dentro de la gracia de 2 minutos se tolera (varias pestañas); se vence la gracia para probar el rechazo.
+  const rfGracia = await post('/auth/refresh', { refresh_token: l2b.data.refresh_token });
+  check('Reuso dentro de la gracia no cierra la sesión', rfGracia.status === 200);
+  await pool.query("UPDATE refresh_tokens SET revocado_en = NOW() - INTERVAL 10 MINUTE WHERE revocado_en IS NOT NULL");
   const rf2 = await post('/auth/refresh', { refresh_token: l2b.data.refresh_token });
   check('Reusar un refresh viejo → 401 REFRESH_INVALIDO', rf2.status === 401 && rf2.error.codigo === 'REFRESH_INVALIDO');
   const rf3 = await post('/auth/refresh', { refresh_token: rf.data.refresh_token });
-  check('…y revoca toda la familia de sesiones', rf3.status === 401);
+  check('…y revoca toda la familia de sesiones', rf3.status === 401, JSON.stringify(rf3));
 
   console.log('\n# Recuperar contraseña');
   await post('/auth/olvide-password', { email });
@@ -194,7 +198,7 @@ async function main() {
   const sinStock = await post('/prestamos/crear', { usuario_id: lucia.usuario.id, libro_ids: [oid] }, biblio.token);
   check('Sin stock → 409 SIN_STOCK', sinStock.status === 409 && sinStock.error.codigo === 'SIN_STOCK');
   check('Bibliotecario NO puede eliminar libros (403)', (await post('/libros/eliminar', { id: oid }, biblio.token)).status === 403);
-  check('No se elimina un libro prestado (409)', (await post('/libros/eliminar', { id: oid }, dueno.token)).error?.codigo === 'LIBRO_EN_USO');
+  check('No se elimina un libro prestado (409)', (await post('/libros/eliminar', { id: oid }, gerente.token)).error?.codigo === 'LIBRO_EN_USO');
   check('No se baja el stock por debajo de lo prestado', (await post('/libros/actualizar', { id: oid, stock_total: 0 }, biblio.token)).error?.codigo === 'LIBRO_EN_USO');
   check('Usuario no puede crear préstamos (403)', (await post('/prestamos/crear', { usuario_id: lucia.usuario.id, libro_ids: [oid] }, lucia.token)).status === 403);
   const ext = await post('/prestamos/extender', { prestamo_id: pid, dias: 5 }, biblio.token);
@@ -213,9 +217,16 @@ async function main() {
   check('Historial del libro: persona, retiro y devolución', hist.status === 200 && hist.data.historial.length >= 1 && hist.data.historial.length <= 10 && !!hist.data.historial[0].persona && !!hist.data.historial[0].retirado && !!hist.data.historial[0].devuelto);
   check('Usuario no ve el historial del libro (403)', (await post('/libros/historial', { id: lid }, lucia.token)).status === 403);
   check('No se devuelve dos veces (422)', (await post('/prestamos/devolver', { prestamo_id: pid }, biblio.token)).status === 422);
-  check('El dueño elimina un libro sin uso (baja lógica)', (await post('/libros/eliminar', { id: oid }, dueno.token)).data?.eliminado === true);
+  const pend = await post('/prestamos/pendientes', {}, biblio.token);
+  check('Lo devuelto queda en espera de revisión', pend.status === 200 && pend.data.pendientes.some((x) => x.libro_id === oid) && pend.data.pendientes.some((x) => x.libro_id === lid));
+  check('Un libro en espera sigue ocupando stock (no se elimina)', (await post('/libros/eliminar', { id: oid }, gerente.token)).error?.codigo === 'LIBRO_EN_USO');
+  check('Revisar: repuesto vuelve al stock', (await post('/prestamos/revisar', { prestamo_id: pid, libro_id: oid, resultado: 'repuesto' }, biblio.token)).status === 200);
+  check('Revisar dos veces → error', (await post('/prestamos/revisar', { prestamo_id: pid, libro_id: oid, resultado: 'repuesto' }, biblio.token)).status >= 400);
+  check('Revisar: dañado descuenta stock', (await post('/prestamos/revisar', { prestamo_id: pid, libro_id: lid, resultado: 'danado' }, biblio.token)).status === 200);
+  check('Usuario no revisa devoluciones (403)', (await post('/prestamos/pendientes', {}, lucia.token)).status === 403);
+  check('El gerente elimina un libro sin uso (baja lógica)', (await post('/libros/eliminar', { id: oid }, gerente.token)).data?.eliminado === true);
   check('Ya no aparece en el listado', !(await post('/libros/listar', {}, lucia.token)).data.libros.some((l) => l.id === oid));
-  const lp = await post('/prestamos/listar', { estado: 'vencido' }, dueno.token);
+  const lp = await post('/prestamos/listar', { estado: 'vencido' }, gerente.token);
   check('Listado de vencidos incluye el de Tomás', lp.data.prestamos.some((p) => p.usuario.id === tomas.usuario.id && p.vencido));
 
   console.log('\n# Calendario de visitas (personal)');
@@ -227,7 +238,7 @@ async function main() {
   check('Bibliotecario ve el calendario', cal.status === 200 && Array.isArray(cal.data.eventos));
   const evP = cal.data.eventos.find((e) => e.clave === `prestamo-${pid}`);
   check('El calendario trae nombre, apellido y libro de cada visita', !!evP && !!evP.usuario.nombre && !!evP.usuario.apellido && evP.libros.length >= 1 && !!evP.visita.hora);
-  check('Dueño también ve el calendario', (await post('/calendario/listar', { desde: hoyL, hasta: manana }, dueno.token)).status === 200);
+  check('Gerente también ve el calendario', (await post('/calendario/listar', { desde: hoyL, hasta: manana }, gerente.token)).status === 200);
   check('Usuario no ve el calendario (403)', (await post('/calendario/listar', { desde: hoyL, hasta: manana }, lucia.token)).status === 403);
   check('Fechas con formato inválido → 400', (await post('/calendario/listar', { desde: 'ayer', hasta: manana }, biblio.token)).status === 400);
   const futuro = new Date(Math.floor(Date.now() / 60000) * 60000 + 2 * 86400000).toISOString();
@@ -240,7 +251,7 @@ async function main() {
   const blq = await post('/usuarios/bloquear', { id: nuevo.id, tipo: 'atraso', motivo: 'Devolvé los libros que te llevaste.' }, biblio.token);
   check('Bibliotecario bloquea con mensaje', blq.data?.usuario?.estado === 'bloqueado' && blq.data.usuario.motivo_bloqueo.includes('Devolvé'));
   check('Bloquear sin indicar el tipo → 400', (await post('/usuarios/bloquear', { id: nuevo.id, motivo: 'x' }, biblio.token)).status === 400);
-  check('No se puede bloquear al dueño (403)', (await post('/usuarios/bloquear', { id: dueno.usuario.id, tipo: 'atraso', motivo: 'x' }, biblio.token)).status === 403);
+  check('No se puede bloquear al gerente (403)', (await post('/usuarios/bloquear', { id: gerente.usuario.id, tipo: 'atraso', motivo: 'x' }, biblio.token)).status === 403);
   const perfilB = await post('/usuarios/perfil', {}, nuevoTok);
   check('El usuario bloqueado ve su mensaje', perfilB.data.usuario.estado === 'bloqueado');
   check('El bloqueo indica que es por atraso', blq.data.usuario.tipo_bloqueo === 'atraso');
@@ -291,27 +302,27 @@ async function main() {
   check('Usuario no puede crear mensajes internos (403)', (await post('/mensajes/crear', { tipo: 'interno', asunto: 'x', cuerpo: 'y', destinatario_id: biblio.usuario.id }, nuevoTok)).status === 403);
   check('Staff ve la consulta con su autor', (await post('/mensajes/hilos', {}, biblio.token)).data.hilos.some((h) => h.id === nueva.data.hilo.id && h.no_leidos === 1 && h.con.nombre.startsWith('Prueba')));
   check('Hay mensajes sin leer para el staff', (await post('/mensajes/no-leidos', {}, biblio.token)).data.total >= 1);
-  const resp = await post('/mensajes/enviar', { hilo_id: nueva.data.hilo.id, cuerpo: 'Sí, tenemos 2 ejemplares.' }, dueno.token);
-  check('El dueño responde una consulta', resp.status === 201 && resp.data.mensaje.mio);
+  const resp = await post('/mensajes/enviar', { hilo_id: nueva.data.hilo.id, cuerpo: 'Sí, tenemos 2 ejemplares.' }, gerente.token);
+  check('El gerente responde una consulta', resp.status === 201 && resp.data.mensaje.mio);
   const ver2 = await post('/mensajes/hilo', { hilo_id: nueva.data.hilo.id }, nuevoTok);
   const nb = await post('/notificaciones/listar', {}, biblio.token);
   check('El staff recibe la notificación "Hay un nuevo mensaje"', nb.data.notificaciones.some((n) => n.titulo === 'Hay un nuevo mensaje' && n.cuerpo.includes('Rayuela')));
   const nu = await post('/notificaciones/listar', {}, nuevoTok);
   check('El usuario es avisado de la respuesta del staff', nu.data.notificaciones.some((n) => n.titulo === 'Hay un nuevo mensaje' && n.cuerpo.includes('ejemplares')));
-  check('El usuario lee la respuesta', ver2.data.mensajes.length === 2 && ver2.data.mensajes[1].remitente.rol === 'dueno' && !ver2.data.mensajes[1].mio);
+  check('El usuario lee la respuesta', ver2.data.mensajes.length === 2 && ver2.data.mensajes[1].remitente.rol === 'gerente' && !ver2.data.mensajes[1].mio);
   check('Otro usuario no ve la consulta (404)', (await post('/mensajes/hilo', { hilo_id: nueva.data.hilo.id }, lucia.token)).status === 404);
-  const cont = await post('/mensajes/contactos', {}, dueno.token);
-  check('El dueño ve a los bibliotecarios como contactos', cont.data.contactos.some((c) => c.id === biblio.usuario.id));
-  const interno = await post('/mensajes/crear', { tipo: 'interno', asunto: 'Pedido', cuerpo: 'Hay que reponer stock', destinatario_id: biblio.usuario.id }, dueno.token);
-  check('Dueño escribe un mensaje interno', interno.status === 201);
+  const cont = await post('/mensajes/contactos', {}, gerente.token);
+  check('El gerente ve a los bibliotecarios como contactos', cont.data.contactos.some((c) => c.id === biblio.usuario.id));
+  const interno = await post('/mensajes/crear', { tipo: 'interno', asunto: 'Pedido', cuerpo: 'Hay que reponer stock', destinatario_id: biblio.usuario.id }, gerente.token);
+  check('Gerente escribe un mensaje interno', interno.status === 201);
   check('Interno: solo ven los participantes', (await post('/mensajes/hilo', { hilo_id: interno.data.hilo.id }, lucia.token)).status === 404);
-  check('Bibliotecario recibe el interno', (await post('/mensajes/hilos', {}, biblio.token)).data.hilos.some((h) => h.id === interno.data.hilo.id && h.tipo === 'interno' && h.con.rol === 'dueno'));
+  check('Bibliotecario recibe el interno', (await post('/mensajes/hilos', {}, biblio.token)).data.hilos.some((h) => h.id === interno.data.hilo.id && h.tipo === 'interno' && h.con.rol === 'gerente'));
 
   // Chats respondidos: una consulta cuya última respuesta es del personal sale de la lista y va a "Respondidos"
   check('Consulta respondida: ya no está en la lista normal', !(await post('/mensajes/hilos', {}, biblio.token)).data.hilos.some((h) => h.id === nueva.data.hilo.id));
   check('Consulta respondida: está en el filtro Respondidos', (await post('/mensajes/hilos', { respondidos: true }, biblio.token)).data.hilos.some((h) => h.id === nueva.data.hilo.id));
   check('Cada hilo marca si fue respondido', (await post('/mensajes/hilos', { respondidos: true }, biblio.token)).data.hilos.every((h) => h.respondido === true) && (await post('/mensajes/hilos', {}, biblio.token)).data.hilos.every((h) => h.respondido === false));
-  check('Respondidos vale para todo el personal', (await post('/mensajes/hilos', { respondidos: true }, dueno.token)).data.hilos.some((h) => h.id === nueva.data.hilo.id));
+  check('Respondidos vale para todo el personal', (await post('/mensajes/hilos', { respondidos: true }, gerente.token)).data.hilos.some((h) => h.id === nueva.data.hilo.id));
   check('El usuario sigue viendo su consulta', (await post('/mensajes/hilos', {}, nuevoTok)).data.hilos.some((h) => h.id === nueva.data.hilo.id));
   check('Los mensajes internos no pasan a Respondidos', !(await post('/mensajes/hilos', { respondidos: true }, biblio.token)).data.hilos.some((h) => h.id === interno.data.hilo.id));
   await post('/mensajes/enviar', { hilo_id: nueva.data.hilo.id, cuerpo: 'Gracias, paso mañana.' }, nuevoTok);
@@ -319,18 +330,18 @@ async function main() {
   check('Y sale de Respondidos', !(await post('/mensajes/hilos', { respondidos: true }, biblio.token)).data.hilos.some((h) => h.id === nueva.data.hilo.id));
 
   console.log('\n# Panel de administración y usuarios');
-  const lu = await post('/usuarios/listar', { rol: 'bibliotecario' }, dueno.token);
-  check('El dueño lista bibliotecarios', lu.data.usuarios.some((u) => u.id === biblio.usuario.id));
-  const lb = await post('/usuarios/listar', { rol: 'dueno' }, biblio.token);
+  const lu = await post('/usuarios/listar', { rol: 'bibliotecario' }, gerente.token);
+  check('El gerente lista bibliotecarios', lu.data.usuarios.some((u) => u.id === biblio.usuario.id));
+  const lb = await post('/usuarios/listar', { rol: 'gerente' }, biblio.token);
   check('El bibliotecario solo ve usuarios comunes', lb.data.usuarios.every((u) => u.rol === 'usuario'));
   check('Buscar usuarios por texto', (await post('/usuarios/listar', { q: 'lucía' }, biblio.token)).data.usuarios.length === 1);
   const det = await post('/usuarios/detalle', { id: lucia.usuario.id }, biblio.token);
   check('Detalle de usuario con préstamos y reservas', Array.isArray(det.data.prestamos) && det.data.prestamos.length > 0);
-  check('No se puede cambiar el propio rol', (await post('/admin/cambiar-rol', { id: dueno.usuario.id, rol: 'usuario' }, dueno.token)).status === 403);
-  const cr = await post('/admin/cambiar-rol', { id: nuevo.id, rol: 'bibliotecario' }, dueno.token);
-  check('El dueño promueve un usuario a bibliotecario', cr.data?.usuario?.rol === 'bibliotecario');
+  check('No se puede cambiar el propio rol', (await post('/admin/cambiar-rol', { id: gerente.usuario.id, rol: 'usuario' }, gerente.token)).status === 403);
+  const cr = await post('/admin/cambiar-rol', { id: nuevo.id, rol: 'bibliotecario' }, gerente.token);
+  check('El gerente promueve un usuario a bibliotecario', cr.data?.usuario?.rol === 'bibliotecario');
   check('El cambio de rol aplica de inmediato (token viejo)', (await post('/usuarios/listar', {}, nuevoTok)).status === 200);
-  await post('/admin/cambiar-rol', { id: nuevo.id, rol: 'usuario' }, dueno.token);
+  await post('/admin/cambiar-rol', { id: nuevo.id, rol: 'usuario' }, gerente.token);
   check('…y al volver a usuario pierde el acceso', (await post('/usuarios/listar', {}, nuevoTok)).status === 403);
   const pf = await post('/usuarios/actualizar-perfil', { telefono: '+54 11 1234-5678' }, nuevoTok);
   check('Actualizar perfil', pf.data?.usuario?.telefono === '+54 11 1234-5678');
@@ -341,34 +352,34 @@ async function main() {
   check('Cambiar contraseña', (await post('/usuarios/cambiar-password', { password_actual: 'Nueva12345', password_nueva: 'Otra123456' }, nuevoTok)).data?.actualizado === true);
 
   console.log('\n# Categorías (CRUD)');
-  const cc = await post('/categorias/crear', { codigo: 'X', nombre: `Categoría ${sufijo}`, icono: 'star', color: '#112233' }, dueno.token);
+  const cc = await post('/categorias/crear', { codigo: 'X', nombre: `Categoría ${sufijo}`, icono: 'star', color: '#112233' }, gerente.token);
   check('Crear categoría', cc.status === 201);
-  check('Código repetido → 409', (await post('/categorias/crear', { codigo: 'X', nombre: 'Otra', color: '#112233' }, dueno.token)).status === 409);
-  check('Actualizar categoría', (await post('/categorias/actualizar', { id: cc.data.categoria.id, nombre: `Cat editada ${sufijo}` }, dueno.token)).data?.categoria?.nombre.startsWith('Cat editada'));
-  check('No se elimina una categoría con libros (409)', (await post('/categorias/eliminar', { id: ficc.id }, dueno.token)).error?.codigo === 'CATEGORIA_CON_LIBROS');
+  check('Código repetido → 409', (await post('/categorias/crear', { codigo: 'X', nombre: 'Otra', color: '#112233' }, gerente.token)).status === 409);
+  check('Actualizar categoría', (await post('/categorias/actualizar', { id: cc.data.categoria.id, nombre: `Cat editada ${sufijo}` }, gerente.token)).data?.categoria?.nombre.startsWith('Cat editada'));
+  check('No se elimina una categoría con libros (409)', (await post('/categorias/eliminar', { id: ficc.id }, gerente.token)).error?.codigo === 'CATEGORIA_CON_LIBROS');
   check('Bibliotecario NO puede eliminar categorías (403)', (await post('/categorias/eliminar', { id: cc.data.categoria.id }, biblio.token)).status === 403);
   // Una categoría cuyo único libro fue dado de baja ya no tiene libros visibles: se puede eliminar
-  const cc2 = await post('/categorias/crear', { codigo: 'Y', nombre: `Con baja ${sufijo}`, icono: 'star', color: '#445566' }, dueno.token);
-  const libroEfimero = await post('/libros/crear', { titulo: `Libro efímero ${sufijo}`, autor: 'Autor Efímero', categoria_id: cc2.data.categoria.id, stock_total: 1 }, dueno.token);
-  check('Categoría con un libro activo no se elimina', (await post('/categorias/eliminar', { id: cc2.data.categoria.id }, dueno.token)).error?.codigo === 'CATEGORIA_CON_LIBROS');
-  await post('/libros/eliminar', { id: libroEfimero.data.libro.id }, dueno.token);
-  check('Categoría que quedó sin libros activos se puede eliminar', (await post('/categorias/eliminar', { id: cc2.data.categoria.id }, dueno.token)).data?.eliminado === true);
-  check('Eliminar categoría vacía (dueño)', (await post('/categorias/eliminar', { id: cc.data.categoria.id }, dueno.token)).data?.eliminado === true);
+  const cc2 = await post('/categorias/crear', { codigo: 'Y', nombre: `Con baja ${sufijo}`, icono: 'star', color: '#445566' }, gerente.token);
+  const libroEfimero = await post('/libros/crear', { titulo: `Libro efímero ${sufijo}`, autor: 'Autor Efímero', categoria_id: cc2.data.categoria.id, stock_total: 1 }, gerente.token);
+  check('Categoría con un libro activo no se elimina', (await post('/categorias/eliminar', { id: cc2.data.categoria.id }, gerente.token)).error?.codigo === 'CATEGORIA_CON_LIBROS');
+  await post('/libros/eliminar', { id: libroEfimero.data.libro.id }, gerente.token);
+  check('Categoría que quedó sin libros activos se puede eliminar', (await post('/categorias/eliminar', { id: cc2.data.categoria.id }, gerente.token)).data?.eliminado === true);
+  check('Eliminar categoría vacía (gerente)', (await post('/categorias/eliminar', { id: cc.data.categoria.id }, gerente.token)).data?.eliminado === true);
 
-  console.log('\n# Distribuidora y reposición (solo dueño)');
-  const dl = await post('/distribuidoras/listar', {}, dueno.token);
-  check('El dueño lista distribuidoras', dl.data.distribuidoras.length >= 1);
+  console.log('\n# Distribuidora y reposición (solo gerente)');
+  const dl = await post('/distribuidoras/listar', {}, gerente.token);
+  check('El gerente lista distribuidoras', dl.data.distribuidoras.length >= 1);
   check('Bibliotecario no accede a distribuidoras (403)', (await post('/distribuidoras/listar', {}, biblio.token)).status === 403);
   check('Bibliotecario no puede pedir libros (403)', (await post('/reposicion/crear', { distribuidora_id: dl.data.distribuidoras[0].id, items: [{ titulo: 'X', cantidad: 1 }] }, biblio.token)).status === 403);
   check('Usuario no accede (403)', (await post('/distribuidoras/listar', {}, lucia.token)).status === 403);
-  const dc = await post('/distribuidoras/crear', { nombre: `Dist ${sufijo}`, email: 'dist@ejemplo.com' }, dueno.token);
+  const dc = await post('/distribuidoras/crear', { nombre: `Dist ${sufijo}`, email: 'dist@ejemplo.com' }, gerente.token);
   check('Crear distribuidora', dc.status === 201);
-  const rp = await post('/reposicion/crear', { distribuidora_id: dl.data.distribuidoras[0].id, mensaje: 'Urgente, por favor', items: [{ libro_id: libs.data.libros[0].id, cantidad: 3 }, { titulo: 'Libro nuevo que queremos', cantidad: 1 }] }, dueno.token);
+  const rp = await post('/reposicion/crear', { distribuidora_id: dl.data.distribuidoras[0].id, mensaje: 'Urgente, por favor', items: [{ libro_id: libs.data.libros[0].id, cantidad: 3 }, { titulo: 'Libro nuevo que queremos', cantidad: 1 }] }, gerente.token);
   check('Pedido de reposición enviado', rp.status === 201 && rp.data.pedido.estado_envio === 'enviado');
-  check('Renglón sin libro ni título → 400', (await post('/reposicion/crear', { distribuidora_id: dl.data.distribuidoras[0].id, items: [{ cantidad: 1 }] }, dueno.token)).status === 400);
-  const rl = await post('/reposicion/listar', {}, dueno.token);
+  check('Renglón sin libro ni título → 400', (await post('/reposicion/crear', { distribuidora_id: dl.data.distribuidoras[0].id, items: [{ cantidad: 1 }] }, gerente.token)).status === 400);
+  const rl = await post('/reposicion/listar', {}, gerente.token);
   check('Historial de pedidos con renglones', rl.data.pedidos[0].items.length === 2);
-  check('Eliminar distribuidora (baja lógica)', (await post('/distribuidoras/eliminar', { id: dc.data.distribuidora.id }, dueno.token)).data?.eliminado === true);
+  check('Eliminar distribuidora (baja lógica)', (await post('/distribuidoras/eliminar', { id: dc.data.distribuidora.id }, gerente.token)).data?.eliminado === true);
 
   console.log('\n# Portadas (internet simulada)');
   const fetchReal = global.fetch;
@@ -388,8 +399,8 @@ async function main() {
   check('Endpoint buscar-portada responde para el personal', (await post('/libros/buscar-portada', { titulo: 'Rayuela', autor: 'Cortázar' }, biblio.token)).status === 200);
   check('Usuario no puede buscar portadas (403)', (await post('/libros/buscar-portada', { titulo: 'Rayuela' }, lucia.token)).status === 403);
 
-  console.log('\n# Estadísticas (solo dueño)');
-  const est = await post('/estadisticas/resumen', {}, dueno.token);
+  console.log('\n# Estadísticas (solo gerente)');
+  const est = await post('/estadisticas/resumen', {}, gerente.token);
   const e = est.data;
   check('Totales presentes', e?.totales?.libros >= 24 && e.totales.usuarios >= 3 && typeof e.totales.prestamos_vencidos === 'number');
   check('Últimos 6 meses', e.prestamos_por_mes.length === 6 && e.prestamos_por_mes.some((m) => m.total > 0));

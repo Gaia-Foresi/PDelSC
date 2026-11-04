@@ -199,7 +199,7 @@ export const resetPassword = async (req, res) => {
   if (!u) throw err.codigoInvalido();
   await verificarCodigo(u.id, 'reset_password', codigo);
   const hash = await bcrypt.hash(password, COSTO_BCRYPT);
-  // Recibir el código en su email también prueba que es dueño de la casilla.
+  // Recibir el código en su email también prueba que es gerente de la casilla.
   await consultar('UPDATE usuarios SET password_hash = ?, email_verificado = 1 WHERE id = ?', [hash, u.id]);
   await tokens.revocarTodos(u.id); // cierra todas las sesiones abiertas
   res.json({ ok: true, data: { actualizado: true } });

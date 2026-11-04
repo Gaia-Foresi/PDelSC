@@ -26,7 +26,7 @@ Se crean con `npm run db:seed` (también están en [`credenciales.txt`](credenci
 
 | Rol | Email | Contraseña | Qué puede hacer |
 |---|---|---|---|
-| **Gerente** | `gerente@ceibolibros.com` | `Gerente2026` | Todo: estadísticas, pedidos a la distribuidora, panel admin (cambiar roles), categorías, eliminar libros. |
+| **Gerente** | `dueno@ceibolibros.com` | `Dueno2026` | Todo: estadísticas, pedidos a la distribuidora, panel admin (cambiar roles), categorías, eliminar libros. |
 | **Bibliotecario** | `biblioteca@ceibolibros.com` | `Biblio2026` | Stock, préstamos y reservas, usuarios y mensajes. No ve estadísticas ni pide libros. |
 | **Usuario** | `lucia@ejemplo.com` | `Lector2026` | Consulta el catálogo, reserva, ve sus préstamos y manda consultas. |
 | **Usuario bloqueado** | `tomas@ejemplo.com` | `Lector2026` | Cuenta con un atraso, sirve para ver el mensaje de bloqueo. |

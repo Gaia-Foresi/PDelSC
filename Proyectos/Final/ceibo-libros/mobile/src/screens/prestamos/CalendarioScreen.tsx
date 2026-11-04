@@ -1,4 +1,4 @@
-// Calendario de visitas (dueño y bibliotecario): cada reserva/préstamo con su día y hora de visita.
+// Calendario de visitas (gerente y bibliotecario): cada reserva/préstamo con su día y hora de visita.
 import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';

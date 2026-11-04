@@ -1,5 +1,5 @@
 // Borra usuarios (solo lectores) de la base, junto con sus préstamos, reservas y mensajes.
-// NUNCA borra al dueño ni a los bibliotecarios. Por defecto solo MUESTRA lo que borraría.
+// NUNCA borra al gerente ni a los bibliotecarios. Por defecto solo MUESTRA lo que borraría.
 //
 //   npm run usuarios:limpiar                          -> lista a quién borraría (no borra nada)
 //   npm run usuarios:limpiar -- --confirmar           -> borra a todos los lectores, salvo los de demostración

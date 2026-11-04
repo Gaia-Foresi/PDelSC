@@ -25,7 +25,7 @@ const S = {
   dosPasos: z.object({ activar: z.boolean({ required_error: 'Obligatorio', invalid_type_error: 'Debe ser verdadero o falso' }) }),
   listar: z.object({
     q: z.string().trim().max(80).optional(),
-    rol: z.enum(['dueno', 'bibliotecario', 'usuario']).optional(),
+    rol: z.enum(['gerente', 'bibliotecario', 'usuario']).optional(),
     estado: z.enum(['activo', 'bloqueado']).optional(),
     pagina: z.coerce.number().int().min(1).default(1),
     limite: z.coerce.number().int().min(1).max(100).default(30),
@@ -36,7 +36,7 @@ const S = {
     tipo: z.enum(['atraso', 'dano'], { message: 'Elegí si es por atraso en la devolución o por daño a un libro' }),
     motivo: texto(255),
   }),
-  cambiarRol: z.object({ id, rol: z.enum(['dueno', 'bibliotecario', 'usuario'], { message: 'Rol inválido' }) }),
+  cambiarRol: z.object({ id, rol: z.enum(['gerente', 'bibliotecario', 'usuario'], { message: 'Rol inválido' }) }),
 };
 
 const usuarios = router;
@@ -52,7 +52,7 @@ usuarios.post('/desbloquear', requiereRol(...STAFF), validar(S.id), asyncHandler
 
 // Panel de administración
 const admin = express.Router();
-admin.use(autenticar, requiereRol('dueno'));
+admin.use(autenticar, requiereRol('gerente'));
 admin.post('/cambiar-rol', validar(S.cambiarRol), asyncHandler(ctl.cambiarRol));
 
 export { usuarios, admin };
