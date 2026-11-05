@@ -19,12 +19,20 @@ const CLAVES = { gerente: ['gerente@ceibolibros.com', 'Gerente2026'], biblio: ['
 
 const DATOS = { nombre: 'Lucía', apellido: 'Lectora', dni: '40.123.456' };
 
+// crea un sistema de comprobación de pruebas. 
+// Utiliza ok para contar las pruebas que salen bien y fallos para guardar los nombres de las que salen mal. 
+// La función check() recibe el nombre de la prueba, una condición y un mensaje opcional. 
+// Si la condición se cumple, muestra un ✔ y suma al contador; 
+// si no, muestra un ✘ y guarda el fallo en el array.
 let ok = 0;
 const fallos = [];
 const check = (nombre, condicion, extra = '') => {
   if (condicion) { ok += 1; console.log(`  ✔ ${nombre}`); } else { fallos.push(nombre); console.log(`  ✘ ${nombre} ${extra}`); }
 };
 
+// sirve para mandar datos al servidor, 
+// esperar su respuesta y devolver si salió bien o mal, 
+// junto con los datos o el error correspondiente.
 async function post(ruta, cuerpo = {}, token) {
   const r = await fetch(BASE + ruta, {
     method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(cuerpo),
@@ -33,6 +41,9 @@ async function post(ruta, cuerpo = {}, token) {
   return { status: r.status, ok: json.ok, data: json.data, error: json.error };
 }
 
+// sirve para iniciar sesión automáticamente con un usuario, 
+// utilizando su clave para buscar el email y la contraseña, 
+// enviarlos al servidor y obtener los datos necesarios para mantener la sesión iniciada.
 async function login(clave) {
   const [email, password] = CLAVES[clave];
   const r = await post('/auth/login', { email, password });
@@ -40,6 +51,7 @@ async function login(clave) {
   return { token: r.data.access_token, refresh: r.data.refresh_token, usuario: r.data.usuario };
 }
 
+// sirve para cambiar o actualizar un código de verificación sin guardar el código original directamente.
 const poner = async (usuarioId, proposito, codigo = '123456') => {
   await pool.query('UPDATE codigos_verificacion SET codigo_hash = ? WHERE usuario_id = ? AND proposito = ? AND usado = 0', [sha256(codigo), usuarioId, proposito]);
 };
@@ -47,6 +59,7 @@ const poner = async (usuarioId, proposito, codigo = '123456') => {
 async function main() {
   const sufijo = Date.now();
 
+  // Ejecuta los recordatorios para asegurarse de que los usuarios bloqueados por atraso se desbloqueen si corresponde, y que las portadas de los libros estén actualizadas.
   console.log('\n# Reglas generales');
   const get = await fetch(`${BASE}/salud`);
   check('GET está prohibido (405)', get.status === 405);
@@ -57,6 +70,7 @@ async function main() {
   const val = await post('/auth/login', { email: 'no-es-email', password: '' });
   check('Validación → 400 con detalles por campo', val.status === 400 && val.error?.detalles?.email);
 
+  // Ejecuta los recordatorios y la actualización de portadas para asegurarse de que las funciones automáticas del sistema estén funcionando correctamente.
   console.log('\n# Login y roles');
   const mala = await post('/auth/login', { email: CLAVES.lucia[0], password: 'incorrecta1' });
   check('Contraseña incorrecta → 401', mala.status === 401 && mala.error.codigo === 'CREDENCIALES_INVALIDAS');
@@ -81,6 +95,8 @@ async function main() {
   check('Usuario no puede listar usuarios (403)', (await post('/usuarios/listar', {}, lucia.token)).status === 403);
   check('Bibliotecario no puede cambiar roles (403)', (await post('/admin/cambiar-rol', { id: lucia.usuario.id, rol: 'bibliotecario' }, biblio.token)).status === 403);
 
+  //realiza una prueba del sistema de registro, verificación de correo electrónico y autenticación en dos pasos. 
+  //Comprueba que los usuarios no puedan iniciar sesión sin verificar primero su correo y que los códigos de verificación funcionen correctamente.
   console.log('\n# Registro, verificación y 2 pasos');
   const email = `prueba${sufijo}@ejemplo.com`;
   const reg = await post('/auth/registro', { nombre: 'Prueba', apellido: 'Test', email, password: 'Clave1234' });
@@ -97,6 +113,9 @@ async function main() {
   check('El código no se puede reutilizar', (await post('/auth/verificar-email', { email, codigo: '123456' })).status === 401);
   const nuevoTok = ver.data.access_token;
 
+  // realiza una prueba del inicio de sesión con autenticación en dos pasos (2FA). 
+  // Comprueba que, cuando un usuario activa esta opción, no pueda iniciar sesión directamente con su contraseña, 
+  // sino que también necesite ingresar un código de verificación.
   check('Activar 2 pasos', (await post('/usuarios/dos-pasos', { activar: true }, nuevoTok)).data?.usuario?.dos_pasos_activo === true);
   const l2 = await post('/auth/login', { email, password: 'Clave1234' });
   check('Con 2 pasos el login pide código', l2.data?.requiere_2fa === true && !l2.data.access_token);

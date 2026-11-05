@@ -60,6 +60,6 @@ export default function Button({ title, onPress, variant = 'primary', icon, load
 
 const styles = StyleSheet.create({
   base: { borderRadius: radius.md, borderWidth: 1.5, paddingHorizontal: spacing.lg, justifyContent: 'center', alignItems: 'center' },
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  text: { fontWeight: '700' },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', maxWidth: '100%' },
+  text: { fontWeight: '700', textAlign: 'center', flexShrink: 1 },
 });

@@ -2,6 +2,8 @@
 import { pool } from '../src/config/db.js';
 import { ejecutarRecordatorios } from '../src/services/recordatorios.js';
 
+// se encarga de ejecutar los recordatorios, 
+// controlar si ocurre algún error y cerrar la conexión con la base de datos al terminar.
 ejecutarRecordatorios()
   .catch((e) => { console.error('✘ Error:', e.message); process.exitCode = 1; })
   .finally(() => pool.end());

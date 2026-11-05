@@ -5,7 +5,11 @@
 import bcrypt from 'bcryptjs';
 import { pool } from '../src/config/db.js';
 
+// Cambia el email y la contraseña de una cuenta
 (async () => {
+  // valida que se hayan ingresado los datos y que la contraseña cumpla los requisitos mínimos. 
+  // Después genera un hash con bcrypt y actualiza los datos del usuario en la base de datos. 
+  // Finalmente, informa si la operación se realizó correctamente o si ocurrió algún error.
   const [actual, nuevo, clave] = process.argv.slice(2);
   if (!actual || !nuevo || !clave) {
     console.log('Uso: node scripts/cambiar-acceso.js emailActual emailNuevo contraseñaNueva');

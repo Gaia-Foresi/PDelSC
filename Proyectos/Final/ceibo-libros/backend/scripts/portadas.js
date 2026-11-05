@@ -4,6 +4,8 @@
 import { pool } from '../src/config/db.js';
 import { completarPortadasFaltantes } from '../src/services/portadas.js';
 
+// función que se ejecuta automáticamente para buscar y completar las portadas de los libros de la biblioteca. 
+// También muestra mensajes en la consola y controla posibles errores.
 (async () => {
   const todas = process.argv.includes('--todas');
   console.log(todas ? 'Buscando la portada de TODOS los libros…' : 'Buscando portadas de los libros que no tienen…');

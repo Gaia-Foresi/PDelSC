@@ -24,6 +24,7 @@ interface ConfirmDialogProps {
 // Confirmación: "¿Seguro que querés eliminar…?"
 export function ConfirmDialog({ visible, title, message, confirmText = 'Aceptar', cancelText = 'Cancelar', destructive, icon, onConfirm, onCancel }: ConfirmDialogProps) {
   const { colors } = useTheme();
+  const apilado = (confirmText || '').length > 13 || (cancelText || '').length > 13;
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel} statusBarTranslucent>
       <View style={[styles.overlay, { backgroundColor: colors.overlay }]}>
@@ -33,11 +34,20 @@ export function ConfirmDialog({ visible, title, message, confirmText = 'Aceptar'
           </View>
           <Text style={[styles.title, { color: colors.text, fontFamily: font.title }]}>{title}</Text>
           {message ? <Text style={[styles.message, { color: colors.textMuted }]}>{message}</Text> : null}
-          <View style={styles.actions}>
-            {cancelText ? <Button title={cancelText} variant="secondary" onPress={onCancel} style={{ flex: 1 }} /> : null}
-            {cancelText ? <View style={{ width: spacing.md }} /> : null}
-            <Button title={confirmText} variant={destructive ? 'danger' : 'primary'} onPress={onConfirm} style={{ flex: 1 }} />
-          </View>
+          {apilado ? (
+            // Textos largos: los botones van uno debajo del otro, a todo el ancho
+            <View style={[styles.actions, { flexDirection: 'column' }]}>
+              <Button title={confirmText} variant={destructive ? 'danger' : 'primary'} onPress={onConfirm} />
+              {cancelText ? <View style={{ height: spacing.sm }} /> : null}
+              {cancelText ? <Button title={cancelText} variant="secondary" onPress={onCancel} /> : null}
+            </View>
+          ) : (
+            <View style={styles.actions}>
+              {cancelText ? <Button title={cancelText} variant="secondary" onPress={onCancel} style={{ flex: 1 }} /> : null}
+              {cancelText ? <View style={{ width: spacing.md }} /> : null}
+              <Button title={confirmText} variant={destructive ? 'danger' : 'primary'} onPress={onConfirm} style={{ flex: 1 }} />
+            </View>
+          )}
         </View>
       </View>
     </Modal>

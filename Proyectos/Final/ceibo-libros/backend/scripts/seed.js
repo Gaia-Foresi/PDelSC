@@ -46,6 +46,7 @@ const LIBROS = [
   ['T', 'Narraciones extraordinarias', 'Edgar Allan Poe', 'Cuentos de terror y misterio, entre ellos El gato negro y El corazón delator.', 2],
 ];
 
+// Define los usuarios que se van a insertar en la base de datos.
 const USUARIOS = [
   { nombre: 'Marta', apellido: 'Ceibo', email: 'gerente@ceibolibros.com', password: 'Gerente2026', rol: 1 },
   { nombre: 'Bruno', apellido: 'Bibliotecario', email: 'biblioteca@ceibolibros.com', password: 'Biblio2026', rol: 2 },
@@ -53,9 +54,12 @@ const USUARIOS = [
   { nombre: 'Tomás', apellido: 'Moroso', email: 'tomas@ejemplo.com', password: 'Lector2026', rol: 3, curso: '4° A', dni: '41222333' },
 ];
 
+// Función principal que inserta los datos iniciales en la base de datos.
 async function main() {
   const soloCatalogo = process.argv.includes('--solo-catalogo');
 
+  // Se asegura de que la base de datos tenga los roles y categorías necesarios 
+  // y deja preparados sus identificadores para utilizarlos en el resto de la aplicación.
   for (const [rolId, nombre] of [[1, 'gerente'], [2, 'bibliotecario'], [3, 'usuario']]) {
     await pool.query('INSERT IGNORE INTO roles (id, nombre) VALUES (?, ?)', [rolId, nombre]);
   }
@@ -67,6 +71,8 @@ async function main() {
   const [cats] = await pool.query('SELECT id, codigo FROM categorias');
   const catId = Object.fromEntries(cats.map((c) => [c.codigo, c.id]));
 
+  // se encarga de cargar libros en la base de datos, 
+  // verificando que los autores y los libros no estén duplicados.
   for (const [cat, titulo, autor, descripcion, stock] of LIBROS) {
     const [a] = await pool.query('INSERT INTO autores (nombre) VALUES (?) ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id)', [autor]);
     const [ya] = await pool.query('SELECT id FROM libros WHERE titulo = ?', [titulo]);
@@ -76,6 +82,9 @@ async function main() {
         [titulo, a.insertId, catId[cat], descripcion, stock]);
     }
   }
+
+  // verificar si existe una distribuidora en la base de datos y, si no existe ninguna, crear una de ejemplo. 
+  // Después muestra información del catálogo y, si corresponde, detiene la ejecución.
   const [dist] = await pool.query('SELECT id FROM distribuidoras LIMIT 1');
   if (!dist.length) {
     await pool.query('INSERT INTO distribuidoras (nombre, email, telefono) VALUES (?, ?, ?)',
@@ -84,6 +93,9 @@ async function main() {
   console.log(`✔ Catálogo: ${CATEGORIAS.length} categorías, ${LIBROS.length} libros`);
   if (soloCatalogo) return;
 
+  // recorre una lista de usuarios de prueba y comprueba si cada uno ya existe en la base de datos mediante su email. 
+  // Si existe, guarda su ID y pasa al siguiente. Si no existe, lo registra, 
+  // encripta su contraseña con bcrypt y guarda el ID generado.
   const ids = {};
   for (const u of USUARIOS) {
     const [ya] = await pool.query('SELECT id FROM usuarios WHERE email = ?', [u.email]);
@@ -95,7 +107,9 @@ async function main() {
   }
   console.log(`✔ Usuarios de prueba: ${USUARIOS.map((u) => u.email).join(', ')}`);
 
-  // ---- Datos de demostración (solo si todavía no hay préstamos) ----
+  // primero comprueba si ya hay préstamos registrados. Si encuentra alguno, termina la ejecución para evitar duplicados. 
+  // Si no hay préstamos, obtiene los ID de algunos usuarios, crea una función para buscar libros por su título 
+  // y guarda la fecha actual para utilizarla al crear préstamos de ejemplo.
   const [[{ n }]] = await pool.query('SELECT COUNT(*) AS n FROM prestamos');
   if (n > 0) return;
   const staff = ids['biblioteca@ceibolibros.com'];
@@ -104,7 +118,8 @@ async function main() {
   const libro = async (titulo) => (await pool.query('SELECT id FROM libros WHERE titulo = ?', [titulo]))[0][0].id;
   const h = hoy();
 
-  // Historial cerrado de los últimos meses (alimenta las estadísticas)
+  // simula préstamos anteriores de una usuaria llamada Lucía, 
+  // calcula sus fechas automáticamente y guarda tanto los préstamos como los libros devueltos en la base de datos.
   const historial = [
     [150, 'Sapiens'], [140, 'Rayuela'], [118, 'Drácula'], [112, 'Sapiens'], [95, 'Ficciones'], [88, 'Fahrenheit 451'],
     [70, 'Orgullo y prejuicio'], [64, 'Sapiens'], [52, 'Cien años de soledad'], [41, 'Estudio en escarlata'],
@@ -131,7 +146,9 @@ async function main() {
   await pool.query("UPDATE usuarios SET estado = 'bloqueado', motivo_bloqueo = ?, tipo_bloqueo = 'atraso', bloqueado_en = NOW() WHERE id = ?", [motivo, tomas]);
   await pool.query("INSERT INTO notificaciones (usuario_id, tipo, titulo, cuerpo, prestamo_id) VALUES (?, 'bloqueo', 'Cuenta bloqueada', ?, NULL)", [tomas, motivo]);
 
-  // Mensajes de ejemplo: una consulta respondida y un hilo interno gerente -> bibliotecario
+  // Se encarga de crear conversaciones de prueba para el sistema de mensajería de Ceibo Libros. 
+  // Primero busca el ID del gerente y después utiliza una función llamada hilo() para guardar conversaciones, 
+  // mensajes y los participantes en la base de datos.
   const gerente = ids['gerente@ceibolibros.com'];
   const hilo = async (tipo, asunto, creador, participantes, mensajes) => {
     const [x] = await pool.query('INSERT INTO hilos (tipo, asunto, creado_por) VALUES (?, ?, ?)', [tipo, asunto, creador]);

@@ -58,7 +58,7 @@ backend/
 * Respuesta correcta: `200` (o `201` al crear) con `{ "ok": true, "data": { ... } }`.
 * Respuesta con error: `{ "ok": false, "error": { "codigo": "EMAIL_EN_USO", "mensaje": "Texto para mostrar al usuario", "detalles": { "campo": "mensaje" } } }` (`detalles` solo en errores de validación).
 * Fechas: `DATE` como `YYYY-MM-DD`; `DATETIME` en ISO 8601 (UTC).
-* Los access tokens duran 15 min; el refresh token 30 días y se **rota** en cada renovación.
+* Los access tokens duran 60 min (configurable con `JWT_ACCESS_EXP`); un refresh ya rotado se tolera 2 minutos (varias pestañas a la vez); el refresh token 30 días y se **rota** en cada renovación.
 
 **Objeto `usuario`** (se devuelve en login/perfil):
 
@@ -101,10 +101,10 @@ backend/
 
 | Símbolo | Rol |
 |---|---|
-| **D** | `gerente` |
+| **G** | `gerente` |
 | **B** | `bibliotecario` |
 | **U** | `usuario` |
-| **S** | staff = D + B |
+| **S** | staff = G + B |
 
 Los endpoints indican qué roles pueden usarlos; el middleware `requiereRol` responde `403 SIN_PERMISO` al resto.
 
@@ -137,7 +137,7 @@ Los endpoints indican qué roles pueden usarlos; el middleware `requiereRol` res
 | `POST /usuarios/detalle` | S | `id` | `{ usuario, prestamos: [prestamo], reservas: [reserva] }` |
 | `POST /usuarios/bloquear` | S | `id, motivo` | `{ usuario }` — solo a rol `usuario`; el motivo se le muestra y se le envía una notificación |
 | `POST /usuarios/desbloquear` | S | `id` | `{ usuario }` |
-| `POST /admin/cambiar-rol` | D | `id, rol` | `{ usuario }` — no podés cambiar tu propio rol |
+| `POST /admin/cambiar-rol` | G | `id, rol` | `{ usuario }` — no podés cambiar tu propio rol |
 
 ### 5.3 Categorías (`/api/categorias`)
 
@@ -146,7 +146,7 @@ Los endpoints indican qué roles pueden usarlos; el middleware `requiereRol` res
 | `POST /categorias/listar` | todos | — | `{ categorias: [{ id, codigo, nombre, descripcion, icono, color, total_libros }] }` |
 | `POST /categorias/crear` | S | `codigo, nombre, descripcion?, icono?, color?` | `{ categoria }` |
 | `POST /categorias/actualizar` | S | `id` + campos | `{ categoria }` |
-| `POST /categorias/eliminar` | D | `id` | `{ eliminado: true }` — `409 CATEGORIA_CON_LIBROS` si tiene libros |
+| `POST /categorias/eliminar` | G | `id` | `{ eliminado: true }` — `409 CATEGORIA_CON_LIBROS` si tiene libros |
 
 ### 5.4 Libros / stock (`/api/libros`)
 
@@ -157,13 +157,13 @@ Los endpoints indican qué roles pueden usarlos; el middleware `requiereRol` res
 | `POST /libros/crear` | S | `titulo, autor, categoria_id, descripcion?, stock_total, portada_url?` | `{ libro }` (crea el autor si no existe; si no se manda `portada_url` la busca sola en Open Library / Google Books y guarda el **link**) |
 | `POST /libros/buscar-portada` | S | `titulo, autor?` | `{ portada_url: string \| null }` — vista previa del formulario |
 | `POST /libros/actualizar` | S | `id` + campos | `{ libro }` |
-| `POST /libros/eliminar` | D | `id` | `{ eliminado: true }` — baja lógica; `409 LIBRO_EN_USO` si está prestado o reservado |
+| `POST /libros/eliminar` | G | `id` | `{ eliminado: true }` — baja lógica; `409 LIBRO_EN_USO` si está prestado o reservado |
 
 ### 5.5 Reservas (`/api/reservas`)
 
 | Endpoint | Rol | Body | Respuesta `data` |
 |---|---|---|---|
-| `POST /reservas/crear` | U (también B/D para sí mismos) | `libro_id, tipo, nombre, apellido, curso, dni` (los datos quedan guardados en el perfil) | `{ reserva }` con `codigo_retiro` (6 caracteres) |
+| `POST /reservas/crear` | U (también B/G para sí mismos) | `libro_id, tipo, nombre, apellido, curso, dni` (los datos quedan guardados en el perfil) | `{ reserva }` con `codigo_retiro` (6 caracteres) |
 | `POST /reservas/mis` | todos | `estado?` | `{ reservas: [reserva] }` |
 | `POST /reservas/listar` | S | `estado?, q?` | `{ reservas: [reserva] }` |
 | `POST /reservas/cancelar` | titular de la reserva o S | `id` | `{ reserva }` |
@@ -178,14 +178,16 @@ Los endpoints indican qué roles pueden usarlos; el middleware `requiereRol` res
 | `POST /prestamos/crear` | S | `usuario_id, libro_ids: number[], dias? (14), nombre?, apellido?, curso?, dni?` (si al lector le faltan apellido, curso o DNI y no se mandan → `400` con el detalle) | `{ prestamo }` con `codigo_retiro` y `usuario.curso/dni` |
 | `POST /prestamos/mis` | todos | — | `{ prestamos: [prestamo] }` |
 | `POST /prestamos/listar` | S | `estado? (activo · cerrado · vencido), usuario_id?, q?` | `{ prestamos: [prestamo] }` |
-| `POST /prestamos/detalle` | gerente del préstamo o S | `id` | `{ prestamo }` |
+| `POST /prestamos/detalle` | titular del préstamo o S | `id` | `{ prestamo }` |
 | `POST /prestamos/agregar-libros` | S | `prestamo_id, libro_ids` | `{ prestamo }` |
 | `POST /prestamos/devolver` | S | `prestamo_id, libro_id?` (sin `libro_id` devuelve todos) | `{ prestamo, usuario_desbloqueado: boolean }` |
 | `POST /prestamos/extender` | S | `prestamo_id, dias` (1–30) | `{ prestamo }` |
+| `POST /prestamos/pendientes` | S | — | `{ pendientes: [{ prestamo_id, libro_id, titulo, autor, lector, usuario_id, devuelto_en }] }` — libros devueltos que esperan revisión |
+| `POST /prestamos/revisar` | S | `prestamo_id, libro_id, resultado` (`repuesto` vuelve al stock · `danado` da de baja un ejemplar · `reponer` repone un ejemplar dado de baja y deja el libro completo) | `{ prestamo, pendientes }` — `422 ESTADO_INVALIDO` si el libro no está en el estado que pide la acción |
 
 ### 5.7 Mensajes (`/api/mensajes`)
 
-Dos tipos de hilo: **`consulta`** (usuario → biblioteca; lo ven y responden D y B) e **`interno`** (entre D y B).
+Dos tipos de hilo: **`consulta`** (usuario → biblioteca; lo ven y responden G y B) e **`interno`** (entre G y B).
 
 | Endpoint | Rol | Body | Respuesta `data` |
 |---|---|---|---|
@@ -200,12 +202,12 @@ Dos tipos de hilo: **`consulta`** (usuario → biblioteca; lo ven y responden D 
 
 | Endpoint | Rol | Body | Respuesta `data` |
 |---|---|---|---|
-| `POST /distribuidoras/listar` | D | — | `{ distribuidoras: [{ id, nombre, email, telefono }] }` |
-| `POST /distribuidoras/crear` | D | `nombre, email, telefono?` | `{ distribuidora }` |
-| `POST /distribuidoras/actualizar` | D | `id` + campos | `{ distribuidora }` |
-| `POST /distribuidoras/eliminar` | D | `id` | `{ eliminado: true }` |
-| `POST /reposicion/crear` | D | `distribuidora_id, mensaje?, items: [{ libro_id?, titulo?, cantidad }]` | `{ pedido: { id, estado_envio } }` — envía el email a la distribuidora |
-| `POST /reposicion/listar` | D | — | `{ pedidos: [{ id, distribuidora, mensaje, estado_envio, creado_en, items }] }` |
+| `POST /distribuidoras/listar` | G | — | `{ distribuidoras: [{ id, nombre, email, telefono }] }` |
+| `POST /distribuidoras/crear` | G | `nombre, email, telefono?` | `{ distribuidora }` |
+| `POST /distribuidoras/actualizar` | G | `id` + campos | `{ distribuidora }` |
+| `POST /distribuidoras/eliminar` | G | `id` | `{ eliminado: true }` |
+| `POST /reposicion/crear` | G | `distribuidora_id, mensaje?, items: [{ libro_id?, titulo?, cantidad }]` | `{ pedido: { id, estado_envio } }` — envía el email a la distribuidora |
+| `POST /reposicion/listar` | G | — | `{ pedidos: [{ id, distribuidora, mensaje, estado_envio, creado_en, items }] }` |
 
 ### 5.9 Notificaciones (`/api/notificaciones`)
 
@@ -219,7 +221,9 @@ Dos tipos de hilo: **`consulta`** (usuario → biblioteca; lo ven y responden D 
 
 | Endpoint | Rol | Body | Respuesta `data` |
 |---|---|---|---|
-| `POST /estadisticas/resumen` | D | — | `{ totales: { libros, ejemplares, usuarios, bibliotecarios, bloqueados, prestamos_activos, prestamos_vencidos, reservas_activas }, prestamos_por_mes: [{ mes, total }], libros_mas_prestados: [{ titulo, total }], por_categoria: [{ categoria, total }] }` |
+| `POST /estadisticas/resumen` | G | — | `{ totales: { libros, ejemplares, usuarios, bibliotecarios, bloqueados, prestamos_activos, prestamos_vencidos, reservas_activas }, prestamos_por_mes: [{ mes, total }], libros_mas_prestados: [{ titulo, total }], por_categoria: [{ categoria, total }] }` |
+| `POST /estadisticas/exportar` | G | `periodo?` (`todo` · `mes_actual` · `mes_anterior` · `3_meses`) | `{ nombre, base64, resumen }` — Excel con resumen, préstamos, detalle de libros, usuarios, reservas, dañados y stock |
+| `POST /estadisticas/analizar` | G | `archivos: [{ nombre, contenido }]` (1–12 Excel en base64, máx. 4 MB en total) | `{ analisis }` — libros más prestados, sin devolver, vencidos, dañados, por mes y por categoría |
 | `POST /salud` | público | — | `{ estado: "ok" }` |
 
 ## 6. Códigos de error
@@ -245,7 +249,9 @@ Dos tipos de hilo: **`consulta`** (usuario → biblioteca; lo ven y responden D 
 ## 7. Reglas de negocio
 
 * **Registro:** crea siempre rol `usuario`. Solo el gerente puede cambiar roles (panel de admin).
-* **Disponibilidad:** `disponibles = stock_total − ejemplares prestados sin devolver − reservas activas`.
+* **Disponibilidad:** `disponibles = stock_total − ejemplares prestados sin devolver − devueltos en espera de revisión − reservas activas`.
+* **Devoluciones en espera:** al marcar un libro como devuelto queda en espera (no vuelve al stock) hasta que el personal lo repone (`repuesto`) o lo da de baja por daño (`danado`, baja el stock total en 1). Un ejemplar dañado se puede reponer después (`reponer`, stock total +1); el daño sigue registrado.
+* **Reserva repetida:** un usuario no puede reservar un libro que ya tiene reservado y vigente (`409 YA_RESERVADO`).
 * **Reservas:** máx. 3 activas por usuario. `sala` vence a las 24 h, `retiro` a los 3 días. Un usuario bloqueado no puede reservar.
 * **Préstamos:** máx. 5 libros por préstamo, plazo por defecto 14 días. Se pueden agregar libros a un préstamo abierto.
 * **No se eliminan usuarios:** se **bloquean** con un mensaje. El bloqueo se levanta automáticamente cuando devuelve el último libro (o a mano con `/usuarios/desbloquear`).

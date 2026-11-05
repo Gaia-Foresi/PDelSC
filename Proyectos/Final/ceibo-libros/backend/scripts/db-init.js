@@ -8,6 +8,11 @@ import mysql from 'mysql2/promise';
 import env from '../src/config/env.js';
 const { db } = env;
 
+//inicializa la base de datos. 
+// Primero se conecta a MySQL y verifica si ya existe la tabla usuarios. 
+// Si existe y no se indicó --reset, detiene el proceso para evitar borrar datos por accidente. 
+// Si puede continuar, lee y ejecuta schema.sql para crear las tablas. 
+// Finalmente, muestra un mensaje de éxito, cierra la conexión y captura posibles errores.
 (async () => {
   const conexion = await mysql.createConnection({
     host: db.host, port: db.port, user: db.user, password: db.password, database: db.database,
