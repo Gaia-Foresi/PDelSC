@@ -75,19 +75,22 @@ export default function PrestamoDetalleScreen({ navigation, route }: PantallaPro
   // Libro devuelto que está en espera: el personal decide si vuelve al stock o se da de baja por dañado
   const revisar = async (item, resultado) => {
     const danado = resultado === 'danado';
+    const reponer = resultado === 'reponer';
     const ok = await confirm({
-      title: danado ? '¿Dar de baja por dañado?' : '¿Volver al stock?',
-      message: danado
-        ? `"${item.titulo}" se descuenta del stock y queda registrado como dañado.`
-        : `"${item.titulo}" vuelve a estar disponible para prestar.`,
-      confirmText: danado ? 'Dar de baja' : 'Volver al stock',
+      title: reponer ? '¿Reponer el ejemplar?' : danado ? '¿Dar de baja por dañado?' : '¿Volver al stock?',
+      message: reponer
+        ? `Se repuso "${item.titulo}": vuelve a sumar un ejemplar y el libro queda completo otra vez. El daño sigue registrado en el historial.`
+        : danado
+          ? `"${item.titulo}" se descuenta del stock y queda registrado como dañado.`
+          : `"${item.titulo}" vuelve a estar disponible para prestar.`,
+      confirmText: reponer ? 'Reponer' : danado ? 'Dar de baja' : 'Volver al stock',
       destructive: danado,
     });
     if (!ok) return;
     setOcupado(true);
     try {
       await api.prestamos.revisar({ prestamo_id: id, libro_id: item.libro_id, resultado });
-      toast.success(danado ? 'Libro dado de baja.' : 'El libro volvió al stock.');
+      toast.success(reponer ? 'Ejemplar repuesto: el libro quedó completo.' : danado ? 'Libro dado de baja.' : 'El libro volvió al stock.');
       detalle.refresh();
     } catch (e) {
       toast.fromError(e);
@@ -178,7 +181,8 @@ export default function PrestamoDetalleScreen({ navigation, route }: PantallaPro
                     <Text style={{ color: colors.textMuted, fontSize: 13 }}>{i.autor}</Text>
                     {i.devuelto_en ? <Text style={{ color: colors.success, fontSize: 12, marginTop: 2 }}>Devuelto el {fechaHora(i.devuelto_en)}</Text> : null}
                     {i.devuelto_en && i.revision === 'pendiente' ? <Text style={{ color: colors.warning, fontSize: 12, fontWeight: '700', marginTop: 2 }}>En espera: todavía no vuelve al stock</Text> : null}
-                    {i.devuelto_en && i.revision === 'danado' ? <Text style={{ color: colors.danger, fontSize: 12, fontWeight: '700', marginTop: 2 }}>Dañado: se dio de baja del stock</Text> : null}
+                    {i.devuelto_en && i.revision === 'danado' && !i.repuesto_en ? <Text style={{ color: colors.danger, fontSize: 12, fontWeight: '700', marginTop: 2 }}>Dañado: se dio de baja del stock</Text> : null}
+                    {i.devuelto_en && i.revision === 'danado' && i.repuesto_en ? <Text style={{ color: colors.success, fontSize: 12, fontWeight: '700', marginTop: 2 }}>Estuvo dañado y se repuso el {fechaHora(i.repuesto_en)}: stock completo</Text> : null}
                     {i.devuelto_en && i.revision === 'repuesto' ? <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: 2 }}>Volvió al stock</Text> : null}
                   </View>
                   {esStaff && i.devuelto_en && i.revision === 'pendiente' ? (
@@ -186,6 +190,9 @@ export default function PrestamoDetalleScreen({ navigation, route }: PantallaPro
                       <Button title="Volver al stock" icon="check" small fullWidth={false} disabled={ocupado} onPress={() => revisar(i, 'repuesto')} />
                       <Button title="Dañado" icon="alert-octagon-outline" small fullWidth={false} variant="secondary" disabled={ocupado} onPress={() => revisar(i, 'danado')} />
                     </View>
+                  ) : null}
+                  {esStaff && i.revision === 'danado' && !i.repuesto_en ? (
+                    <Button title="Reponer en el stock" icon="book-plus-outline" small fullWidth={false} disabled={ocupado} onPress={() => revisar(i, 'reponer')} />
                   ) : null}
                   {esStaff && !i.devuelto_en && activo ? <Button title="Marcar devuelto" small fullWidth={false} variant="soft" disabled={ocupado} onPress={() => devolver(i)} /> : null}
                 </View>

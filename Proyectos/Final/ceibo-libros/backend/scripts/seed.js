@@ -47,7 +47,7 @@ const LIBROS = [
 ];
 
 const USUARIOS = [
-  { nombre: 'Marta', apellido: 'Ceibo', email: 'dueno@ceibolibros.com', password: 'Dueno2026', rol: 1 },
+  { nombre: 'Marta', apellido: 'Ceibo', email: 'gerente@ceibolibros.com', password: 'Gerente2026', rol: 1 },
   { nombre: 'Bruno', apellido: 'Bibliotecario', email: 'biblioteca@ceibolibros.com', password: 'Biblio2026', rol: 2 },
   { nombre: 'Lucía', apellido: 'Lectora', email: 'lucia@ejemplo.com', password: 'Lector2026', rol: 3, curso: '5° B', dni: '40123456' },
   { nombre: 'Tomás', apellido: 'Moroso', email: 'tomas@ejemplo.com', password: 'Lector2026', rol: 3, curso: '4° A', dni: '41222333' },
@@ -132,7 +132,7 @@ async function main() {
   await pool.query("INSERT INTO notificaciones (usuario_id, tipo, titulo, cuerpo, prestamo_id) VALUES (?, 'bloqueo', 'Cuenta bloqueada', ?, NULL)", [tomas, motivo]);
 
   // Mensajes de ejemplo: una consulta respondida y un hilo interno gerente -> bibliotecario
-  const gerente = ids['dueno@ceibolibros.com'];
+  const gerente = ids['gerente@ceibolibros.com'];
   const hilo = async (tipo, asunto, creador, participantes, mensajes) => {
     const [x] = await pool.query('INSERT INTO hilos (tipo, asunto, creado_por) VALUES (?, ?, ?)', [tipo, asunto, creador]);
     let ultimo = 0;

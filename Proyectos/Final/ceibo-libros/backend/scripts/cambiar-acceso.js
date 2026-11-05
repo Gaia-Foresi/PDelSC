@@ -1,7 +1,7 @@
 // Cambia el email y la contraseña de una cuenta. Uso (desde backend/):
 //   node scripts/cambiar-acceso.js emailActual emailNuevo contraseñaNueva
 // Ejemplo:
-//   node scripts/cambiar-acceso.js dueno@ceibolibros.com gerente@ceibolibros.com Dueno2026
+//   node scripts/cambiar-acceso.js email-actual@ejemplo.com gerente@ceibolibros.com Gerente2026
 import bcrypt from 'bcryptjs';
 import { pool } from '../src/config/db.js';
 

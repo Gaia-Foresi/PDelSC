@@ -9,9 +9,9 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "build:web": "expo export --platform web",
-    "manual:pdf": "node scripts/generar-manual-pdf.js",
+    "manual:pdf": "tsx scripts/generar-manual-pdf.tsx",
     "build:apk": "eas build -p android --profile preview",
-    "lint": "eslint src --ext .js,.ts,.tsx",
+    "lint": "eslint src --ext .ts,.tsx",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -61,6 +61,7 @@
     "pdfkit": "^0.20.2",
     "playwright": "^1.64.1",
     "sharp": "^0.35.5",
+    "tsx": "^4.23.15",
     "typescript": "~5.9.2"
   }
 }

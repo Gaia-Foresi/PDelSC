@@ -4,7 +4,7 @@ Sistema de biblioteca con **préstamos y reservas de libros**, con tres roles (g
 
 * **`backend/`** · API REST en Node.js + Express (solo `POST`), MySQL en la nube, JWT con refresh token. Documentación de los endpoints en [`backend/README.md`](backend/README.md).
 * **`mobile/`** · App React Native (Expo). Ver [`mobile/README.md`](mobile/README.md).
-* **`docs/`** · [`GUIA_INSTALACION.md`](docs/GUIA_INSTALACION.md) (paso a paso), [`PUBLICAR.md`](docs/PUBLICAR.md) (Railway + web), [`LOGIN_SOCIAL.md`](docs/LOGIN_SOCIAL.md) (Google, GitHub y Discord) y los manuales en PDF: [`Manual_Usuario.pdf`](docs/Manual_Usuario.pdf), [`Manual_Bibliotecario.pdf`](docs/Manual_Bibliotecario.pdf), [`Manual_Dueno.pdf`](docs/Manual_Dueno.pdf) y [`Manual_Completo.pdf`](docs/Manual_Completo.pdf).
+* **`docs/`** · [`GUIA_INSTALACION.md`](docs/GUIA_INSTALACION.md) (paso a paso), [`PUBLICAR.md`](docs/PUBLICAR.md) (Railway + web), [`LOGIN_SOCIAL.md`](docs/LOGIN_SOCIAL.md) (Google, GitHub y Discord) y los manuales en PDF: [`Manual_Usuario.pdf`](docs/Manual_Usuario.pdf), [`Manual_Bibliotecario.pdf`](docs/Manual_Bibliotecario.pdf), [`Manual_Gerente.pdf`](docs/Manual_Gerente.pdf) y [`Manual_Completo.pdf`](docs/Manual_Completo.pdf).
 * **`credenciales.txt`** · usuarios de prueba con su rol y contraseña.
 
 ## Inicio rápido
@@ -26,7 +26,7 @@ Se crean con `npm run db:seed` (también están en [`credenciales.txt`](credenci
 
 | Rol | Email | Contraseña | Qué puede hacer |
 |---|---|---|---|
-| **Gerente** | `dueno@ceibolibros.com` | `Dueno2026` | Todo: estadísticas, pedidos a la distribuidora, panel admin (cambiar roles), categorías, eliminar libros. |
+| **Gerente** | `gerente@ceibolibros.com` | `Gerente2026` | Todo: estadísticas, pedidos a la distribuidora, panel admin (cambiar roles), categorías, eliminar libros. |
 | **Bibliotecario** | `biblioteca@ceibolibros.com` | `Biblio2026` | Stock, préstamos y reservas, usuarios y mensajes. No ve estadísticas ni pide libros. |
 | **Usuario** | `lucia@ejemplo.com` | `Lector2026` | Consulta el catálogo, reserva, ve sus préstamos y manda consultas. |
 | **Usuario bloqueado** | `tomas@ejemplo.com` | `Lector2026` | Cuenta con un atraso, sirve para ver el mensaje de bloqueo. |

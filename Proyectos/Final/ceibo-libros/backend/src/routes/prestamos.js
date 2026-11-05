@@ -32,7 +32,7 @@ const S = {
   agregar: z.object({ prestamo_id: id, libro_ids: libroIds }),
   devolver: z.object({ prestamo_id: id, libro_id: id.optional() }),
   extender: z.object({ prestamo_id: id, dias: dias(30) }),
-  revisar: z.object({ prestamo_id: id, libro_id: id, resultado: z.enum(['repuesto', 'danado'], { message: 'Elegí si vuelve al stock o está dañado' }) }),
+  revisar: z.object({ prestamo_id: id, libro_id: id, resultado: z.enum(['repuesto', 'danado', 'reponer'], { message: 'Elegí si vuelve al stock, está dañado o se repone' }) }),
   reservaCrear: z.object({
     libro_id: id, tipo: z.enum(['sala', 'retiro'], { message: 'Tipo inválido' }),
     nombre: texto(60), apellido: texto(60), curso: curso.optional(), dni, visita: fechaHora,

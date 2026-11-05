@@ -199,6 +199,7 @@ CREATE TABLE prestamo_items (
   revision     ENUM('pendiente','repuesto','danado') NULL,  -- devuelto: 'pendiente' = en espera, 'repuesto' = volvió al stock, 'danado' = dado de baja
   revisado_en  DATETIME NULL,
   revisado_por INT UNSIGNED NULL,
+  repuesto_en DATETIME NULL,
   UNIQUE KEY uq_prestamo_libro (prestamo_id, libro_id),
   CONSTRAINT fk_items_prestamo FOREIGN KEY (prestamo_id) REFERENCES prestamos(id) ON DELETE CASCADE,
   CONSTRAINT fk_items_libro    FOREIGN KEY (libro_id)    REFERENCES libros(id),

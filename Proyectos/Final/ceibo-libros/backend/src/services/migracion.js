@@ -86,6 +86,7 @@ const existeIndice = async (tabla, indice) => {
   await agregar('prestamo_items', 'revision', "ENUM('pendiente','repuesto','danado') NULL AFTER devuelto_en");
   await agregar('prestamo_items', 'revisado_en', 'DATETIME NULL AFTER revision');
   await agregar('prestamo_items', 'revisado_por', 'INT UNSIGNED NULL AFTER revisado_en');
+  await agregar('prestamo_items', 'repuesto_en', 'DATETIME NULL AFTER revisado_por'); // cuándo se repuso un ejemplar dañado
   // Lo que se devolvió antes de este cambio ya estaba de vuelta en el stock
   await pool.query("UPDATE prestamo_items SET revision = 'repuesto' WHERE devuelto_en IS NOT NULL AND revision IS NULL");
 
@@ -93,11 +94,17 @@ const existeIndice = async (tabla, indice) => {
   await agregar('refresh_tokens', 'revocado_en', 'DATETIME NULL AFTER revocado');
   await pool.query('UPDATE refresh_tokens SET revocado_en = creado_en WHERE revocado = 1 AND revocado_en IS NULL');
 
-  // El rol "dueño" pasa a llamarse "gerente"
-  await pool.query("UPDATE roles SET nombre = 'gerente' WHERE nombre = 'dueno'");
-  if (await existeColumna('pedidos_reposicion', 'dueno_id')) {
-    try { await pool.query('ALTER TABLE pedidos_reposicion DROP FOREIGN KEY fk_pedidos_dueno'); } catch (e) { /* ya no estaba */ }
-    await pool.query('ALTER TABLE pedidos_reposicion CHANGE dueno_id gerente_id INT UNSIGNED NOT NULL');
+  // Bases creadas con el nombre anterior del rol de más alto nivel (id 1): pasa a llamarse "gerente".
+  // El nombre viejo no se escribe acá: el rol se busca por su id y la columna por su clave foránea a usuarios.
+  await pool.query("UPDATE roles SET nombre = 'gerente' WHERE id = 1 AND nombre <> 'gerente'");
+  const [viejas] = await pool.query(
+    `SELECT COLUMN_NAME AS columna, CONSTRAINT_NAME AS fk FROM information_schema.KEY_COLUMN_USAGE
+     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'pedidos_reposicion' AND REFERENCED_TABLE_NAME = 'usuarios'
+       AND COLUMN_NAME <> 'gerente_id' AND COLUMN_NAME LIKE '%\\_id'`);
+  if (viejas.length && !(await existeColumna('pedidos_reposicion', 'gerente_id'))) {
+    const { columna, fk } = viejas[0];
+    try { await pool.query(`ALTER TABLE pedidos_reposicion DROP FOREIGN KEY \`${fk}\``); } catch (e) { /* ya no estaba */ }
+    await pool.query(`ALTER TABLE pedidos_reposicion CHANGE \`${columna}\` gerente_id INT UNSIGNED NOT NULL`);
     await pool.query('ALTER TABLE pedidos_reposicion ADD CONSTRAINT fk_pedidos_gerente FOREIGN KEY (gerente_id) REFERENCES usuarios(id)');
     hechos.push('pedidos_reposicion.gerente_id');
   }

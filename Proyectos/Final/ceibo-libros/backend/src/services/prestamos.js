@@ -23,7 +23,7 @@ async function cargarPrestamos(where = '', params = [], { limite = 200, conn = p
   if (!filas.length) return [];
 
   const [items] = await conn.query(
-    `SELECT pi.prestamo_id, pi.libro_id, l.titulo, a.nombre AS autor, pi.devuelto_en, pi.revision
+    `SELECT pi.prestamo_id, pi.libro_id, l.titulo, a.nombre AS autor, pi.devuelto_en, pi.revision, pi.repuesto_en
      FROM prestamo_items pi
      JOIN libros l ON l.id = pi.libro_id
      JOIN autores a ON a.id = l.autor_id
@@ -43,7 +43,7 @@ async function cargarPrestamos(where = '', params = [], { limite = 200, conn = p
     dias_restantes: f.estado === 'activo' ? diasEntre(hoyStr, f.fecha_vencimiento) : null,
     items: items
       .filter((i) => i.prestamo_id === f.id)
-      .map((i) => ({ libro_id: i.libro_id, titulo: i.titulo, autor: i.autor, devuelto_en: i.devuelto_en, revision: i.revision })),
+      .map((i) => ({ libro_id: i.libro_id, titulo: i.titulo, autor: i.autor, devuelto_en: i.devuelto_en, revision: i.revision, repuesto_en: i.repuesto_en })),
   }));
 }
 
@@ -219,12 +219,21 @@ async function pendientesRevision(conn = pool) {
  * El personal decide qué pasa con un libro devuelto en espera:
  *  - 'repuesto': vuelve al stock (queda disponible de nuevo).
  *  - 'danado':   se da de baja ese ejemplar (baja el stock total en 1) y queda registrado como dañado.
+ *  - 'reponer':  un ejemplar ya dado de baja por dañado se repone (stock total +1): el libro queda completo otra vez.
+ *                Sigue figurando como dañado en el historial y los informes; solo se anota cuándo se repuso.
  */
 async function revisarDevolucion({ prestamoId, libroId, resultado, staffId }) {
   await transaccion(async (conn) => {
     const [[item]] = await conn.query(
-      'SELECT id, revision FROM prestamo_items WHERE prestamo_id = ? AND libro_id = ? FOR UPDATE', [prestamoId, libroId]);
+      'SELECT id, revision, repuesto_en FROM prestamo_items WHERE prestamo_id = ? AND libro_id = ? FOR UPDATE', [prestamoId, libroId]);
     if (!item) throw err.noEncontrado('El libro de ese préstamo');
+    if (resultado === 'reponer') {
+      if (item.revision !== 'danado') throw err.estado('Solo se puede reponer un libro que se dio de baja por dañado.');
+      if (item.repuesto_en) throw err.estado('Ese libro ya fue repuesto.');
+      await conn.query('UPDATE prestamo_items SET repuesto_en = NOW(), revisado_por = ? WHERE id = ?', [staffId, item.id]);
+      await conn.query('UPDATE libros SET stock_total = stock_total + 1 WHERE id = ?', [libroId]);
+      return;
+    }
     if (item.revision !== 'pendiente') throw err.estado('Ese libro no está en espera de revisión.');
     await conn.query('UPDATE prestamo_items SET revision = ?, revisado_en = NOW(), revisado_por = ? WHERE id = ?', [resultado, staffId, item.id]);
     if (resultado === 'danado') {

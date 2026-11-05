@@ -29,7 +29,7 @@ mobile/
 ├── App.js                     # proveedores globales + navegación
 ├── app.json · eas.json        # configuración de Expo / build del APK
 ├── assets/                    # logos, íconos y manuales/ (un PDF por rol)
-├── scripts/generar-manual-pdf.js
+├── scripts/generar-manual-pdf.tsx
 └── src/
     ├── api/                   # cliente HTTP (solo POST, renueva el token solo) y un método por endpoint
     ├── auth/                  # botones de Google / GitHub / Discord

@@ -166,7 +166,7 @@ Los endpoints indican qué roles pueden usarlos; el middleware `requiereRol` res
 | `POST /reservas/crear` | U (también B/D para sí mismos) | `libro_id, tipo, nombre, apellido, curso, dni` (los datos quedan guardados en el perfil) | `{ reserva }` con `codigo_retiro` (6 caracteres) |
 | `POST /reservas/mis` | todos | `estado?` | `{ reservas: [reserva] }` |
 | `POST /reservas/listar` | S | `estado?, q?` | `{ reservas: [reserva] }` |
-| `POST /reservas/cancelar` | dueña de la reserva o S | `id` | `{ reserva }` |
+| `POST /reservas/cancelar` | titular de la reserva o S | `id` | `{ reserva }` |
 | `POST /reservas/atender` | S | `id, dias?` (14) | `{ reserva, prestamo? }` — `sala`: queda `cumplida`; `retiro`: crea el préstamo y queda `cumplida` |
 
 > `q` en `reservas/listar` y `prestamos/listar` también encuentra por **código de retiro** (exacto), **DNI**, nombre o título del libro.

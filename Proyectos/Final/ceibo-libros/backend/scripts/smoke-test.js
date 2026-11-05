@@ -15,7 +15,7 @@ import { ejecutarRecordatorios } from '../src/services/recordatorios.js';
 const { puerto } = env;
 
 const BASE = process.env.API_URL || `http://localhost:${puerto}/api`;
-const CLAVES = { gerente: ['dueno@ceibolibros.com', 'Dueno2026'], biblio: ['biblioteca@ceibolibros.com', 'Biblio2026'], lucia: ['lucia@ejemplo.com', 'Lector2026'], tomas: ['tomas@ejemplo.com', 'Lector2026'] };
+const CLAVES = { gerente: ['gerente@ceibolibros.com', 'Gerente2026'], biblio: ['biblioteca@ceibolibros.com', 'Biblio2026'], lucia: ['lucia@ejemplo.com', 'Lector2026'], tomas: ['tomas@ejemplo.com', 'Lector2026'] };
 
 const DATOS = { nombre: 'Lucía', apellido: 'Lectora', dni: '40.123.456' };
 
@@ -223,6 +223,10 @@ async function main() {
   check('Revisar: repuesto vuelve al stock', (await post('/prestamos/revisar', { prestamo_id: pid, libro_id: oid, resultado: 'repuesto' }, biblio.token)).status === 200);
   check('Revisar dos veces → error', (await post('/prestamos/revisar', { prestamo_id: pid, libro_id: oid, resultado: 'repuesto' }, biblio.token)).status >= 400);
   check('Revisar: dañado descuenta stock', (await post('/prestamos/revisar', { prestamo_id: pid, libro_id: lid, resultado: 'danado' }, biblio.token)).status === 200);
+  const stockAntes = (await post('/libros/detalle', { id: lid }, biblio.token)).data.libro.stock_total;
+  check('Reponer un dañado deja el libro completo (stock +1)', (await post('/prestamos/revisar', { prestamo_id: pid, libro_id: lid, resultado: 'reponer' }, biblio.token)).status === 200
+    && (await post('/libros/detalle', { id: lid }, biblio.token)).data.libro.stock_total === stockAntes + 1);
+  check('No se repone dos veces', (await post('/prestamos/revisar', { prestamo_id: pid, libro_id: lid, resultado: 'reponer' }, biblio.token)).status >= 400);
   check('Usuario no revisa devoluciones (403)', (await post('/prestamos/pendientes', {}, lucia.token)).status === 403);
   check('El gerente elimina un libro sin uso (baja lógica)', (await post('/libros/eliminar', { id: oid }, gerente.token)).data?.eliminado === true);
   check('Ya no aparece en el listado', !(await post('/libros/listar', {}, lucia.token)).data.libros.some((l) => l.id === oid));

@@ -14,7 +14,7 @@ export async function cargarSesion() {
   const guardada = await leer(KEY);
   if (guardada?.refresh_token) {
     // Sesiones guardadas antes del cambio de nombre del rol
-    const usuario = guardada.usuario && (guardada.usuario as any).rol === 'dueno' ? { ...guardada.usuario, rol: 'gerente' } : guardada.usuario || null;
+    const usuario = guardada.usuario && !['usuario', 'bibliotecario', 'gerente'].includes((guardada.usuario as any).rol) ? { ...guardada.usuario, rol: 'gerente' } : guardada.usuario || null;
     sesion = { access_token: guardada.access_token || null, refresh_token: guardada.refresh_token, usuario } as SesionGuardada;
   }
   return sesion;
