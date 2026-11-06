@@ -2,6 +2,7 @@
 import React, { useRef } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
 import { font, radius, shadow, spacing } from '../theme/tokens';
 import Button from './Button';
@@ -65,13 +66,16 @@ interface SheetModalProps {
 // Hoja inferior con título y contenido (formularios, selectores)
 export function SheetModal({ visible, title, onClose, children, footer }: SheetModalProps) {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  // Deja lugar para los botones del sistema (atrás / inicio) para que no tapen el pie de la hoja
+  const abajo = Math.max(spacing.xl, insets.bottom + spacing.lg) + (Platform.OS === 'android' ? spacing.md : 0);
   const scrollRef = useRef<any>(null);
   const revelador = useRevelador(scrollRef);
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
       <KeyboardAvoidingView behavior={Platform.OS === 'web' ? undefined : 'padding'} style={[styles.overlay, { backgroundColor: colors.overlay, justifyContent: 'flex-end' }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Cerrar" />
-        <View style={[styles.sheet, { backgroundColor: colors.surface, borderColor: colors.border }]} accessibilityViewIsModal>
+        <View style={[styles.sheet, { backgroundColor: colors.surface, borderColor: colors.border, paddingBottom: abajo }]} accessibilityViewIsModal>
           <View style={styles.sheetHeader}>
             <Text style={[styles.sheetTitle, { color: colors.text, fontFamily: font.title }]} numberOfLines={2}>{title}</Text>
             <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel="Cerrar" style={styles.close}>

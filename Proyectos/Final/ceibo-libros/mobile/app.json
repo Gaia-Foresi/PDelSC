@@ -3,7 +3,10 @@
     "name": "Ceibo Libros",
     "slug": "ceibo-libros",
     "version": "1.0.0",
-    "scheme": ["ceibolibros", "com.ceibolibros.biblioteca"],
+    "scheme": [
+      "ceibolibros",
+      "com.ceibolibros.biblioteca"
+    ],
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -25,7 +28,10 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#F3E5D8"
-      }
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -50,6 +56,9 @@
         "googleIosClientId": "",
         "githubClientId": "",
         "discordClientId": ""
+      },
+      "eas": {
+        "projectId": "303bbba2-4d69-4ce8-80ab-1e31b38d98e6"
       }
     }
   }

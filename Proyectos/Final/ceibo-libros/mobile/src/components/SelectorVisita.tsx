@@ -19,17 +19,18 @@ const pad = (n) => String(n).padStart(2, '0');
 interface OpcionProps {
   texto?: any;
   activo?: any;
+  error?: boolean;
   onPress?: (...args: any[]) => any;
 }
 
-function Opcion({ texto, activo, onPress }: OpcionProps) {
+function Opcion({ texto, activo, error, onPress }: OpcionProps) {
   const { colors } = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected: activo }}
       onPress={onPress}
-      style={[styles.chip, { backgroundColor: activo ? colors.primary : colors.card, borderColor: activo ? colors.primary : colors.border }]}
+      style={[styles.chip, { backgroundColor: activo ? colors.primary : colors.card, borderColor: activo ? colors.primary : error ? colors.danger : colors.border }]}
     >
       <Text style={{ color: activo ? colors.onPrimary : colors.text, fontWeight: '600', fontSize: 14 }}>{texto}</Text>
     </Pressable>
@@ -48,10 +49,10 @@ interface SelectorVisitaProps {
 export default function SelectorVisita({ tipo = 'retiro', value, onChange, error, permitirAhora = false, titulo = '¿Cuándo vas a ir a la biblioteca?' }: SelectorVisitaProps) {
   const { colors } = useTheme();
   const revela = useRevelaCampos();
-  const caja = useRef<any>(null);
+  const zonaHora = useRef<any>(null); // horas + mensaje de error: es lo que se lleva a la vista
   const errorRef = useRef(error);
   errorRef.current = error;
-  useEffect(() => revela?.registrar({ vista: () => caja.current, tieneError: () => !!errorRef.current }), [revela]);
+  useEffect(() => revela?.registrar({ vista: () => zonaHora.current, tieneError: () => !!errorRef.current }), [revela]);
   const [dias, setDias] = useState(null);
   const [fallo, setFallo] = useState(false);
   const [dia, setDia] = useState(null);
@@ -89,7 +90,7 @@ export default function SelectorVisita({ tipo = 'retiro', value, onChange, error
   }
 
   return (
-    <View ref={caja} collapsable={false} style={{ marginTop: spacing.sm }}>
+    <View style={{ marginTop: spacing.sm }}>
       <Text style={[styles.titulo, { color: colors.text }]}>{titulo}</Text>
       <HorarioAtencion compacto />
       {dias === null && !fallo ? <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing.md }} /> : null}
@@ -138,17 +139,21 @@ export default function SelectorVisita({ tipo = 'retiro', value, onChange, error
               })}
             </View>
           </View>
-          {dia && value !== AHORA ? (
-            <>
-              <Text style={[styles.sub, { color: colors.textMuted, marginTop: spacing.sm }]}>Hora · {diaLargo(dia)}</Text>
-              <View style={styles.fila}>
-                {(diaActual?.horas || []).map((h) => <Opcion key={h.iso} texto={h.hora} activo={value === h.iso} onPress={() => onChange(h.iso)} />)}
-              </View>
-            </>
-          ) : value !== AHORA ? <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: spacing.sm }}>Tocá un día marcado para ver los horarios.</Text> : null}
+          <View ref={zonaHora} collapsable={false}>
+            {dia && value !== AHORA ? (
+              <>
+                <Text style={[styles.sub, { color: colors.textMuted, marginTop: spacing.sm }]}>Hora · {diaLargo(dia)}</Text>
+                <View style={styles.fila}>
+                  {(diaActual?.horas || []).map((h) => <Opcion key={h.iso} texto={h.hora} activo={value === h.iso} error={!!error && !value} onPress={() => onChange(h.iso)} />)}
+                </View>
+              </>
+            ) : value !== AHORA ? <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: spacing.sm }}>Tocá un día marcado para ver los horarios.</Text> : null}
+            <MensajeError texto={error && dia ? 'Elegí la hora a la que vas a ir.' : error} />
+          </View>
         </>
-      ) : null}
-      <MensajeError texto={error} />
+      ) : (
+        <View ref={zonaHora} collapsable={false}><MensajeError texto={error} /></View>
+      )}
     </View>
   );
 }
