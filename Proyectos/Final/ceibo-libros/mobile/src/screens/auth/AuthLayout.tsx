@@ -1,6 +1,6 @@
 // Fondo y tarjeta comunes de las pantallas de ingreso
 import React from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { KeyboardAvoidingView, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeContext';
 import { font, radius, shadow, spacing } from '../../theme/tokens';
@@ -9,6 +9,7 @@ import Logo from '../../components/Logo';
 import { useHayFondo } from '../../components/FondoDecorativo';
 import { fijarAnchoColumna } from '../../utils/fondo';
 import { useFocusEffect } from '@react-navigation/native';
+import { useEspacioTeclado } from '../../hooks/useTeclado';
 
 import type { ReactNode } from 'react';
 interface AuthLayoutProps {
@@ -25,6 +26,8 @@ export default function AuthLayout({ title, subtitle, children, compactLogo }: A
   const chico = compactLogo || (landscape && height < 520);
   const { width } = useWindowDimensions();
   const hayFondo = useHayFondo();
+  const zona = React.useRef(null);
+  const espacioTeclado = useEspacioTeclado(zona); // el teclado no tapa los campos de abajo
   useFocusEffect(React.useCallback(() => { fijarAnchoColumna(1060); }, []));
 
   // Compu: panel con el logo en un círculo a la izquierda y el formulario a la derecha
@@ -48,7 +51,8 @@ export default function AuthLayout({ title, subtitle, children, compactLogo }: A
   }
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'web' ? undefined : 'padding'} style={{ flex: 1, backgroundColor: colors.bg }}>
+    <View ref={zona} collapsable={false} style={{ flex: 1, backgroundColor: colors.bg }}>
+    <View style={{ flex: 1, paddingBottom: espacioTeclado }}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scroll, { paddingTop: insets.top + spacing.lg, paddingBottom: insets.bottom + spacing.xl }]} keyboardShouldPersistTaps="handled">
         <View style={styles.inner}>
           <View style={{ alignItems: 'center', marginBottom: spacing.lg }}>
@@ -61,7 +65,8 @@ export default function AuthLayout({ title, subtitle, children, compactLogo }: A
           </View>
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </View>
+    </View>
   );
 }
 

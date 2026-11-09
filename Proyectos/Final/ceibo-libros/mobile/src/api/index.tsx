@@ -86,9 +86,12 @@ export const api = {
     listar: privado('/notificaciones/listar'),
     marcarLeidas: privado('/notificaciones/marcar-leidas'),
     cantidad: privado('/notificaciones/cantidad'),
+    pushRegistrar: privado<{ registrado: boolean }>('/notificaciones/push/registrar'),
+    pushQuitar: privado<{ quitado: boolean }>('/notificaciones/push/quitar'),
   },
   estadisticas: {
     resumen: privado('/estadisticas/resumen'),
+    meses: privado<{ meses: { mes: string; nombre: string; prestamos: number; libros: number }[] }>('/estadisticas/meses'),
     exportar: privado<{ nombre: string; base64: string; resumen: any }>('/estadisticas/exportar'),
     analizar: privado<{ analisis: any }>('/estadisticas/analizar'),
   },

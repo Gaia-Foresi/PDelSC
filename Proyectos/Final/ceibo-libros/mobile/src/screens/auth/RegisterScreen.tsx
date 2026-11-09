@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Keyboard, StyleSheet, Text, View } from 'react-native';
 import { api } from '../../api';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
@@ -37,6 +37,8 @@ export default function RegisterScreen({ navigation }: PantallaProps) {
       navigation.navigate('Codigo', { email, proposito: 'verificar_email' });
     } catch (err) {
       if (err.detalles) setErrores(err.detalles);
+      // Email ya registrado: se marca en el campo (con el mensaje) y se cierra el teclado para que se vea el aviso
+      if (err.codigo === 'EMAIL_EN_USO') { setErrores((e) => ({ ...e, email: err.message })); Keyboard.dismiss(); }
       toast.fromError(err);
     } finally {
       setCargando(false);

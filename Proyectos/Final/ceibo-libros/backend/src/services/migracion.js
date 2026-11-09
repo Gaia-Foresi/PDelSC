@@ -109,6 +109,22 @@ const existeIndice = async (tabla, indice) => {
     hechos.push('pedidos_reposicion.gerente_id');
   }
 
+  // Notificaciones push: nuevos tipos de aviso del préstamo y tabla de celulares registrados
+  await pool.query(
+    `ALTER TABLE notificaciones MODIFY tipo ENUM('recordatorio_devolucion','vencimiento','bloqueo','desbloqueo','reserva','sistema',
+     'prestamo_nuevo','prestamo_espera','prestamo_cerrado') NOT NULL`);
+  await pool.query(
+    `CREATE TABLE IF NOT EXISTS dispositivos_push (
+       id             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+       usuario_id     INT UNSIGNED NOT NULL,
+       token          VARCHAR(200) NOT NULL,
+       plataforma     VARCHAR(10) NOT NULL DEFAULT 'android',
+       actualizado_en DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+       UNIQUE KEY uq_push_token (token),
+       INDEX idx_push_usuario (usuario_id),
+       CONSTRAINT fk_push_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+
   return hechos;
 }
 

@@ -1,4 +1,5 @@
 // Avisos breves (reemplazan a los alert). useToast() -> { success, error, info, fromError }
+// Con el teclado abierto el cartel sube arriba de todo, para que el teclado no lo tape.
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { Animated, Platform, Pressable, StyleSheet, Text } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -6,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
 import { radius, shadow, spacing } from '../theme/tokens';
 import { alAvisarErrores, avisarErrores } from '../utils/formularios';
+import { useTecladoAbierto } from '../hooks/useTeclado';
 import type { IconName } from '../types';
 
 
@@ -24,6 +26,7 @@ export const useToast = () => useContext(ToastContext);
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const tecladoAbierto = useTecladoAbierto();
   const [toast, setToast] = useState<{ mensaje: string; tipo: TipoToast } | null>(null);
   const op = useRef(new Animated.Value(0)).current;
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -36,7 +39,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     clearTimeout(timer.current);
     setToast({ mensaje, tipo });
     Animated.timing(op, { toValue: 1, duration: 180, useNativeDriver: Platform.OS !== 'web' }).start();
-    timer.current = setTimeout(hide, tipo === 'error' ? 5000 : 3500);
+    timer.current = setTimeout(hide, tipo === 'error' ? 6000 : 3500);
   }, [op, hide]);
 
   useEffect(() => () => clearTimeout(timer.current), []);
@@ -65,7 +68,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     <ToastContext.Provider value={api}>
       {children}
       {toast ? (
-        <Animated.View pointerEvents="box-none" style={[styles.wrap, { bottom: insets.bottom + 84, opacity: op }]}>
+        <Animated.View pointerEvents="box-none" style={[styles.wrap, tecladoAbierto ? { top: insets.top + spacing.sm } : { bottom: insets.bottom + 84 }, { opacity: op }]}>
           <Pressable onPress={hide} accessibilityRole="alert" accessibilityLiveRegion="assertive" style={[styles.toast, { backgroundColor: tono.bg }, shadow('#000')]}>
             <MaterialCommunityIcons name={tono.icon as IconName} size={22} color={tono.fg} />
             <Text style={[styles.text, { color: tono.fg }]}>{toast.mensaje}</Text>

@@ -2,6 +2,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
 import { cargarSesion, guardarSesion, limpiarSesion, setAlPerderSesion, getSesion } from '../api/session';
+import { quitarAvisos, registrarAvisos } from '../utils/avisosCelular';
 import type { ResumenPerfil, Sesion, Usuario } from '../types';
 
 
@@ -56,7 +57,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUsuario(data.usuario);
   }, []);
 
+  // Con la sesión iniciada, este celular queda registrado para recibir notificaciones
+  useEffect(() => { if (usuario) registrarAvisos(); }, [usuario?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const cerrarSesion = useCallback(async () => {
+    await quitarAvisos(); // antes de perder la sesión, para poder avisarle al servidor
     const { refresh_token } = getSesion();
     if (refresh_token) api.auth.logout({ refresh_token }).catch(() => {});
     await limpiarSesion();

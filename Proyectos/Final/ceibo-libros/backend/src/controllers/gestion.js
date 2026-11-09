@@ -3,9 +3,20 @@ import { consultar, transaccion } from '../config/db.js';
 import { err } from '../utils/httpError.js';
 import { hoy } from '../utils/fechas.js';
 import { enviarEmail, plantilla, escapar } from '../services/mailer.js';
-import { generarExcel, analizarArchivos } from '../services/informes.js';
+import { registrarToken, quitarToken } from '../services/push.js';
+import { generarExcel, analizarArchivos, mesesConDatos } from '../services/informes.js';
 
 // ------------------------------------------------------------ notificaciones
+/** El celular avisa su token para recibir notificaciones push. */
+export const pushRegistrar = async (req, res) => {
+  const ok = await registrarToken(req.usuario.id, req.body.token, req.body.plataforma);
+  res.json({ ok: true, data: { registrado: ok } });
+};
+export const pushQuitar = async (req, res) => {
+  await quitarToken(req.usuario.id, req.body.token);
+  res.json({ ok: true, data: { quitado: true } });
+};
+
 export const notifListar = async (req, res) => {
   const filas = await consultar(
     `SELECT id, tipo, titulo, cuerpo, leida, creada_en FROM notificaciones
@@ -167,8 +178,13 @@ export const resumen = async (req, res) => {
 
 /** Descarga: devuelve el Excel (en base64) con toda la información del período pedido. */
 export const exportar = async (req, res) => {
-  const { buffer, nombre, resumen } = await generarExcel(req.body.periodo);
+  const { buffer, nombre, resumen } = await generarExcel(req.body.periodo, req.body.mes);
   res.json({ ok: true, data: { nombre, base64: buffer.toString('base64'), resumen } });
+};
+
+/** Meses con préstamos, para elegir de cuál bajar el Excel. */
+export const mesesInforme = async (req, res) => {
+  res.json({ ok: true, data: { meses: await mesesConDatos() } });
 };
 
 /** Análisis de uno o varios Excel descargados antes (libros más prestados, no devueltos, dañados...). */

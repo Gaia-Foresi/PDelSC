@@ -2,7 +2,7 @@
 import { pool, transaccion } from '../config/db.js';
 import env from '../config/env.js';
 import { err } from '../utils/httpError.js';
-import { hoy, sumarDias, diasEntre } from '../utils/fechas.js';
+import { hoy, sumarDias, diasEntre, aLegible } from '../utils/fechas.js';
 import { crearNotificacion } from './notificaciones.js';
 import { codigoRetiroUnico } from '../utils/codigos.js';
 import { publica } from './visitas.js';
@@ -124,7 +124,13 @@ async function crearPrestamo({ usuarioId, libroIds, dias, staffId, datos, codigo
     await conn.query('INSERT INTO prestamo_items (prestamo_id, libro_id) VALUES ?', [ids.map((l) => [r.insertId, l])]);
     return r.insertId;
   });
-  return obtenerPrestamo(id);
+  const creado = await obtenerPrestamo(id);
+  // Aviso al lector: su préstamo quedó activo
+  await crearNotificacion({
+    usuarioId, tipo: 'prestamo_nuevo', titulo: 'Tu préstamo está activo',
+    cuerpo: `Préstamo #${id} registrado. Tenés que devolver los libros hasta el ${aLegible(creado.fecha_vencimiento)}.`, prestamoId: id,
+  }).catch(() => {});
+  return creado;
 }
 
 /** Agrega libros a un préstamo abierto. */
@@ -158,6 +164,7 @@ async function agregarLibros({ prestamoId, libroIds }) {
  */
 async function devolver({ prestamoId, libroId }) {
   let desbloqueado = false;
+  let usuarioAviso = null;
   await transaccion(async (conn) => {
     const [[p]] = await conn.query('SELECT id, usuario_id, estado FROM prestamos WHERE id = ? FOR UPDATE', [prestamoId]);
     if (!p) throw err.noEncontrado('El préstamo');
@@ -175,7 +182,15 @@ async function devolver({ prestamoId, libroId }) {
     }
 
     desbloqueado = await desbloquearSiNoDebe(conn, p.usuario_id);
+    usuarioAviso = p.usuario_id;
   });
+  if (usuarioAviso) {
+    // Aviso al lector: sus libros quedaron en espera mientras el personal los revisa
+    await crearNotificacion({
+      usuarioId: usuarioAviso, tipo: 'prestamo_espera', titulo: 'Devolución registrada: en espera',
+      cuerpo: `Recibimos los libros del préstamo #${prestamoId}. Están en espera de revisión del personal.`, prestamoId,
+    }).catch(() => {});
+  }
   return { prestamo: await obtenerPrestamo(prestamoId), usuario_desbloqueado: desbloqueado };
 }
 
@@ -240,6 +255,18 @@ async function revisarDevolucion({ prestamoId, libroId, resultado, staffId }) {
       await conn.query('UPDATE libros SET stock_total = GREATEST(CAST(stock_total AS SIGNED) - 1, 0) WHERE id = ?', [libroId]);
     }
   });
+  // Cuando ya no queda ningún libro en espera, el préstamo queda cerrado del todo: se le avisa al lector
+  const [[{ quedan }]] = await pool.query(
+    "SELECT COUNT(*) AS quedan FROM prestamo_items WHERE prestamo_id = ? AND (devuelto_en IS NULL OR revision = 'pendiente')", [prestamoId]);
+  if (resultado !== 'reponer' && Number(quedan) === 0) {
+    const [[p]] = await pool.query('SELECT usuario_id FROM prestamos WHERE id = ?', [prestamoId]);
+    if (p) {
+      await crearNotificacion({
+        usuarioId: p.usuario_id, tipo: 'prestamo_cerrado', titulo: 'Préstamo devuelto',
+        cuerpo: `Revisamos tus libros del préstamo #${prestamoId}. Quedó todo devuelto. ¡Gracias!`, prestamoId,
+      }).catch(() => {});
+    }
+  }
   return obtenerPrestamo(prestamoId);
 }
 

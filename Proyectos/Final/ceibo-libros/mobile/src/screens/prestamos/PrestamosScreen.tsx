@@ -6,9 +6,10 @@ import { api } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../theme/ThemeContext';
 import { spacing } from '../../theme/tokens';
-import { diasEntre, diasTexto, fecha, plural, visitaTexto } from '../../utils/format';
+import { diasEntre, diasTexto, estadoPrestamo, fecha, plural, visitaTexto } from '../../utils/format';
 import { useAsync } from '../../hooks/useAsync';
 import { useRefreshOnFocus } from '../../hooks/useFocus';
+import { programarAvisosPrestamos } from '../../utils/avisosCelular';
 import Badge from '../../components/Badge';
 import BloqueoBanner from '../../components/BloqueoBanner';
 import Button from '../../components/Button';
@@ -26,7 +27,8 @@ import type { PantallaProps } from '../../types';
 const FILTROS_USUARIO = [
   { value: 'todos', label: 'Todos' },
   { value: 'activo', label: 'Activos' },
-  { value: 'cerrado', label: 'Cerrados' },
+  { value: 'espera', label: 'En espera' },
+  { value: 'devuelto', label: 'Devueltos' },
 ];
 const FILTROS_STAFF = [
   { value: 'todos', label: 'Todos' },
@@ -44,6 +46,7 @@ interface PrestamoCardProps {
 function PrestamoCard({ prestamo, staff, onPress }: PrestamoCardProps) {
   const { colors } = useTheme();
   const cerrado = prestamo.estado === 'cerrado';
+  const estado = estadoPrestamo(prestamo);
   const porVencer = !cerrado && !prestamo.vencido && prestamo.dias_restantes <= 2;
   const tono = cerrado ? 'neutral' : prestamo.vencido ? 'danger' : porVencer ? 'warning' : 'success';
   const icono = cerrado ? 'check-circle-outline' : prestamo.vencido ? 'alert-circle-outline' : 'clock-outline';
@@ -60,7 +63,13 @@ function PrestamoCard({ prestamo, staff, onPress }: PrestamoCardProps) {
         </View>
         <MaterialCommunityIcons name="chevron-right" size={24} color={colors.textMuted} />
       </View>
-      <Badge text={diasTexto(prestamo)} tone={tono} icon={icono} style={{ marginTop: spacing.sm }} />
+      {!staff ? (
+        <View style={{ marginTop: spacing.sm }}>
+          <Badge text={estado.texto} tone={estado.tono} icon={estado.icono as any} />
+          <Text style={{ color: colors.textMuted, fontSize: 13, lineHeight: 18, marginTop: 6 }}>{estado.ayuda}</Text>
+        </View>
+      ) : null}
+      {staff || estado.grupo === 'activo' ? <Badge text={diasTexto(prestamo)} tone={tono} icon={icono} style={{ marginTop: spacing.sm }} /> : null}
       {!cerrado ? <CodigoRetiro codigo={prestamo.codigo_retiro} compacto /> : null}
       <View style={{ marginTop: spacing.md }}>
         {prestamo.items.map((i) => (
@@ -100,10 +109,15 @@ export default function PrestamosScreen({ navigation }: PantallaProps) {
   );
   useRefreshOnFocus(datos.refresh);
 
+  // Lector: programa en el celular los avisos de vencimiento de sus préstamos activos
+  useEffect(() => {
+    if (!esStaff && datos.data?.prestamos) programarAvisosPrestamos(datos.data.prestamos);
+  }, [esStaff, datos.data]);
+
   // El usuario común filtra en el celular (son pocos préstamos)
   const prestamos = useMemo(() => {
     const todos = datos.data?.prestamos || [];
-    return esStaff || filtro === 'todos' ? todos : todos.filter((p) => p.estado === filtro);
+    return esStaff || filtro === 'todos' ? todos : todos.filter((p) => estadoPrestamo(p).grupo === filtro);
   }, [datos.data, esStaff, filtro]);
 
   const encabezado = (

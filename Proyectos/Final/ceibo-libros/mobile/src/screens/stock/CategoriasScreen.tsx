@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../theme/ThemeContext';
 import { MIN_TAP, font, radius, spacing } from '../../theme/tokens';
 import { textoSobre } from '../../utils/format';
+import PanelColores from '../../components/PanelColores';
 import { COLORES_CATEGORIA, HEX_VALIDO, buscarIconos } from '../../utils/iconosCategoria';
 import { useAsync } from '../../hooks/useAsync';
 import { useRefreshOnFocus } from '../../hooks/useFocus';
@@ -42,6 +43,7 @@ export default function CategoriasScreen({ navigation, route }: PantallaProps) {
   const [guardando, setGuardando] = useState(false);
   const [busquedaIcono, setBusquedaIcono] = useState('');
   const [hex, setHex] = useState('');
+  const [panelColores, setPanelColores] = useState(false);
   const set = (k) => (t) => { setForm((f) => ({ ...f, [k]: t })); setErrores((e) => ({ ...e, [k]: '' })); };
 
   const iconos = buscarIconos(busquedaIcono);
@@ -189,6 +191,7 @@ export default function CategoriasScreen({ navigation, route }: PantallaProps) {
             );
           })}
         </View>
+        <Button title="Abrir panel de colores" icon="palette-outline" variant="secondary" onPress={() => setPanelColores(true)} style={{ marginBottom: spacing.md }} />
         <View style={styles.hexFila}>
           <View style={[styles.muestra, { backgroundColor: HEX_VALIDO.test(form.color) ? form.color : colors.border, borderColor: colors.border }]} />
           <Input
@@ -208,6 +211,13 @@ export default function CategoriasScreen({ navigation, route }: PantallaProps) {
           />
         </View>
       </SheetModal>
+
+      <PanelColores
+        visible={panelColores}
+        color={form.color}
+        onCancel={() => setPanelColores(false)}
+        onConfirm={(c) => { set('color')(c); setHex(c); setPanelColores(false); }}
+      />
     </ScreenContainer>
   );
 }

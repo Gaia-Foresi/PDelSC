@@ -7,7 +7,7 @@ import { api } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../theme/ThemeContext';
 import { font, spacing } from '../../theme/tokens';
-import { diasEntre, diasTexto, fecha, fechaHora, plural, visitaTexto } from '../../utils/format';
+import { diasEntre, diasTexto, estadoPrestamo, fecha, fechaHora, plural, visitaTexto } from '../../utils/format';
 import { useAsync } from '../../hooks/useAsync';
 import Badge from '../../components/Badge';
 import Button from '../../components/Button';
@@ -161,12 +161,15 @@ export default function PrestamoDetalleScreen({ navigation, route }: PantallaPro
             </Card>
 
             <Card>
-              <Badge text={diasTexto(prestamo)} tone={tono} icon={prestamo.vencido ? 'alert-circle-outline' : 'clock-outline'} />
+              {estadoPrestamo(prestamo).grupo === 'activo'
+                ? <Badge text={diasTexto(prestamo)} tone={tono} icon={prestamo.vencido ? 'alert-circle-outline' : 'clock-outline'} />
+                : <Badge text={estadoPrestamo(prestamo).texto} tone={estadoPrestamo(prestamo).tono} icon={estadoPrestamo(prestamo).icono as any} />}
               {prestamo.visita ? <Fila etiqueta="Visita a la biblioteca" valor={visitaTexto(prestamo.visita)} /> : null}
               <Fila etiqueta="Inicio" valor={fecha(prestamo.fecha_inicio)} />
               <Fila etiqueta="Vencimiento" valor={fecha(prestamo.fecha_vencimiento)} />
               <Fila etiqueta="Duración del préstamo" valor={`${plural(diasEntre(prestamo.fecha_inicio, prestamo.fecha_vencimiento), 'día', 'días')} (hasta el día de devolución)`} />
-              <Fila etiqueta="Estado" valor={prestamo.estado === 'cerrado' ? 'Cerrado (todo devuelto)' : prestamo.vencido ? 'Vencido' : 'Activo'} />
+              <Fila etiqueta="Estado" valor={estadoPrestamo(prestamo).texto} />
+              {!esStaff ? <Text style={{ color: colors.textMuted, fontSize: 13, lineHeight: 18, marginTop: 4 }}>{estadoPrestamo(prestamo).ayuda}</Text> : null}
               {prestamo.registrado_por ? <Fila etiqueta="Registrado por" valor={prestamo.registrado_por} /> : null}
               <CodigoRetiro codigo={prestamo.codigo_retiro} />
             </Card>

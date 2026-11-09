@@ -19,14 +19,19 @@ const estadoDe = (i) => {
   return ESTADOS.STOCK;
 };
 
-export const PERIODOS = ['todo', 'mes_actual', 'mes_anterior', '3_meses'];
+export const PERIODOS = ['todo', 'mes_actual', 'mes_anterior', '3_meses', 'mes'];
+export const MES_VALIDO = /^\d{4}-(0[1-9]|1[0-2])$/;
 
-/** Rango de fechas (YYYY-MM-DD) y nombre legible de cada período. */
-export function rangoDe(periodo) {
+/** Rango de fechas (YYYY-MM-DD) y nombre legible de cada período. Con periodo 'mes' se pasa también `mes` (YYYY-MM). */
+export function rangoDe(periodo, mes) {
   const h = hoy();
   const [y, m] = h.split('-').map(Number);
   const primero = (yy, mm) => `${yy}-${String(mm).padStart(2, '0')}-01`;
   const ultimo = (yy, mm) => sumarDias(primero(mm === 12 ? yy + 1 : yy, mm === 12 ? 1 : mm + 1), -1);
+  if (periodo === 'mes' && MES_VALIDO.test(mes || '')) {
+    const [yy, mm] = mes.split('-').map(Number);
+    return { desde: primero(yy, mm), hasta: ultimo(yy, mm), nombre: `Mes ${mes}` };
+  }
   if (periodo === 'mes_actual') return { desde: primero(y, m), hasta: ultimo(y, m), nombre: `Mes actual (${primero(y, m).slice(0, 7)})` };
   if (periodo === 'mes_anterior') {
     const yy = m === 1 ? y - 1 : y; const mm = m === 1 ? 12 : m - 1;
@@ -34,6 +39,18 @@ export function rangoDe(periodo) {
   }
   if (periodo === '3_meses') return { desde: sumarDias(h, -90), hasta: h, nombre: 'Últimos 3 meses' };
   return { desde: '1970-01-01', hasta: '2999-12-31', nombre: 'Todo el historial' };
+}
+
+const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+const nombreMes = (mes) => { const [y, m] = mes.split('-').map(Number); return `${MESES[m - 1]} de ${y}`; };
+
+/** Meses en los que hubo préstamos (para elegir cuál descargar), del más nuevo al más viejo. */
+export async function mesesConDatos() {
+  const filas = await consultar(
+    `SELECT DATE_FORMAT(p.fecha_inicio, '%Y-%m') AS mes, COUNT(DISTINCT p.id) AS prestamos, COUNT(pi.id) AS libros
+     FROM prestamos p JOIN prestamo_items pi ON pi.prestamo_id = p.id
+     GROUP BY mes ORDER BY mes DESC`);
+  return filas.map((f) => ({ mes: f.mes, nombre: nombreMes(f.mes), prestamos: Number(f.prestamos), libros: Number(f.libros) }));
 }
 
 async function cargarExcelJS() {
@@ -49,9 +66,10 @@ function darFormato(hoja, anchos) {
 }
 
 /** Arma el Excel con toda la información. Devuelve { buffer, nombre, resumen }. */
-export async function generarExcel(periodo = 'todo') {
+export async function generarExcel(periodo = 'todo', mes) {
+  if (periodo === 'mes' && !MES_VALIDO.test(mes || '')) throw err.validacion('Elegí un mes válido.');
   const ExcelJS = await cargarExcelJS();
-  const rango = rangoDe(periodo);
+  const rango = rangoDe(periodo, mes);
   const h = hoy();
 
   const items = await consultar(
@@ -64,6 +82,9 @@ export async function generarExcel(periodo = 'todo') {
      JOIN autores a ON a.id = l.autor_id
      JOIN categorias c ON c.id = l.categoria_id
      WHERE p.fecha_inicio BETWEEN ? AND ? ORDER BY p.id, pi.id`, [rango.desde, rango.hasta]);
+
+  // Un mes elegido sin movimientos no genera Excel: se avisa en vez de bajar un archivo vacío
+  if (periodo === 'mes' && !items.length) throw err.conflicto('SIN_DATOS', `En ${nombreMes(mes)} no hubo préstamos, así que no hay Excel para descargar.`);
 
   const detalle = items.map((i) => {
     const estado = estadoDe(i);
@@ -166,7 +187,7 @@ export async function generarExcel(periodo = 'todo') {
   porCategoria.forEach((f) => hojaCat.addRow([f.clave, f.total]));
   darFormato(hojaCat, [26, 18]);
 
-  const sufijo = periodo === 'todo' ? 'completo' : periodo.replace('_', '-');
+  const sufijo = periodo === 'todo' ? 'completo' : periodo === 'mes' ? `mes-${mes}` : periodo.replace('_', '-');
   const buffer = Buffer.from(await wb.xlsx.writeBuffer());
   return { buffer, nombre: `ceibo-libros-estadisticas-${sufijo}-${h}.xlsx`, resumen };
 }

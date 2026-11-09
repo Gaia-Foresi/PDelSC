@@ -34,6 +34,8 @@ const notificaciones = Router();
 notificaciones.use(autenticar);
 notificaciones.post('/listar', validar(z.object({ solo_no_leidas: z.boolean().optional() })), w(gestion.notifListar));
 notificaciones.post('/marcar-leidas', validar(z.object({ ids: z.array(id).max(200).optional() })), w(gestion.notifMarcarLeidas));
+notificaciones.post('/push/registrar', validar(z.object({ token: z.string().min(10).max(200), plataforma: z.enum(['android', 'ios']).optional() })), w(gestion.pushRegistrar));
+notificaciones.post('/push/quitar', validar(z.object({ token: z.string().min(10).max(200) })), w(gestion.pushQuitar));
 notificaciones.post('/cantidad', validar(vacio), w(gestion.notifCantidad));
 
 // ------------------------------------------------------------- distribuidoras
@@ -65,7 +67,11 @@ reposicion.post('/listar', validar(vacio), w(gestion.reposicionListar));
 const estadisticas = Router();
 estadisticas.use(autenticar, requiereRol('gerente'));
 estadisticas.post('/resumen', validar(vacio), w(gestion.resumen));
-estadisticas.post('/exportar', validar(z.object({ periodo: z.enum(PERIODOS, { message: 'Período inválido' }).optional() })), w(gestion.exportar));
+estadisticas.post('/meses', validar(vacio), w(gestion.mesesInforme));
+estadisticas.post('/exportar', validar(z.object({
+  periodo: z.enum(PERIODOS, { message: 'Período inválido' }).optional(),
+  mes: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Mes inválido').optional(),
+}).refine((d) => d.periodo !== 'mes' || !!d.mes, { message: 'Elegí un mes', path: ['mes'] })), w(gestion.exportar));
 estadisticas.post('/analizar', validar(z.object({
   archivos: z.array(z.object({ nombre: texto(200), contenido: z.string().min(20, 'Archivo vacío') }))
     .min(1, 'Subí al menos un archivo').max(12, 'Máximo 12 archivos')

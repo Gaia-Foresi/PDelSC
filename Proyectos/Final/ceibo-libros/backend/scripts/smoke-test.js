@@ -19,20 +19,12 @@ const CLAVES = { gerente: ['gerente@ceibolibros.com', 'Gerente2026'], biblio: ['
 
 const DATOS = { nombre: 'Lucía', apellido: 'Lectora', dni: '40.123.456' };
 
-// crea un sistema de comprobación de pruebas. 
-// Utiliza ok para contar las pruebas que salen bien y fallos para guardar los nombres de las que salen mal. 
-// La función check() recibe el nombre de la prueba, una condición y un mensaje opcional. 
-// Si la condición se cumple, muestra un ✔ y suma al contador; 
-// si no, muestra un ✘ y guarda el fallo en el array.
 let ok = 0;
 const fallos = [];
 const check = (nombre, condicion, extra = '') => {
   if (condicion) { ok += 1; console.log(`  ✔ ${nombre}`); } else { fallos.push(nombre); console.log(`  ✘ ${nombre} ${extra}`); }
 };
 
-// sirve para mandar datos al servidor, 
-// esperar su respuesta y devolver si salió bien o mal, 
-// junto con los datos o el error correspondiente.
 async function post(ruta, cuerpo = {}, token) {
   const r = await fetch(BASE + ruta, {
     method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(cuerpo),
@@ -41,9 +33,6 @@ async function post(ruta, cuerpo = {}, token) {
   return { status: r.status, ok: json.ok, data: json.data, error: json.error };
 }
 
-// sirve para iniciar sesión automáticamente con un usuario, 
-// utilizando su clave para buscar el email y la contraseña, 
-// enviarlos al servidor y obtener los datos necesarios para mantener la sesión iniciada.
 async function login(clave) {
   const [email, password] = CLAVES[clave];
   const r = await post('/auth/login', { email, password });
@@ -51,7 +40,6 @@ async function login(clave) {
   return { token: r.data.access_token, refresh: r.data.refresh_token, usuario: r.data.usuario };
 }
 
-// sirve para cambiar o actualizar un código de verificación sin guardar el código original directamente.
 const poner = async (usuarioId, proposito, codigo = '123456') => {
   await pool.query('UPDATE codigos_verificacion SET codigo_hash = ? WHERE usuario_id = ? AND proposito = ? AND usado = 0', [sha256(codigo), usuarioId, proposito]);
 };
@@ -59,7 +47,6 @@ const poner = async (usuarioId, proposito, codigo = '123456') => {
 async function main() {
   const sufijo = Date.now();
 
-  // Ejecuta los recordatorios para asegurarse de que los usuarios bloqueados por atraso se desbloqueen si corresponde, y que las portadas de los libros estén actualizadas.
   console.log('\n# Reglas generales');
   const get = await fetch(`${BASE}/salud`);
   check('GET está prohibido (405)', get.status === 405);
@@ -70,7 +57,6 @@ async function main() {
   const val = await post('/auth/login', { email: 'no-es-email', password: '' });
   check('Validación → 400 con detalles por campo', val.status === 400 && val.error?.detalles?.email);
 
-  // Ejecuta los recordatorios y la actualización de portadas para asegurarse de que las funciones automáticas del sistema estén funcionando correctamente.
   console.log('\n# Login y roles');
   const mala = await post('/auth/login', { email: CLAVES.lucia[0], password: 'incorrecta1' });
   check('Contraseña incorrecta → 401', mala.status === 401 && mala.error.codigo === 'CREDENCIALES_INVALIDAS');
@@ -95,8 +81,6 @@ async function main() {
   check('Usuario no puede listar usuarios (403)', (await post('/usuarios/listar', {}, lucia.token)).status === 403);
   check('Bibliotecario no puede cambiar roles (403)', (await post('/admin/cambiar-rol', { id: lucia.usuario.id, rol: 'bibliotecario' }, biblio.token)).status === 403);
 
-  //realiza una prueba del sistema de registro, verificación de correo electrónico y autenticación en dos pasos. 
-  //Comprueba que los usuarios no puedan iniciar sesión sin verificar primero su correo y que los códigos de verificación funcionen correctamente.
   console.log('\n# Registro, verificación y 2 pasos');
   const email = `prueba${sufijo}@ejemplo.com`;
   const reg = await post('/auth/registro', { nombre: 'Prueba', apellido: 'Test', email, password: 'Clave1234' });
@@ -113,9 +97,6 @@ async function main() {
   check('El código no se puede reutilizar', (await post('/auth/verificar-email', { email, codigo: '123456' })).status === 401);
   const nuevoTok = ver.data.access_token;
 
-  // realiza una prueba del inicio de sesión con autenticación en dos pasos (2FA). 
-  // Comprueba que, cuando un usuario activa esta opción, no pueda iniciar sesión directamente con su contraseña, 
-  // sino que también necesite ingresar un código de verificación.
   check('Activar 2 pasos', (await post('/usuarios/dos-pasos', { activar: true }, nuevoTok)).data?.usuario?.dos_pasos_activo === true);
   const l2 = await post('/auth/login', { email, password: 'Clave1234' });
   check('Con 2 pasos el login pide código', l2.data?.requiere_2fa === true && !l2.data.access_token);
@@ -429,6 +410,38 @@ async function main() {
   check('Últimos 6 meses', e.prestamos_por_mes.length === 6 && e.prestamos_por_mes.some((m) => m.total > 0));
   check('Libro más prestado = Sapiens', e.libros_mas_prestados[0].titulo === 'Sapiens');
   check('Préstamos por categoría', e.por_categoria.length >= 8);
+
+  console.log('\n# Excel por mes (solo gerente)');
+  const meses = await post('/estadisticas/meses', {}, gerente.token);
+  check('Lista los meses con préstamos', meses.status === 200 && meses.data.meses.length > 0 && /^\d{4}-\d{2}$/.test(meses.data.meses[0].mes) && meses.data.meses[0].prestamos > 0);
+  check('Usuario no puede ver los meses (403)', (await post('/estadisticas/meses', {}, lucia.token)).status === 403);
+  const mesConDatos = meses.data.meses[0].mes;
+  const exMes = await post('/estadisticas/exportar', { periodo: 'mes', mes: mesConDatos }, gerente.token);
+  check('Exporta el Excel de un mes con datos', exMes.status === 200 && exMes.data.nombre.includes(`mes-${mesConDatos}`) && exMes.data.base64.startsWith('UEsD'));
+  check('El resumen del mes cuenta lo mismo que la lista', exMes.data.resumen.libros_prestados === meses.data.meses[0].libros);
+  const exVacio = await post('/estadisticas/exportar', { periodo: 'mes', mes: '2001-01' }, gerente.token);
+  check('Un mes sin préstamos avisa que no hay Excel (409 SIN_DATOS)', exVacio.status === 409 && exVacio.error.codigo === 'SIN_DATOS');
+  check('Período "mes" sin mes se rechaza (400)', (await post('/estadisticas/exportar', { periodo: 'mes' }, gerente.token)).status === 400);
+  check('Mes con formato inválido se rechaza (400)', (await post('/estadisticas/exportar', { periodo: 'mes', mes: '2026-13' }, gerente.token)).status === 400);
+
+  console.log('\n# Notificaciones: estado del préstamo y celular');
+  const cuenta = async (tipo) => Number((await pool.query('SELECT COUNT(*) AS n FROM notificaciones WHERE tipo = ?', [tipo]))[0][0].n);
+  check('Al crear un préstamo se avisa al lector', (await cuenta('prestamo_nuevo')) > 0);
+  check('Al devolver queda "en espera" y se avisa', (await cuenta('prestamo_espera')) > 0);
+  check('Al revisar todo se avisa que el préstamo quedó devuelto', (await cuenta('prestamo_cerrado')) > 0);
+  const tokenPush = 'ExponentPushToken[smoke-test-0123456789]';
+  const regPush = await post('/notificaciones/push/registrar', { token: tokenPush, plataforma: 'android' }, lucia.token);
+  check('Registra el celular para recibir avisos', regPush.status === 200 && regPush.data.registrado === true);
+  const [[{ n: enBase }]] = await pool.query('SELECT COUNT(*) AS n FROM dispositivos_push WHERE token = ?', [tokenPush]);
+  check('El token queda guardado', Number(enBase) === 1);
+  check('Un token con formato inválido no se guarda', (await post('/notificaciones/push/registrar', { token: 'cualquier-cosa-larga-que-no-sirve' }, lucia.token)).data?.registrado === false);
+  check('Registrar sin sesión se rechaza (401)', (await post('/notificaciones/push/registrar', { token: tokenPush })).status === 401);
+  const regPush2 = await post('/notificaciones/push/registrar', { token: tokenPush }, tomas.token);
+  const [[dueno]] = await pool.query('SELECT usuario_id FROM dispositivos_push WHERE token = ?', [tokenPush]);
+  check('Si el celular cambia de cuenta, el token pasa a la nueva', regPush2.status === 200 && dueno.usuario_id === tomas.usuario.id);
+  const quitar = await post('/notificaciones/push/quitar', { token: tokenPush }, tomas.token);
+  const [[{ n: despues }]] = await pool.query('SELECT COUNT(*) AS n FROM dispositivos_push WHERE token = ?', [tokenPush]);
+  check('Al cerrar sesión se quita el celular', quitar.status === 200 && Number(despues) === 0);
 
   await pool.end();
   console.log(`\n${ok} pruebas correctas, ${fallos.length} con error`);

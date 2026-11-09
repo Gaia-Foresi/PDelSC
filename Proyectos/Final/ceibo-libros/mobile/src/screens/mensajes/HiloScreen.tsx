@@ -1,6 +1,6 @@
 // Conversación: burbujas, envío y actualización automática cada 10 segundos.
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { api } from '../../api';
 import { useBadges } from '../../context/BadgesContext';
@@ -10,7 +10,7 @@ import { fechaHora, ROL_TEXTO } from '../../utils/format';
 import { useAsync } from '../../hooks/useAsync';
 import { usePolling } from '../../hooks/useFocus';
 import { useResponsive } from '../../utils/useResponsive';
-import { useTecladoAbierto } from '../../hooks/useTeclado';
+import { useEspacioTeclado, useTecladoAbierto } from '../../hooks/useTeclado';
 import ErrorState from '../../components/ErrorState';
 import ScreenContainer from '../../components/ScreenContainer';
 import { Skeleton } from '../../components/Skeleton';
@@ -28,6 +28,8 @@ export default function HiloScreen({ route }: PantallaProps) {
   const [texto, setTexto] = useState('');
   const [enviando, setEnviando] = useState(false);
   const tecladoAbierto = useTecladoAbierto();
+  const zona = useRef(null);
+  const espacioTeclado = useEspacioTeclado(zona); // sube la barra de escribir por encima del teclado
 
   // Carga el hilo de mensajes, con actualización automática cada 10 segundos y scroll al final si hay mensajes nuevos
   const hilo = useAsync(() => api.mensajes.hilo({ hilo_id: id }), [id]);
@@ -37,7 +39,7 @@ export default function HiloScreen({ route }: PantallaProps) {
   // Al abrir el teclado, la conversación baja al último mensaje (como en WhatsApp)
   useEffect(() => {
     if (tecladoAbierto) setTimeout(() => lista.current?.scrollToEnd({ animated: false }), 120);
-  }, [tecladoAbierto]);
+  }, [tecladoAbierto, espacioTeclado]);
 
   // Al llegar mensajes nuevos: bajar al final y actualizar el contador del menú
   useEffect(() => {
@@ -72,7 +74,8 @@ export default function HiloScreen({ route }: PantallaProps) {
       scroll={false}
       showBell={false}
     >
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'web' ? undefined : 'padding'}>
+      <View ref={zona} collapsable={false} style={{ flex: 1 }}>
+      <View style={{ flex: 1, paddingBottom: espacioTeclado }}>
         {con ? (
           <View style={{ flexShrink: 0, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }}>
             <Text style={{ color: colors.textMuted, fontSize: 13, lineHeight: 18 }} numberOfLines={1}>Conversación con {con.nombre}</Text>
@@ -139,7 +142,8 @@ export default function HiloScreen({ route }: PantallaProps) {
             </Pressable>
           </View>
         </View>
-      </KeyboardAvoidingView>
+      </View>
+      </View>
     </ScreenContainer>
   );
 }

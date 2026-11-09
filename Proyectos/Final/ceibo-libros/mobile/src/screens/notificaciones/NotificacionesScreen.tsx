@@ -22,6 +22,9 @@ const TIPOS = {
   desbloqueo: { icon: 'lock-open-check-outline', tono: 'success' },
   reserva: { icon: 'bookmark-check-outline', tono: 'primary' },
   sistema: { icon: 'bell-outline', tono: 'primary' },
+  prestamo_nuevo: { icon: 'book-clock-outline', tono: 'success' },
+  prestamo_espera: { icon: 'timer-sand', tono: 'warning' },
+  prestamo_cerrado: { icon: 'check-circle-outline', tono: 'primary' },
 };
 
 export default function NotificacionesScreen() {

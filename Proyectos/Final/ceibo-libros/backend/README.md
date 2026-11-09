@@ -216,13 +216,16 @@ Dos tipos de hilo: **`consulta`** (usuario → biblioteca; lo ven y responden G 
 | `POST /notificaciones/listar` | todos | `solo_no_leidas?` | `{ notificaciones: [{ id, tipo, titulo, cuerpo, leida, creada_en }] }` |
 | `POST /notificaciones/marcar-leidas` | todos | `ids?` (sin `ids` marca todas) | `{ marcadas }` |
 | `POST /notificaciones/cantidad` | todos | — | `{ total }` (no leídas) |
+| `POST /notificaciones/push/registrar` | todos | `token` (de Expo), `plataforma?` | `{ registrado }` — el celular empieza a recibir avisos |
+| `POST /notificaciones/push/quitar` | todos | `token` | `{ quitado }` — se llama al cerrar sesión |
 
 ### 5.10 Estadísticas y salud
 
 | Endpoint | Rol | Body | Respuesta `data` |
 |---|---|---|---|
 | `POST /estadisticas/resumen` | G | — | `{ totales: { libros, ejemplares, usuarios, bibliotecarios, bloqueados, prestamos_activos, prestamos_vencidos, reservas_activas }, prestamos_por_mes: [{ mes, total }], libros_mas_prestados: [{ titulo, total }], por_categoria: [{ categoria, total }] }` |
-| `POST /estadisticas/exportar` | G | `periodo?` (`todo` · `mes_actual` · `mes_anterior` · `3_meses`) | `{ nombre, base64, resumen }` — Excel con resumen, préstamos, detalle de libros, usuarios, reservas, dañados y stock |
+| `POST /estadisticas/meses` | G | — | `{ meses: [{ mes, nombre, prestamos, libros }] }` — meses con préstamos, para elegir cuál descargar |
+| `POST /estadisticas/exportar` | G | `periodo?` (`todo` · `mes_actual` · `mes_anterior` · `3_meses` · `mes` + `mes: "YYYY-MM"`); un mes sin préstamos responde 409 `SIN_DATOS` | `{ nombre, base64, resumen }` — Excel con resumen, préstamos, detalle de libros, usuarios, reservas, dañados y stock |
 | `POST /estadisticas/analizar` | G | `archivos: [{ nombre, contenido }]` (1–12 Excel en base64, máx. 4 MB en total) | `{ analisis }` — libros más prestados, sin devolver, vencidos, dañados, por mes y por categoría |
 | `POST /salud` | público | — | `{ estado: "ok" }` |
 

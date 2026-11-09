@@ -60,6 +60,27 @@ export function diasTexto(prestamo) {
   return `Quedan ${d} días`;
 }
 
+// Estado de un préstamo para mostrarle al lector: activo (con libros sin devolver), en espera (ya devueltos, el personal los
+// está revisando) o devuelto (todo devuelto y revisado). `grupo` sirve para filtrar; `vencido` es un caso de "activo".
+export interface EstadoPrestamo {
+  grupo: 'activo' | 'espera' | 'devuelto';
+  texto: string;
+  ayuda: string;
+  tono: 'success' | 'warning' | 'danger' | 'neutral';
+  icono: string;
+}
+export function estadoPrestamo(prestamo): EstadoPrestamo {
+  const items = prestamo.items || [];
+  const sinDevolver = items.filter((i) => !i.devuelto_en).length;
+  const enEspera = items.filter((i) => i.devuelto_en && i.revision === 'pendiente').length;
+  if (prestamo.estado !== 'cerrado' && sinDevolver > 0) {
+    if (prestamo.vencido) return { grupo: 'activo', texto: 'Activo · vencido', ayuda: 'Pasó la fecha de devolución. Devolvé los libros en la biblioteca.', tono: 'danger', icono: 'alert-circle-outline' };
+    return { grupo: 'activo', texto: 'Activo', ayuda: 'Tenés libros para devolver en la biblioteca.', tono: 'success', icono: 'book-clock-outline' };
+  }
+  if (enEspera > 0) return { grupo: 'espera', texto: 'En espera', ayuda: 'Ya devolviste los libros. El personal los está revisando para volver a ponerlos en el stock.', tono: 'warning', icono: 'timer-sand' };
+  return { grupo: 'devuelto', texto: 'Devuelto', ayuda: 'Todos los libros fueron devueltos y revisados.', tono: 'neutral', icono: 'check-circle-outline' };
+}
+
 // Elige texto claro u oscuro según el color de fondo (para letras sobre las categorías)
 export function textoSobre(hex = '#8FAE8B') {
   const h = hex.replace('#', '');

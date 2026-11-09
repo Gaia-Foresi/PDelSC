@@ -28,10 +28,7 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#F3E5D8"
-      },
-      "permissions": [
-        "android.permission.RECORD_AUDIO"
-      ]
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -40,6 +37,12 @@
     "plugins": [
       "expo-secure-store",
       "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "color": "#8FAE8B"
+        }
+      ],
       [
         "expo-image-picker",
         {
@@ -56,9 +59,6 @@
         "googleIosClientId": "",
         "githubClientId": "",
         "discordClientId": ""
-      },
-      "eas": {
-        "projectId": "303bbba2-4d69-4ce8-80ab-1e31b38d98e6"
       }
     }
   }

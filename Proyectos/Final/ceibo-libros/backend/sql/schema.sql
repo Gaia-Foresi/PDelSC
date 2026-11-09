@@ -15,6 +15,7 @@
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS dispositivos_push;
 DROP TABLE IF EXISTS notificaciones;
 DROP TABLE IF EXISTS pedido_items;
 DROP TABLE IF EXISTS pedidos_reposicion;
@@ -296,7 +297,7 @@ CREATE TABLE pedido_items (
 CREATE TABLE notificaciones (
   id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   usuario_id  INT UNSIGNED NOT NULL,
-  tipo        ENUM('recordatorio_devolucion','vencimiento','bloqueo','desbloqueo','reserva','sistema') NOT NULL,
+  tipo        ENUM('recordatorio_devolucion','vencimiento','bloqueo','desbloqueo','reserva','sistema','prestamo_nuevo','prestamo_espera','prestamo_cerrado') NOT NULL,
   titulo      VARCHAR(140) NOT NULL,
   cuerpo      VARCHAR(500) NOT NULL,
   prestamo_id INT UNSIGNED NULL,
@@ -307,4 +308,16 @@ CREATE TABLE notificaciones (
   INDEX idx_notif_usuario (usuario_id, leida),
   CONSTRAINT fk_notif_usuario  FOREIGN KEY (usuario_id)  REFERENCES usuarios(id) ON DELETE CASCADE,
   CONSTRAINT fk_notif_prestamo FOREIGN KEY (prestamo_id) REFERENCES prestamos(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Celulares que reciben notificaciones push (un token por instalación de la app)
+CREATE TABLE dispositivos_push (
+  id             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  usuario_id     INT UNSIGNED NOT NULL,
+  token          VARCHAR(200) NOT NULL,
+  plataforma     VARCHAR(10) NOT NULL DEFAULT 'android',
+  actualizado_en DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_push_token (token),
+  INDEX idx_push_usuario (usuario_id),
+  CONSTRAINT fk_push_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
