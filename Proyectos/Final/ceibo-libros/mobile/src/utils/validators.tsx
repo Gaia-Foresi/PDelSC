@@ -1,4 +1,4 @@
-import { avisarErrores } from './formularios';
+import { avisarCorrecto, avisarErrores } from './formularios';
 
 // Validaciones de formularios. Cada función devuelve un texto de error o '' si está bien.
 export const requerido = (v, nombre = 'Este campo') => (String(v ?? '').trim() ? '' : `${nombre} es obligatorio`);
@@ -26,6 +26,7 @@ export const numeroMin = (v, min, nombre = 'El valor') => {
 // Recibe { campo: error } y devuelve true si no hay ningún error
 export const sinErrores = (errores) => {
   const cantidad = Object.values(errores).filter(Boolean).length;
+  if (!cantidad) avisarCorrecto(); // si había un aviso de campos por corregir, se retira
   if (cantidad) avisarErrores(cantidad); // desplaza la pantalla hasta el primer campo a corregir y avisa cuántos son
   return cantidad === 0;
 };

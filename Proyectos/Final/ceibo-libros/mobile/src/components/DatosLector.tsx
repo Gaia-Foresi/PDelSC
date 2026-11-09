@@ -13,7 +13,7 @@ import Button from './Button';
 import CodigoRetiro from './CodigoRetiro';
 import Input from './Input';
 import SelectorVisita from './SelectorVisita';
-import { avisarErrores } from '../utils/formularios';
+import { avisarCorrecto, avisarErrores } from '../utils/formularios';
 import { visitaTexto } from '../utils/format';
 import { SheetModal } from './Modal';
 
@@ -102,6 +102,7 @@ export function DatosLectorProvider({ children }: DatosLectorProviderProps) {
     if (sinVisita) setErrorVisita('Elegí el día y la hora en que vas a ir.');
     const cantidad = Object.values(e).filter(Boolean).length + (sinVisita ? 1 : 0);
     if (cantidad) { avisarErrores(cantidad); return; }
+    avisarCorrecto();
     cerrar({
       nombre: form.nombre.trim(), apellido: form.apellido.trim(), dni: limpiarDni(form.dni),
       ...(opts?.visitaTipo ? { visita } : {}),

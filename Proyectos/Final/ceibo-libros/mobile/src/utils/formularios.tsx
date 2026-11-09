@@ -14,3 +14,15 @@ export function avisarErrores(cantidad?: number) {
   // Pequeña espera: deja que React termine de dibujar los errores antes de buscar el primero
   setTimeout(() => escuchas.forEach((fn) => fn(cantidad)), 60);
 }
+
+const escuchasCorrecto = new Set<() => void>();
+
+export function alFormularioCorrecto(fn: () => void): () => void {
+  escuchasCorrecto.add(fn);
+  return () => { escuchasCorrecto.delete(fn); };
+}
+
+/** Se llama cuando el formulario quedó bien: el aviso de "hay campos para corregir" ya no corresponde y se retira. */
+export function avisarCorrecto() {
+  escuchasCorrecto.forEach((fn) => fn());
+}

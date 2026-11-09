@@ -6,7 +6,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
 import { radius, shadow, spacing } from '../theme/tokens';
-import { alAvisarErrores, avisarErrores } from '../utils/formularios';
+import { alAvisarErrores, alFormularioCorrecto, avisarErrores } from '../utils/formularios';
 import { useTecladoAbierto } from '../hooks/useTeclado';
 import type { IconName } from '../types';
 
@@ -30,6 +30,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toast, setToast] = useState<{ mensaje: string; tipo: TipoToast } | null>(null);
   const op = useRef(new Animated.Value(0)).current;
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const esDeValidacion = useRef(false); // el cartel actual es el de "hay campos para corregir"
 
   const hide = useCallback(() => {
     Animated.timing(op, { toValue: 0, duration: 180, useNativeDriver: Platform.OS !== 'web' }).start(() => setToast(null));
@@ -37,6 +38,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
   const show = useCallback((mensaje: string, tipo: TipoToast = 'info') => {
     clearTimeout(timer.current);
+    esDeValidacion.current = false;
     setToast({ mensaje, tipo });
     Animated.timing(op, { toValue: 1, duration: 180, useNativeDriver: Platform.OS !== 'web' }).start();
     timer.current = setTimeout(hide, tipo === 'error' ? 6000 : 3500);
@@ -55,8 +57,11 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
   // Validación del formulario: avisa cuántos campos hay que completar o corregir
   useEffect(() => alAvisarErrores((cantidad) => {
-    if (cantidad) show(cantidad === 1 ? 'Hay 1 campo para completar o corregir. Está marcado en rojo.' : `Hay ${cantidad} campos para completar o corregir. Están marcados en rojo.`, 'error');
+    if (cantidad) { show(cantidad === 1 ? 'Hay 1 campo para completar o corregir. Está marcado en rojo.' : `Hay ${cantidad} campos para completar o corregir. Están marcados en rojo.`, 'error'); esDeValidacion.current = true; }
   }), [show]);
+
+  // Si el formulario ya quedó bien, el aviso de campos por corregir se retira (no queda tapando lo que sigue)
+  useEffect(() => alFormularioCorrecto(() => { if (esDeValidacion.current) { clearTimeout(timer.current); hide(); } }), [hide]);
 
   const tono = toast && {
     success: { bg: colors.success, icon: 'check-circle-outline', fg: colors.mode === 'dark' ? '#14210F' : '#FFFFFF' },
