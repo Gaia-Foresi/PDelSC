@@ -72,10 +72,12 @@ estadisticas.post('/exportar', validar(z.object({
   periodo: z.enum(PERIODOS, { message: 'Período inválido' }).optional(),
   mes: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Mes inválido').optional(),
 }).refine((d) => d.periodo !== 'mes' || !!d.mes, { message: 'Elegí un mes', path: ['mes'] })), w(gestion.exportar));
-estadisticas.post('/analizar', validar(z.object({
+const analisisCuerpo = z.object({
   archivos: z.array(z.object({ nombre: texto(200), contenido: z.string().min(20, 'Archivo vacío') }))
     .min(1, 'Subí al menos un archivo').max(12, 'Máximo 12 archivos')
     .refine((a) => a.reduce((s, x) => s + x.contenido.length, 0) <= 5_500_000, 'Los archivos pesan demasiado (máximo 4 MB en total)'),
-})), w(gestion.analizar));
+});
+estadisticas.post('/analizar', validar(analisisCuerpo), w(gestion.analizar));
+estadisticas.post('/analizar-excel', validar(analisisCuerpo), w(gestion.analizarExcel));
 
 export { mensajesRouter as mensajes, notificaciones, distribuidoras, reposicion, estadisticas };

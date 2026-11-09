@@ -141,6 +141,24 @@ export default function InformesScreen() {
     }
   };
 
+  const [bajandoAnalisis, setBajandoAnalisis] = useState(false);
+  const descargarAnalisis = async () => {
+    setBajandoAnalisis(true);
+    try {
+      const r = await api.estadisticas.analizarExcel({ archivos });
+      const donde = await guardarArchivo(r.nombre, r.base64);
+      toast.success(
+        donde === 'descargas' ? `Análisis descargado. Lo encontrás en la carpeta Descargas: ${r.nombre}`
+          : donde === 'carpeta' ? `Análisis guardado en la carpeta que elegiste: ${r.nombre}`
+            : 'Análisis generado. Elegí dónde guardarlo (Archivos, Drive, etc.).',
+      );
+    } catch (e) {
+      toast.fromError(e);
+    } finally {
+      setBajandoAnalisis(false);
+    }
+  };
+
   const analizar = async () => {
     setAnalizando(true);
     try {
@@ -226,6 +244,7 @@ export default function InformesScreen() {
             texto="Resultado"
             ayuda={res.periodo.desde ? `Del ${fecha(res.periodo.desde)} al ${fecha(res.periodo.hasta)} · ${plural(res.archivos.leidos.length, 'archivo leído', 'archivos leídos')}` : undefined}
           />
+          <Button title="Descargar este análisis en Excel" icon="file-excel-outline" variant="secondary" onPress={descargarAnalisis} loading={bajandoAnalisis} style={{ marginBottom: spacing.md }} />
           <View style={styles.numeros}>
             <Numero valor={t.libros_prestados} titulo="Libros prestados" />
             <Numero valor={t.devueltos} titulo="Devueltos" />

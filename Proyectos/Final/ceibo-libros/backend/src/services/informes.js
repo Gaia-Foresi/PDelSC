@@ -288,3 +288,62 @@ export async function analizarArchivos(archivos) {
     lectores_con_mas_atrasos: atrasoPorLector,
   };
 }
+
+/** Arma un Excel con todo lo analizado a partir de los archivos subidos. Devuelve { buffer, nombre }. */
+export async function generarExcelAnalisis(archivos) {
+  const a = await analizarArchivos(archivos);
+  const ExcelJS = await cargarExcelJS();
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'Ceibo Libros';
+  const t = a.totales;
+
+  const resumen = wb.addWorksheet('Resumen');
+  resumen.addRow(['Dato', 'Valor']);
+  resumen.addRow(['Período analizado', a.periodo.desde ? `${a.periodo.desde} al ${a.periodo.hasta}` : '']);
+  resumen.addRow(['Archivos leídos', a.archivos.leidos.length]);
+  resumen.addRow(['Libros prestados', t.libros_prestados]);
+  resumen.addRow(['Devueltos', t.devueltos]);
+  resumen.addRow(['Sin devolver', t.no_devueltos]);
+  resumen.addRow(['Vencidos sin devolver', t.vencidos_sin_devolver]);
+  resumen.addRow(['En espera de revisión', t.en_espera]);
+  resumen.addRow(['Dañados', t.danados]);
+  darFormato(resumen, [28, 30]);
+
+  const masPrestados = wb.addWorksheet('Más prestados');
+  masPrestados.addRow(['Libro', 'Autor', 'Veces prestado']);
+  a.mas_prestados.forEach((x) => masPrestados.addRow([x.titulo, x.autor, x.total]));
+  darFormato(masPrestados, [40, 28, 16]);
+
+  const sinDevolver = wb.addWorksheet('Sin devolver');
+  sinDevolver.addRow(['Libro', 'Lector', 'Vence', 'Días de atraso']);
+  a.no_devueltos.forEach((x) => sinDevolver.addRow([x.titulo, x.lector, x.vence, x.dias_atraso]));
+  darFormato(sinDevolver, [40, 28, 14, 16]);
+
+  const danados = wb.addWorksheet('Dañados');
+  danados.addRow(['Libro', 'Cantidad']);
+  a.danados_por_libro.forEach((x) => danados.addRow([x.titulo, x.total]));
+  darFormato(danados, [40, 12]);
+
+  const porMes = wb.addWorksheet('Por mes');
+  porMes.addRow(['Mes', 'Libros prestados']);
+  a.por_mes.forEach((x) => porMes.addRow([x.mes, x.total]));
+  darFormato(porMes, [12, 18]);
+
+  const porCategoria = wb.addWorksheet('Por categoría');
+  porCategoria.addRow(['Categoría', 'Libros prestados']);
+  a.por_categoria.forEach((x) => porCategoria.addRow([x.categoria, x.total]));
+  darFormato(porCategoria, [26, 18]);
+
+  const atrasos = wb.addWorksheet('Lectores con atrasos');
+  atrasos.addRow(['Lector', 'Libros vencidos sin devolver']);
+  a.lectores_con_mas_atrasos.forEach((x) => atrasos.addRow([x.lector, x.total]));
+  darFormato(atrasos, [30, 28]);
+
+  const origen = wb.addWorksheet('Archivos leídos');
+  origen.addRow(['Archivo', 'Filas leídas']);
+  a.archivos.leidos.forEach((x) => origen.addRow([x.nombre, x.filas]));
+  darFormato(origen, [50, 14]);
+
+  const buffer = Buffer.from(await wb.xlsx.writeBuffer());
+  return { buffer, nombre: `ceibo-libros-analisis-${hoy()}.xlsx` };
+}

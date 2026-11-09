@@ -4,6 +4,7 @@ import { AppState, Platform } from 'react-native';
 import { api } from '../api';
 import { useAuth } from './AuthContext';
 import { useToast } from '../components/Toast';
+import { mostrarAvisoLocal } from '../utils/avisosCelular';
 
 
 // Aviso del sistema (solo web): se muestra aunque la app esté en segundo plano, si el usuario lo permitió
@@ -33,8 +34,20 @@ export function BadgesProvider({ children }: { children: React.ReactNode }) {
       const nuevoM = m.total || 0;
       const nuevoN = n.total || 0;
       if (previo.current && (nuevoM > previo.current.m || nuevoN > previo.current.n)) {
-        toastRef.current.info('Hay un nuevo mensaje');
-        avisoDelSistema('Hay un nuevo mensaje');
+        const esMensaje = nuevoM > previo.current.m;
+        let titulo = esMensaje ? 'Nuevo mensaje' : 'Ceibo Libros';
+        let cuerpo = esMensaje ? 'Tenés un mensaje nuevo en la biblioteca.' : 'Tenés una notificación nueva.';
+        if (!esMensaje) {
+          // se busca el texto de la última notificación para mostrarlo igual que en WhatsApp
+          try {
+            const l = await api.notificaciones.listar({ solo_no_leidas: true });
+            const ultima = l?.notificaciones?.[0];
+            if (ultima) { titulo = ultima.titulo; cuerpo = ultima.cuerpo; }
+          } catch { /* se usa el texto genérico */ }
+        }
+        toastRef.current.info(esMensaje ? 'Hay un nuevo mensaje' : titulo);
+        avisoDelSistema(cuerpo);
+        mostrarAvisoLocal(titulo, cuerpo); // celular: aparece en la barra de notificaciones del sistema
       }
       previo.current = { m: nuevoM, n: nuevoN };
       setMensajes(nuevoM);

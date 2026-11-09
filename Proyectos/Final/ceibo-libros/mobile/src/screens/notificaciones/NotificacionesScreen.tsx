@@ -1,5 +1,5 @@
 // Avisos de la biblioteca: recordatorios de devolución, bloqueos, reservas, etc.
-import React, { useEffect } from 'react';
+import React, { useState } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { api } from '../../api';
@@ -8,7 +8,9 @@ import { useTheme } from '../../theme/ThemeContext';
 import { radius, spacing } from '../../theme/tokens';
 import { fechaHora } from '../../utils/format';
 import { useAsync } from '../../hooks/useAsync';
+import Button from '../../components/Button';
 import Card from '../../components/Card';
+import { useToast } from '../../components/Toast';
 import EmptyState from '../../components/EmptyState';
 import ErrorState from '../../components/ErrorState';
 import { useVolverArriba } from '../../components/VolverArriba';
@@ -34,12 +36,24 @@ export default function NotificacionesScreen() {
   const contenido = useListContentStyle(false);
   const datos = useAsync(() => api.notificaciones.listar({}), []);
 
-  // Se muestran con su estado original (las nuevas resaltadas) y recién después se marcan como leídas
-  const cargadas = !!datos.data;
-  useEffect(() => {
-    if (!cargadas) return;
-    api.notificaciones.marcarLeidas({}).then(refrescar).catch(() => {});
-  }, [cargadas, refrescar]);
+  const toast = useToast();
+  const [marcando, setMarcando] = useState(false);
+  const lista = datos.data?.notificaciones || [];
+  const sinLeer = lista.filter((n) => !n.leida).length;
+
+  // Las nuevas quedan resaltadas hasta que las marcás: una por una (tocándola) o todas juntas con el botón
+  const marcar = async (ids?: number[]) => {
+    setMarcando(true);
+    try {
+      await api.notificaciones.marcarLeidas(ids ? { ids } : {});
+      await datos.reload();
+      refrescar();
+    } catch (e) {
+      toast.fromError(e);
+    } finally {
+      setMarcando(false);
+    }
+  };
 
   const color = (tono) => ({
     warning: [colors.warningSoft, colors.warning],
@@ -54,16 +68,24 @@ export default function NotificacionesScreen() {
         ref={refLista}
         onScroll={onScrollLista}
         scrollEventThrottle={64}
-        data={datos.data?.notificaciones || []}
+        data={lista}
         keyExtractor={(n) => String(n.id)}
         contentContainerStyle={contenido}
         refreshing={false}
         onRefresh={datos.reload}
+        ListHeaderComponent={lista.length ? (
+          <View style={{ marginBottom: spacing.md }}>
+            <Text style={{ color: colors.textMuted, fontSize: 13, marginBottom: spacing.sm }}>
+              {sinLeer ? `Tenés ${sinLeer} sin leer. Tocá una para marcarla como leída.` : 'Todas las notificaciones están leídas.'}
+            </Text>
+            {sinLeer ? <Button title="Marcar todas como leídas" icon="check-all" small variant="secondary" loading={marcando} onPress={() => marcar()} /> : null}
+          </View>
+        ) : null}
         renderItem={({ item: n }) => {
           const t = TIPOS[n.tipo] || TIPOS.sistema;
           const [fondo, fg] = color(t.tono);
           return (
-            <Card style={!n.leida ? { borderColor: colors.primary, borderWidth: 2 } : null} accessibilityLabel={`${n.leida ? '' : 'Nueva. '}${n.titulo}. ${n.cuerpo}`}>
+            <Card onPress={!n.leida ? () => marcar([n.id]) : undefined} style={!n.leida ? { borderColor: colors.primary, borderWidth: 2 } : null} accessibilityLabel={`${n.leida ? '' : 'Nueva. '}${n.titulo}. ${n.cuerpo}`}>
               <View style={styles.fila}>
                 <View style={[styles.icono, { backgroundColor: fondo }]}>
                   <MaterialCommunityIcons name={t.icon} size={22} color={fg} />

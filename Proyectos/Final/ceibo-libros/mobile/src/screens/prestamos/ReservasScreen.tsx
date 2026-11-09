@@ -25,6 +25,9 @@ import { useToast } from '../../components/Toast';
 import type { PantallaProps } from '../../types';
 const FILTROS_USUARIO = [
   { value: 'activa', label: 'Activas' },
+  { value: 'cumplida', label: 'Retiradas' },
+  { value: 'cancelada', label: 'Canceladas' },
+  { value: 'vencida', label: 'Vencidas' },
   { value: 'todas', label: 'Todas' },
 ];
 const FILTROS_STAFF = [

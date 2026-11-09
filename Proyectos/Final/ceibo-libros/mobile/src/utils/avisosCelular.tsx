@@ -75,6 +75,22 @@ export async function quitarAvisos(): Promise<void> {
   }
 }
 
+/** Muestra ahora mismo un aviso en la barra del celular (sin pasar por el servidor). Sirve cuando la app está abierta o en segundo plano. */
+export async function mostrarAvisoLocal(titulo: string, cuerpo: string): Promise<void> {
+  if (!nativo) return;
+  try {
+    await configurar();
+    if (!(await pedirPermiso())) return;
+    const N = await cargar();
+    await N.scheduleNotificationAsync({
+      content: { title: titulo, body: cuerpo, sound: 'default', data: { local: true } },
+      trigger: Platform.OS === 'android' ? { channelId: CANAL } : null,
+    });
+  } catch {
+    /* se ignora */
+  }
+}
+
 const aFecha = (iso: string, hora: number) => {
   const [y, m, d] = String(iso).slice(0, 10).split('-').map(Number);
   return new Date(y, m - 1, d, hora, 0, 0);

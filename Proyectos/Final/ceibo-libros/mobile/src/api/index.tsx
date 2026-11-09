@@ -94,5 +94,6 @@ export const api = {
     meses: privado<{ meses: { mes: string; nombre: string; prestamos: number; libros: number }[] }>('/estadisticas/meses'),
     exportar: privado<{ nombre: string; base64: string; resumen: any }>('/estadisticas/exportar'),
     analizar: privado<{ analisis: any }>('/estadisticas/analizar'),
+    analizarExcel: privado<{ nombre: string; base64: string }>('/estadisticas/analizar-excel'),
   },
 };

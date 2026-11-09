@@ -4,7 +4,7 @@ import { err } from '../utils/httpError.js';
 import { hoy } from '../utils/fechas.js';
 import { enviarEmail, plantilla, escapar } from '../services/mailer.js';
 import { registrarToken, quitarToken } from '../services/push.js';
-import { generarExcel, analizarArchivos, mesesConDatos } from '../services/informes.js';
+import { generarExcel, generarExcelAnalisis, analizarArchivos, mesesConDatos } from '../services/informes.js';
 
 // ------------------------------------------------------------ notificaciones
 /** El celular avisa su token para recibir notificaciones push. */
@@ -190,4 +190,10 @@ export const mesesInforme = async (req, res) => {
 /** Análisis de uno o varios Excel descargados antes (libros más prestados, no devueltos, dañados...). */
 export const analizar = async (req, res) => {
   res.json({ ok: true, data: { analisis: await analizarArchivos(req.body.archivos) } });
+};
+
+/** Descarga el análisis de los Excel subidos como un nuevo Excel (en base64). */
+export const analizarExcel = async (req, res) => {
+  const { buffer, nombre } = await generarExcelAnalisis(req.body.archivos);
+  res.json({ ok: true, data: { nombre, base64: buffer.toString('base64') } });
 };

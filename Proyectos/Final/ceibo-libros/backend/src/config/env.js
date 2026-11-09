@@ -66,7 +66,8 @@ export default {
     port: numero('SMTP_PORT', 587),
     user: process.env.SMTP_USER || '',
     pass: process.env.SMTP_PASS || '',
-    from: process.env.MAIL_FROM || 'Ceibo Libros <no-reply@ceibolibros.com>',
+    // Si no se define MAIL_FROM se usa la casilla autenticada (Gmail y otros rechazan o reescriben remitentes ajenos)
+    from: process.env.MAIL_FROM || (process.env.SMTP_USER ? `Ceibo Libros <${process.env.SMTP_USER}>` : 'Ceibo Libros <no-reply@ceibolibros.com>'),
   },
 
   oauth: {
