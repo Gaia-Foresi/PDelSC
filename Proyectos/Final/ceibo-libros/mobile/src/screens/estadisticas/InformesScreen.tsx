@@ -127,8 +127,8 @@ export default function InformesScreen() {
 
   const elegir = async () => {
     try {
-      const { validos: nuevos, rechazados } = await elegirExcels();
-      if (rechazados.length) toast.error(`Solo se pueden subir archivos Excel (.xlsx). No se agregó: ${rechazados.join(', ')}`);
+      const { validos: nuevos = [], rechazados = [] } = (await elegirExcels()) || ({} as any);
+      if (rechazados.length) toast.error(`No se pudo agregar: ${rechazados.join(', ')}. Tiene que ser un Excel (.xlsx) descargado desde esta pantalla.`);
       if (!nuevos.length) return;
       setArchivos((prev) => {
         const mapa = new Map(prev.map((a) => [a.nombre, a]));
