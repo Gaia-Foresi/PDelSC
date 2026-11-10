@@ -155,6 +155,12 @@ export default function PrestamoDetalleScreen({ navigation, route }: PantallaPro
                   {prestamo.usuario.dni ? (
                     <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 2 }}>DNI {prestamo.usuario.dni}</Text>
                   ) : null}
+                  {esStaff && prestamo.datos_cargados ? (
+                    <Text style={{ color: colors.text, fontSize: 13, marginTop: 6 }}>
+                      Datos cargados al prestar: <Text style={{ fontWeight: '700' }}>{`${prestamo.datos_cargados.nombre} ${prestamo.datos_cargados.apellido}`.trim()}</Text>
+                      {prestamo.datos_cargados.dni ? ` · DNI ${prestamo.datos_cargados.dni}` : ''}
+                    </Text>
+                  ) : null}
                 </View>
                 {esStaff ? <MaterialCommunityIcons name="chevron-right" size={24} color={colors.textMuted} /> : null}
               </View>

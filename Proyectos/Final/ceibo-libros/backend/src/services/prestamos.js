@@ -11,11 +11,17 @@ const { reglas } = env;
 
 const SQL_PRESTAMO = `
   SELECT p.id, p.usuario_id, p.fecha_inicio, p.fecha_vencimiento, p.estado, p.cerrado_en, p.visita_en, p.codigo_retiro,
+         p.datos_nombre, p.datos_apellido, p.datos_dni,
          u.nombre AS unombre, u.apellido AS uapellido, u.email AS uemail, u.curso AS ucurso, u.dni AS udni,
          CONCAT(s.nombre, ' ', s.apellido) AS registrado_por
   FROM prestamos p
   JOIN usuarios u ON u.id = p.usuario_id
   JOIN usuarios s ON s.id = p.registrado_por`;
+
+/** Datos que escribió el personal al prestar (o null si no escribió ninguno). No son los del perfil. */
+export const datosCargados = (f) => (f.datos_nombre || f.datos_apellido || f.datos_dni
+  ? { nombre: f.datos_nombre || '', apellido: f.datos_apellido || '', dni: f.datos_dni || '' }
+  : null);
 
 /** Carga préstamos (con sus libros) que cumplen `where`. Calcula `vencido` y `dias_restantes`. */
 async function cargarPrestamos(where = '', params = [], { limite = 200, conn = pool } = {}) {
@@ -34,6 +40,7 @@ async function cargarPrestamos(where = '', params = [], { limite = 200, conn = p
     id: f.id,
     usuario: { id: f.usuario_id, nombre: `${f.unombre} ${f.uapellido}`.trim(), email: f.uemail, curso: f.ucurso, dni: f.udni },
     codigo_retiro: f.codigo_retiro,
+    datos_cargados: datosCargados(f),
     visita: publica(f.visita_en),
     registrado_por: f.registrado_por,
     fecha_inicio: f.fecha_inicio,
@@ -105,6 +112,23 @@ async function guardarDatosLector(conn, usuarioId, datos = {}, exigir = true) {
   if (Object.keys(faltan).length) throw err.validacion('Faltan datos del lector: completá apellido y DNI.', faltan);
 }
 
+/**
+ * Verifica los datos de quien recibe los libros SIN modificar ningún perfil: alcanza con que el apellido y el DNI estén
+ * en lo que escribió el personal o ya figuren en el perfil. Devuelve lo escrito, para guardarlo en el préstamo o la reserva.
+ */
+async function verificarDatosSinGuardar(conn, usuarioId, datos = {}, exigir = true) {
+  const dados = {};
+  for (const k of ['nombre', 'apellido', 'dni']) if (datos[k]) dados[k] = datos[k];
+  if (exigir) {
+    const [[u]] = await conn.query('SELECT apellido, dni FROM usuarios WHERE id = ?', [usuarioId]);
+    const faltan = {};
+    if (!dados.apellido && !u?.apellido) faltan.apellido = 'Obligatorio';
+    if (!dados.dni && !u?.dni) faltan.dni = 'Obligatorio';
+    if (Object.keys(faltan).length) throw err.validacion('Faltan datos del lector: completá apellido y DNI.', faltan);
+  }
+  return dados;
+}
+
 /** Crea un préstamo con uno o más libros. `codigo` permite conservar el de la reserva de origen. */
 async function crearPrestamo({ usuarioId, libroIds, dias, staffId, datos, codigo, visita, exigirDatos = true }) {
   const ids = [...new Set(libroIds)];
@@ -113,14 +137,15 @@ async function crearPrestamo({ usuarioId, libroIds, dias, staffId, datos, codigo
   }
   const id = await transaccion(async (conn) => {
     await validarUsuarioParaPrestamo(conn, usuarioId);
-    await guardarDatosLector(conn, usuarioId, datos, exigirDatos);
+    const dados = await verificarDatosSinGuardar(conn, usuarioId, datos, exigirDatos); // lo que escribe el personal NO cambia el perfil del lector
     await cumplirReservas(conn, usuarioId, ids);
     await verificarStock(conn, ids);
 
     const inicio = hoy();
     const [r] = await conn.query(
-      'INSERT INTO prestamos (usuario_id, registrado_por, fecha_inicio, fecha_vencimiento, visita_en, codigo_retiro) VALUES (?, ?, ?, ?, ?, ?)',
-      [usuarioId, staffId, inicio, sumarDias(inicio, dias || reglas.prestamoDiasDefecto), visita || new Date(), codigo || await codigoRetiroUnico(conn)]);
+      'INSERT INTO prestamos (usuario_id, registrado_por, fecha_inicio, fecha_vencimiento, visita_en, codigo_retiro, datos_nombre, datos_apellido, datos_dni) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [usuarioId, staffId, inicio, sumarDias(inicio, dias || reglas.prestamoDiasDefecto), visita || new Date(), codigo || await codigoRetiroUnico(conn),
+        dados.nombre || null, dados.apellido || null, dados.dni || null]);
     await conn.query('INSERT INTO prestamo_items (prestamo_id, libro_id) VALUES ?', [ids.map((l) => [r.insertId, l])]);
     return r.insertId;
   });
@@ -270,4 +295,4 @@ async function revisarDevolucion({ prestamoId, libroId, resultado, staffId }) {
   return obtenerPrestamo(prestamoId);
 }
 
-export { pendientesRevision, revisarDevolucion, ediciones, guardarDatosLector, cargarPrestamos, obtenerPrestamo, crearPrestamo, agregarLibros, devolver, desbloquearSiNoDebe };
+export { pendientesRevision, revisarDevolucion, ediciones, guardarDatosLector, verificarDatosSinGuardar, cargarPrestamos, obtenerPrestamo, crearPrestamo, agregarLibros, devolver, desbloquearSiNoDebe };

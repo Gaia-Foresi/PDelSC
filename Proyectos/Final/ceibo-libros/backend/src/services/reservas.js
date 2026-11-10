@@ -8,7 +8,7 @@ async function expirarReservas(conn = pool) {
 }
 
 const SQL_RESERVA = `
-  SELECT r.id, r.tipo, r.estado, r.creada_en, r.fecha_limite, r.visita_en, r.codigo_retiro,
+  SELECT r.id, r.tipo, r.estado, r.creada_en, r.fecha_limite, r.visita_en, r.codigo_retiro, r.datos_nombre, r.datos_apellido, r.datos_dni,
          l.id AS libro_id, l.titulo, a.nombre AS autor,
          u.id AS usuario_id, u.nombre AS unombre, u.apellido AS uapellido, u.curso AS ucurso, u.dni AS udni
   FROM reservas r
@@ -24,6 +24,7 @@ const aObjeto = (r) => ({
   fecha_limite: r.fecha_limite,
   visita: publica(r.visita_en),
   codigo_retiro: r.codigo_retiro,
+  datos_cargados: (r.datos_nombre || r.datos_apellido || r.datos_dni) ? { nombre: r.datos_nombre || '', apellido: r.datos_apellido || '', dni: r.datos_dni || '' } : null,
   libro: { id: r.libro_id, titulo: r.titulo, autor: r.autor },
   usuario: { id: r.usuario_id, nombre: `${r.unombre} ${r.uapellido}`.trim(), curso: r.ucurso, dni: r.udni },
 });

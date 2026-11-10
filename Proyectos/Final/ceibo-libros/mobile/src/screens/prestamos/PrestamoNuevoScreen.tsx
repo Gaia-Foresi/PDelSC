@@ -189,6 +189,9 @@ export default function PrestamoNuevoScreen({ navigation, route }: PantallaProps
           </Card>
 
           <Text style={[styles.paso, { color: colors.text, fontFamily: font.title }]}>2. Datos del lector</Text>
+          <Text style={{ color: colors.textMuted, fontSize: 13, lineHeight: 18, marginTop: -spacing.xs, marginBottom: spacing.md }}>
+            Estos datos quedan guardados en el préstamo. No cambian el perfil del lector.
+          </Text>
           <CamposDatosLector form={datos} setCampo={setCampo} errores={erroresDatos} />
 
           <Text style={[styles.paso, { color: colors.text, fontFamily: font.title }]}>3. Elegí los libros</Text>

@@ -140,11 +140,15 @@ export const reservasCrear = async (req, res) => {
       [libro.stock_total, libro_id, libro_id]);
     if (Number(disponibles) < 1) throw err.conflicto('SIN_STOCK', `No quedan ejemplares disponibles de "${libro.titulo}".`);
 
-    // Datos del lector (se piden en cada reserva y quedan guardados en su perfil)
-    await P.guardarDatosLector(conn, req.usuario.id, { nombre, apellido, curso, dni }, true);
+    // Un lector reserva para sí: sus datos quedan guardados en su perfil. El personal (gerente o bibliotecario) suele reservar
+    // para otra persona: lo que escribe queda solo en la reserva y NO cambia su propio perfil.
+    const esPersonal = req.usuario.rol !== 'usuario';
+    const dados = esPersonal
+      ? await P.verificarDatosSinGuardar(conn, req.usuario.id, { nombre, apellido, dni }, true)
+      : (await P.guardarDatosLector(conn, req.usuario.id, { nombre, apellido, curso, dni }, true), {});
     const [r] = await conn.query(
-      'INSERT INTO reservas (usuario_id, libro_id, tipo, fecha_limite, visita_en, codigo_retiro) VALUES (?, ?, ?, ?, ?, ?)',
-      [req.usuario.id, libro_id, tipo, turno.limite, turno.visita, await codigoRetiroUnico(conn)]);
+      'INSERT INTO reservas (usuario_id, libro_id, tipo, fecha_limite, visita_en, codigo_retiro, datos_nombre, datos_apellido, datos_dni) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [req.usuario.id, libro_id, tipo, turno.limite, turno.visita, await codigoRetiroUnico(conn), dados.nombre || null, dados.apellido || null, dados.dni || null]);
     return r.insertId;
   });
   res.status(201).json({ ok: true, data: { reserva: await R.obtenerReserva(id) } });

@@ -152,6 +152,12 @@ export default function ReservasScreen({ navigation, route }: PantallaProps) {
                 {r.usuario.dni ? <Text style={{ color: colors.textMuted }}> · DNI {r.usuario.dni}</Text> : null}
               </Text>
             ) : null}
+            {esStaff && r.datos_cargados ? (
+              <Text style={{ color: colors.text, fontSize: 13, marginTop: 4 }}>
+                Datos cargados: <Text style={{ fontWeight: '700' }}>{`${r.datos_cargados.nombre} ${r.datos_cargados.apellido}`.trim()}</Text>
+                {r.datos_cargados.dni ? ` · DNI ${r.datos_cargados.dni}` : ''}
+              </Text>
+            ) : null}
             {r.estado === 'activa' ? <CodigoRetiro codigo={r.codigo_retiro} compacto /> : null}
             {r.visita ? (
               <Text style={{ color: colors.text, fontSize: 14, fontWeight: '600', marginTop: spacing.xs }}>

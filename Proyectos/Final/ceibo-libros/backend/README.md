@@ -263,3 +263,10 @@ Dos tipos de hilo: **`consulta`** (usuario → biblioteca; lo ven y responden G 
 * **Recordatorios:** la tarea diaria (cron) avisa por notificación y email **2 días antes** del vencimiento (configurable con `RECORDATORIO_DIAS`).
 * **Eliminar** un libro/categoría/distribuidora es una baja lógica o falla si está en uso; la app siempre pide confirmación antes. **Solo el gerente** puede eliminar libros y categorías (el bibliotecario puede crearlos y editarlos).
 * **Fotos de perfil:** la app reduce la imagen (256 px, JPEG) y la guarda en la base (`usuarios.foto_url`); en los listados de usuarios no se envían las fotos subidas, solo en el perfil/detalle.
+
+
+## Datos que escribe el personal al prestar o reservar
+
+Cuando un gerente o bibliotecario escribe nombre, apellido y DNI al crear un préstamo (`/prestamos/crear`) o al reservar (`/reservas/crear`), esos datos
+**no modifican ningún perfil**: quedan en `datos_nombre`, `datos_apellido` y `datos_dni` del préstamo o de la reserva, y se devuelven como `datos_cargados`.
+Solo cuando un lector reserva para sí mismo se guardan en su propio perfil. Para actualizar una base existente: `npm run db:migrar`.

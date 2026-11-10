@@ -166,6 +166,9 @@ CREATE TABLE reservas (
   fecha_limite DATETIME NOT NULL,
   visita_en    DATETIME NOT NULL,                 -- día y hora (UTC) en que la persona va a ir a la biblioteca
   codigo_retiro CHAR(6) NOT NULL,                 -- código que se muestra en la biblioteca para retirar
+  datos_nombre   VARCHAR(60) NULL,                -- datos que escribió el personal al reservar para otra persona (no tocan ningún perfil)
+  datos_apellido VARCHAR(60) NULL,
+  datos_dni      VARCHAR(15) NULL,
   UNIQUE KEY uq_reservas_codigo (codigo_retiro),
   INDEX idx_reservas_visita (visita_en),
   CONSTRAINT fk_reservas_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
@@ -184,6 +187,9 @@ CREATE TABLE prestamos (
   cerrado_en        DATETIME NULL,
   visita_en         DATETIME NOT NULL,            -- día y hora (UTC) de la visita / retiro en la biblioteca
   codigo_retiro     CHAR(6) NOT NULL,             -- el de la reserva de origen o uno nuevo
+  datos_nombre      VARCHAR(60) NULL,             -- datos que escribió el personal al prestar (quedan en el préstamo, no en el perfil del lector)
+  datos_apellido    VARCHAR(60) NULL,
+  datos_dni         VARCHAR(15) NULL,
   UNIQUE KEY uq_prestamos_codigo (codigo_retiro),
   INDEX idx_prestamos_visita (visita_en),
   CONSTRAINT fk_prestamos_usuario FOREIGN KEY (usuario_id)     REFERENCES usuarios(id),

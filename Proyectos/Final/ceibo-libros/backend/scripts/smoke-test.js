@@ -187,8 +187,17 @@ async function main() {
   console.log('\n# Préstamos');
   const sinDatos = await post('/prestamos/crear', { usuario_id: nuevo.id, libro_ids: [lid] }, biblio.token);
   check('Préstamo directo a un lector sin DNI → 400 con detalle', sinDatos.status === 400 && !!sinDatos.error.detalles?.dni);
-  const conDatos = await post('/prestamos/crear', { usuario_id: nuevo.id, libro_ids: [lid], nombre: 'Prueba', apellido: 'Test', dni: '30111222' }, biblio.token);
+  const conDatos = await post('/prestamos/crear', { usuario_id: nuevo.id, libro_ids: [lid], nombre: 'Visitante', apellido: 'Ajeno', dni: '30111222' }, biblio.token);
   check('Préstamo directo con datos del lector genera su propio código', conDatos.status === 201 && /^[A-Z2-9]{6}$/.test(conDatos.data.prestamo.codigo_retiro) && conDatos.data.prestamo.codigo_retiro !== codigoReserva);
+  const detNuevo = await post('/usuarios/detalle', { id: nuevo.id }, biblio.token);
+  check('Lo que escribe el personal NO cambia el perfil del lector', detNuevo.status === 200 && !detNuevo.data.usuario.dni && detNuevo.data.usuario.nombre === 'Prueba' && detNuevo.data.usuario.apellido === 'Test');
+  check('Esos datos quedan guardados en el préstamo', conDatos.data.prestamo.datos_cargados?.nombre === 'Visitante' && conDatos.data.prestamo.datos_cargados?.apellido === 'Ajeno' && conDatos.data.prestamo.datos_cargados?.dni === '30111222');
+  const perfilBiblioAntes = (await post('/usuarios/perfil', {}, biblio.token)).data.usuario;
+  const resPersonal = await post('/reservas/crear', { libro_id: lid, tipo: 'retiro', nombre: 'Otra', apellido: 'Persona', dni: '31222333', visita: VS.retiro }, biblio.token);
+  const perfilBiblioDespues = (await post('/usuarios/perfil', {}, biblio.token)).data.usuario;
+  check('El personal puede reservar para otra persona', resPersonal.status === 201 && resPersonal.data.reserva.datos_cargados?.dni === '31222333');
+  check('Reservar para otra persona NO cambia el perfil del personal', perfilBiblioAntes.nombre === perfilBiblioDespues.nombre && perfilBiblioAntes.apellido === perfilBiblioDespues.apellido && (perfilBiblioAntes.dni || null) === (perfilBiblioDespues.dni || null));
+  if (resPersonal.status === 201) await post('/reservas/cancelar', { id: resPersonal.data.reserva.id }, biblio.token);
   check('Se encuentra un préstamo por su código', (await post('/prestamos/listar', { q: conDatos.data.prestamo.codigo_retiro }, biblio.token)).data.prestamos.length === 1);
   await post('/prestamos/devolver', { prestamo_id: conDatos.data.prestamo.id }, biblio.token);
   const otro = await post('/libros/crear', { titulo: `Otro libro ${sufijo}`, autor: 'Autora Nueva', categoria_id: ficc.id, stock_total: 1 }, biblio.token);

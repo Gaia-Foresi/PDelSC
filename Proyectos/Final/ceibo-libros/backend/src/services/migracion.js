@@ -26,6 +26,12 @@ const existeIndice = async (tabla, indice) => {
   await pool.query("UPDATE usuarios SET tipo_bloqueo = 'atraso' WHERE estado = 'bloqueado' AND tipo_bloqueo IS NULL");
   await agregar('usuarios', 'curso', 'VARCHAR(40) NULL AFTER telefono');
   await agregar('usuarios', 'dni', 'VARCHAR(15) NULL AFTER curso');
+  // Datos que escribe el personal al prestar o reservar para otra persona: quedan en el préstamo / la reserva y no cambian ningún perfil
+  for (const tabla of ['reservas', 'prestamos']) {
+    await agregar(tabla, 'datos_nombre', 'VARCHAR(60) NULL');
+    await agregar(tabla, 'datos_apellido', 'VARCHAR(60) NULL');
+    await agregar(tabla, 'datos_dni', 'VARCHAR(15) NULL');
+  }
 
   // 1) Primero las columnas de las dos tablas (el generador de códigos consulta ambas)
   for (const tabla of ['reservas', 'prestamos']) {

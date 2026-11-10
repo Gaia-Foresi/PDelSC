@@ -9,7 +9,7 @@ import { esErrorDeLimite, useAvisoLimite } from './useLimite';
 
 export function useReservar(onDone) {
   const { pedirDatos, mostrarCodigo } = useDatosLector();
-  const { recargarPerfil } = useAuth();
+  const { recargarPerfil, esStaff } = useAuth();
   const toast = useToast();
   const avisarLimite = useAvisoLimite();
   return useCallback(async (libro, tipo) => {
@@ -25,8 +25,10 @@ export function useReservar(onDone) {
     const datos = await pedirDatos({
       titulo: sala ? 'Reservar para leer en sala' : 'Reservar para llevar',
       mensaje: sala
-        ? `Te guardamos "${libro.titulo}" para que lo leas en la biblioteca. La reserva dura 24 horas. Completá tus datos y elegí cuándo vas a ir.`
-        : `Te guardamos "${libro.titulo}" para que lo retires. La reserva dura 3 días. Completá tus datos y elegí cuándo vas a ir.`,
+        ? `Te guardamos "${libro.titulo}" para que lo leas en la biblioteca. La reserva dura 24 horas. ${esStaff ? 'Escribí los datos de la persona que lo va a leer (no cambian tu perfil)' : 'Completá tus datos'} y elegí cuándo van a ir.`
+        : `Te guardamos "${libro.titulo}" para que lo retires. La reserva dura 3 días. ${esStaff ? 'Escribí los datos de la persona que lo va a retirar (no cambian tu perfil)' : 'Completá tus datos'} y elegí cuándo van a ir.`,
+    // el personal reserva para otra persona: el formulario arranca vacío, no con sus propios datos
+    ...(esStaff ? { inicial: {} } : {}),
       confirmText: 'Reservar',
       visitaTipo: tipo,
     });
@@ -48,5 +50,5 @@ export function useReservar(onDone) {
       else toast.fromError(e);
       return false;
     }
-  }, [pedirDatos, mostrarCodigo, recargarPerfil, toast, onDone, avisarLimite]);
+  }, [pedirDatos, mostrarCodigo, recargarPerfil, esStaff, toast, onDone, avisarLimite]);
 }
