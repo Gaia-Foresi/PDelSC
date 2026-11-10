@@ -19,7 +19,7 @@ const estadoDe = (i) => {
   return ESTADOS.STOCK;
 };
 
-export const PERIODOS = ['todo', 'mes_actual', 'mes_anterior', '3_meses', 'mes', 'rango'];
+export const PERIODOS = ['todo', 'mes_actual', 'mes_anterior', '3_meses', 'mes', 'rango', 'meses'];
 export const MES_VALIDO = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 /**
@@ -27,7 +27,7 @@ export const MES_VALIDO = /^\d{4}-(0[1-9]|1[0-2])$/;
  * Con periodo 'mes' se pasa también `mes` (YYYY-MM). Con 'rango' se pasan `mes` (desde) y `hasta`, ambos YYYY-MM:
  * va desde el primer día del mes inicial hasta el último día del mes final (sirve para varios meses o años).
  */
-export function rangoDe(periodo, mes, hasta) {
+export function rangoDe(periodo, mes, hasta, lista) {
   const h = hoy();
   const [y, m] = h.split('-').map(Number);
   const primero = (yy, mm) => `${yy}-${String(mm).padStart(2, '0')}-01`;
@@ -35,6 +35,13 @@ export function rangoDe(periodo, mes, hasta) {
   if (periodo === 'mes' && MES_VALIDO.test(mes || '')) {
     const [yy, mm] = mes.split('-').map(Number);
     return { desde: primero(yy, mm), hasta: ultimo(yy, mm), nombre: `Mes ${mes}` };
+  }
+  if (periodo === 'meses' && Array.isArray(lista) && lista.length) {
+    // meses sueltos o años enteros elegidos a mano: el rango va del primero al último; el filtro exacto se hace por mes
+    const orden = [...lista].sort();
+    const [y1, m1] = orden[0].split('-').map(Number);
+    const [y2, m2] = orden[orden.length - 1].split('-').map(Number);
+    return { desde: primero(y1, m1), hasta: ultimo(y2, m2), nombre: orden.length === 1 ? `Mes ${orden[0]}` : `${orden.length} meses elegidos (${orden[0]} a ${orden[orden.length - 1]})` };
   }
   if (periodo === 'rango' && MES_VALIDO.test(mes || '') && MES_VALIDO.test(hasta || '')) {
     const [y1, m1] = mes.split('-').map(Number);
@@ -75,14 +82,18 @@ function darFormato(hoja, anchos) {
 }
 
 /** Arma el Excel con toda la información. Devuelve { buffer, nombre, resumen }. */
-export async function generarExcel(periodo = 'todo', mes, hastaMes) {
+export async function generarExcel(periodo = 'todo', mes, hastaMes, lista) {
   if (periodo === 'mes' && !MES_VALIDO.test(mes || '')) throw err.validacion('Elegí un mes válido.');
+  if (periodo === 'meses') {
+    if (!Array.isArray(lista) || !lista.length || lista.length > 120 || lista.some((k) => !MES_VALIDO.test(k))) throw err.validacion('Elegí al menos un mes.');
+    lista = [...new Set(lista)].sort();
+  }
   if (periodo === 'rango') {
     if (!MES_VALIDO.test(mes || '') || !MES_VALIDO.test(hastaMes || '')) throw err.validacion('Elegí el mes de inicio y el mes final.');
     if (mes > hastaMes) throw err.validacion('El mes de inicio no puede ser posterior al mes final.');
   }
   const ExcelJS = await cargarExcelJS();
-  const rango = rangoDe(periodo, mes, hastaMes);
+  const rango = rangoDe(periodo, mes, hastaMes, lista);
   const h = hoy();
 
   const items = await consultar(
@@ -94,10 +105,16 @@ export async function generarExcel(periodo = 'todo', mes, hastaMes) {
      JOIN libros l ON l.id = pi.libro_id
      JOIN autores a ON a.id = l.autor_id
      JOIN categorias c ON c.id = l.categoria_id
-     WHERE p.fecha_inicio BETWEEN ? AND ? ORDER BY p.id, pi.id`, [rango.desde, rango.hasta]);
+     WHERE p.fecha_inicio BETWEEN ? AND ? ${periodo === 'meses' ? "AND DATE_FORMAT(p.fecha_inicio, '%Y-%m') IN (?)" : ''}
+     ORDER BY p.id, pi.id`, periodo === 'meses' ? [rango.desde, rango.hasta, lista] : [rango.desde, rango.hasta]);
 
   // Un mes elegido sin movimientos no genera Excel: se avisa en vez de bajar un archivo vacío
   if (periodo === 'mes' && !items.length) throw err.conflicto('SIN_DATOS', `En ${nombreMes(mes)} no hubo préstamos, así que no hay Excel para descargar.`);
+  if (periodo === 'meses' && !items.length) {
+    throw err.conflicto('SIN_DATOS', lista.length === 1
+      ? `En ${nombreMes(lista[0])} no hubo préstamos, así que no hay Excel para descargar.`
+      : 'En los meses elegidos no hubo préstamos, así que no hay Excel para descargar.');
+  }
   if (periodo === 'rango' && !items.length) {
     throw err.conflicto('SIN_DATOS', mes === hastaMes
       ? `En ${nombreMes(mes)} no hubo préstamos, así que no hay Excel para descargar.`
@@ -205,7 +222,7 @@ export async function generarExcel(periodo = 'todo', mes, hastaMes) {
   porCategoria.forEach((f) => hojaCat.addRow([f.clave, f.total]));
   darFormato(hojaCat, [26, 18]);
 
-  const sufijo = periodo === 'todo' ? 'completo' : periodo === 'mes' ? `mes-${mes}` : periodo === 'rango' ? `${mes}-a-${hastaMes}` : periodo.replace('_', '-');
+  const sufijo = periodo === 'todo' ? 'completo' : periodo === 'mes' ? `mes-${mes}` : periodo === 'rango' ? `${mes}-a-${hastaMes}` : periodo === 'meses' ? `seleccion-${lista[0]}-a-${lista[lista.length - 1]}` : periodo.replace('_', '-');
   const buffer = Buffer.from(await wb.xlsx.writeBuffer());
   return { buffer, nombre: `ceibo-libros-estadisticas-${sufijo}-${h}.xlsx`, resumen };
 }

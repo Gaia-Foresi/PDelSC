@@ -178,7 +178,7 @@ export const resumen = async (req, res) => {
 
 /** Descarga: devuelve el Excel (en base64) con toda la información del período pedido. */
 export const exportar = async (req, res) => {
-  const { buffer, nombre, resumen } = await generarExcel(req.body.periodo, req.body.mes, req.body.hasta);
+  const { buffer, nombre, resumen } = await generarExcel(req.body.periodo, req.body.mes, req.body.hasta, req.body.meses);
   res.json({ ok: true, data: { nombre, base64: buffer.toString('base64'), resumen } });
 };
 

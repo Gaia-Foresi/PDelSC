@@ -432,6 +432,11 @@ async function main() {
   check('Un rango de años sin préstamos avisa (409 SIN_DATOS)', (await post('/estadisticas/exportar', { periodo: 'rango', mes: '2001-01', hasta: '2003-12' }, gerente.token)).error?.codigo === 'SIN_DATOS');
   check('Rango con inicio posterior al final se rechaza (400)', (await post('/estadisticas/exportar', { periodo: 'rango', mes: mesConDatos, hasta: '2001-01' }, gerente.token)).status === 400 || mesConDatos <= '2001-01');
   check('Rango sin mes final se rechaza (400)', (await post('/estadisticas/exportar', { periodo: 'rango', mes: mesViejo }, gerente.token)).status === 400);
+  const exSel = await post('/estadisticas/exportar', { periodo: 'meses', meses: [mesViejo, mesConDatos] }, gerente.token);
+  check('Exporta meses elegidos a mano', exSel.status === 200 && exSel.data.base64.startsWith('UEsD'));
+  check('Cuenta solo los meses elegidos', exSel.data.resumen.libros_prestados === meses.data.meses.filter((m) => m.mes === mesViejo || m.mes === mesConDatos).reduce((t, m) => t + (m.libros), 0) / (mesViejo === mesConDatos ? 2 : 1));
+  check('Meses elegidos sin préstamos avisa (409 SIN_DATOS)', (await post('/estadisticas/exportar', { periodo: 'meses', meses: ['2001-01', '2001-02'] }, gerente.token)).error?.codigo === 'SIN_DATOS');
+  check('Período "meses" sin lista se rechaza (400)', (await post('/estadisticas/exportar', { periodo: 'meses' }, gerente.token)).status === 400);
 
   console.log('\n# Notificaciones: estado del préstamo y celular');
   const cuenta = async (tipo) => Number((await pool.query('SELECT COUNT(*) AS n FROM notificaciones WHERE tipo = ?', [tipo]))[0][0].n);

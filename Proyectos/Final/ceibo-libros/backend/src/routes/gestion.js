@@ -72,7 +72,9 @@ estadisticas.post('/exportar', validar(z.object({
   periodo: z.enum(PERIODOS, { message: 'Período inválido' }).optional(),
   mes: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Mes inválido').optional(), // con periodo 'rango' es el mes de inicio
   hasta: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Mes inválido').optional(), // solo con periodo 'rango': mes final
+  meses: z.array(z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Mes inválido')).min(1, 'Elegí al menos un mes').max(120, 'Máximo 10 años').optional(), // solo con periodo 'meses': meses sueltos o años enteros
 }).refine((d) => d.periodo !== 'mes' || !!d.mes, { message: 'Elegí un mes', path: ['mes'] })
+  .refine((d) => d.periodo !== 'meses' || !!d.meses, { message: 'Elegí al menos un mes', path: ['meses'] })
   .refine((d) => d.periodo !== 'rango' || !!d.mes, { message: 'Elegí desde qué mes', path: ['mes'] })
   .refine((d) => d.periodo !== 'rango' || !!d.hasta, { message: 'Elegí hasta qué mes', path: ['hasta'] })
   .refine((d) => d.periodo !== 'rango' || !d.mes || !d.hasta || d.mes <= d.hasta, { message: 'El mes de inicio no puede ser posterior al final', path: ['hasta'] })), w(gestion.exportar));

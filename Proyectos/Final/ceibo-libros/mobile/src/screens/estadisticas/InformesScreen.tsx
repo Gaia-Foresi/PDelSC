@@ -13,7 +13,7 @@ import type { ArchivoElegido } from '../../utils/archivos';
 import Button from '../../components/Button';
 import Card from '../../components/Card';
 import Chips from '../../components/Chips';
-import SelectField from '../../components/SelectField';
+import SelectorMeses from './SelectorMeses';
 import EmptyState from '../../components/EmptyState';
 import ScreenContainer from '../../components/ScreenContainer';
 import { useToast } from '../../components/Toast';
@@ -23,26 +23,11 @@ const PERIODOS = [
   { value: 'mes_actual', label: 'Este mes' },
   { value: 'mes_anterior', label: 'Mes anterior' },
   { value: '3_meses', label: 'Últimos 3 meses' },
-  { value: 'rango', label: 'Elegir desde - hasta' },
+  { value: 'meses', label: 'Elegir meses o años' },
 ];
 
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-const claveMes = (y: number, m: number) => `${y}-${String(m).padStart(2, '0')}`;
 const nombreDeMes = (k: string) => { const [y, m] = k.split('-').map(Number); return `${MESES[m - 1]} de ${y}`; };
-const mayus = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
-// Meses para elegir: del actual hacia atrás, hasta el primer mes con datos (mínimo 12 meses, máximo 10 años)
-function listaMeses(conDatos: string[]): string[] {
-  const hoy = new Date();
-  const viejo = conDatos.length ? [...conDatos].sort()[0] : '';
-  const sal: string[] = [];
-  for (let i = 0; i < 120; i += 1) {
-    const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
-    const k = claveMes(d.getFullYear(), d.getMonth() + 1);
-    if (i >= 12 && k < viejo) break;
-    sal.push(k);
-  }
-  return sal;
-}
 
 function Titulo({ texto, ayuda }: { texto: string; ayuda?: string }) {
   const { colors } = useTheme();
@@ -89,8 +74,7 @@ export default function InformesScreen() {
   const { esGerente } = useAuth();
   const toast = useToast();
   const [periodo, setPeriodo] = useState('todo');
-  const [desde, setDesde] = useState<string | null>(null);
-  const [hasta, setHasta] = useState<string | null>(null);
+  const [seleccion, setSeleccion] = useState<string[]>([]); // meses tildados ("2026-10", ...)
   const [mesesDatos, setMesesDatos] = useState<{ mes: string; prestamos: number; libros: number }[] | null>(null);
   const [bajando, setBajando] = useState(false);
   const [archivos, setArchivos] = useState<ArchivoElegido[]>([]);
@@ -101,35 +85,30 @@ export default function InformesScreen() {
     if (!esGerente) return;
     api.estadisticas.meses({}).then((r) => setMesesDatos(r.meses)).catch(() => setMesesDatos([]));
   }, [esGerente]);
-  const meses = useMemo(() => listaMeses((mesesDatos || []).map((m) => m.mes)), [mesesDatos]);
-  const datosDelMes = (mes: string) => (mesesDatos || []).find((m) => m.mes === mes);
-  const opciones = useMemo(() => meses.map((k) => {
-    const d = (mesesDatos || []).find((m) => m.mes === k);
-    return { value: k, label: mayus(nombreDeMes(k)), description: d ? `${d.prestamos} ${d.prestamos === 1 ? 'préstamo' : 'préstamos'}` : 'sin datos' };
-  }), [meses, mesesDatos]);
-  // lo que hay dentro del rango elegido (para avisar antes de descargar)
-  const enRango = useMemo(() => {
-    if (!desde || !hasta || !mesesDatos) return null;
-    const dentro = mesesDatos.filter((m) => m.mes >= desde && m.mes <= hasta);
-    return { prestamos: dentro.reduce((t, m) => t + m.prestamos, 0), libros: dentro.reduce((t, m) => t + m.libros, 0), meses: dentro.length };
-  }, [desde, hasta, mesesDatos]);
-  const rangoInvalido = !!desde && !!hasta && desde > hasta;
-  const elegirPeriodo = (v: string) => {
-    setPeriodo(v);
-    if (v === 'rango' && !desde) { setDesde(meses[Math.min(meses.length - 1, 2)] ?? meses[0]); setHasta(meses[0]); } // por defecto: últimos 3 meses
+
+  // lo que hay dentro de lo elegido (para avisar antes de descargar)
+  const enSeleccion = useMemo(() => {
+    if (!seleccion.length || !mesesDatos) return null;
+    const dentro = mesesDatos.filter((m) => seleccion.includes(m.mes));
+    return { prestamos: dentro.reduce((t, m) => t + m.prestamos, 0), libros: dentro.reduce((t, m) => t + m.libros, 0) };
+  }, [seleccion, mesesDatos]);
+  const textoSeleccion = () => {
+    const n = seleccion.length;
+    if (n === 1) return nombreDeMes(seleccion[0]);
+    const anios = [...new Set(seleccion.map((k) => k.slice(0, 4)))];
+    return `${n} meses (${anios.length === 1 ? `de ${anios[0]}` : `de ${anios.length} años`})`;
   };
 
   if (!esGerente) return <ScreenContainer title="Informes" back><EmptyState icon="lock-outline" title="Solo para el gerente" /></ScreenContainer>;
 
   const descargar = async () => {
-    if (periodo === 'rango') {
-      if (!desde || !hasta) { toast.error('Elegí desde qué mes y hasta qué mes querés el Excel.'); return; }
-      if (rangoInvalido) { toast.error('El mes de inicio no puede ser posterior al mes final.'); return; }
-      if (enRango && !enRango.prestamos) { toast.error('En ese período no hubo préstamos, así que no hay Excel para descargar.'); return; }
+    if (periodo === 'meses') {
+      if (!seleccion.length) { toast.error('Tildá al menos un mes, o un año entero, para el Excel.'); return; }
+      if (enSeleccion && !enSeleccion.prestamos) { toast.error('En lo que elegiste no hubo préstamos, así que no hay Excel para descargar.'); return; }
     }
     setBajando(true);
     try {
-      const r = await api.estadisticas.exportar(periodo === 'rango' ? { periodo, mes: desde, hasta } : { periodo });
+      const r = await api.estadisticas.exportar(periodo === 'meses' ? { periodo, meses: seleccion } : { periodo });
       const donde = await guardarArchivo(r.nombre, r.base64);
       toast.success(
         donde === 'descargas' ? `Excel descargado. Lo encontrás en la carpeta Descargas: ${r.nombre}`
@@ -202,19 +181,22 @@ export default function InformesScreen() {
       </Card>
 
       <Titulo texto="1. Descargar estadísticas" ayuda="El Excel trae el resumen, los préstamos, el detalle libro por libro, los usuarios, las reservas, los libros dañados y el stock." />
-      <Chips options={PERIODOS} value={periodo} onChange={elegirPeriodo} />
-      {periodo === 'rango' ? (
+      <Chips options={PERIODOS} value={periodo} onChange={setPeriodo} />
+      {periodo === 'meses' ? (
         <View style={{ marginBottom: spacing.md }}>
-          <SelectField label="Desde (mes)" title="Desde qué mes" value={desde} options={opciones} onChange={setDesde} placeholder="Elegí el mes de inicio" />
-          <SelectField label="Hasta (mes)" title="Hasta qué mes" value={hasta} options={opciones} onChange={setHasta} placeholder="Elegí el mes final" error={rangoInvalido ? 'El mes final tiene que ser igual o posterior al de inicio.' : undefined} />
-          {desde && hasta && !rangoInvalido && enRango ? (
-            <View style={[styles.aviso, { backgroundColor: enRango.prestamos ? colors.primarySoft : colors.card, borderColor: enRango.prestamos ? colors.primary : colors.border }]}>
-              <MaterialCommunityIcons name={enRango.prestamos ? 'check-circle-outline' : 'information-outline'} size={20} color={enRango.prestamos ? colors.primary : colors.textMuted} />
+          <Text style={{ color: colors.textMuted, fontSize: 13, lineHeight: 18, marginBottom: spacing.sm }}>
+            Tocá un año para ver sus meses. Tildá un mes suelto o la casilla del año para elegirlo entero. Podés combinar varios años.
+          </Text>
+          <SelectorMeses datos={mesesDatos || []} seleccion={seleccion} onChange={setSeleccion} />
+          {seleccion.length ? (
+            <View style={[styles.aviso, { backgroundColor: enSeleccion?.prestamos ? colors.primarySoft : colors.card, borderColor: enSeleccion?.prestamos ? colors.primary : colors.border }]}>
+              <MaterialCommunityIcons name={!enSeleccion || enSeleccion.prestamos ? 'check-circle-outline' : 'information-outline'} size={20} color={!enSeleccion || enSeleccion.prestamos ? colors.primary : colors.textMuted} />
               <Text style={{ flex: 1, marginLeft: spacing.sm, color: colors.text, fontSize: 13, lineHeight: 18 }}>
-                {enRango.prestamos
-                  ? `${desde === hasta ? `Hay Excel de ${nombreDeMes(desde)}` : `Hay Excel desde ${nombreDeMes(desde)} hasta ${nombreDeMes(hasta)}`}: ${plural(enRango.prestamos, 'préstamo', 'préstamos')} y ${plural(enRango.libros, 'libro prestado', 'libros prestados')}.`
-                  : 'En ese período no hubo préstamos, así que no hay Excel para descargar.'}
+                {enSeleccion && !enSeleccion.prestamos
+                  ? 'En lo que elegiste no hubo préstamos, así que no hay Excel para descargar.'
+                  : `Elegiste ${textoSeleccion()}${enSeleccion ? `: ${plural(enSeleccion.prestamos, 'préstamo', 'préstamos')} y ${plural(enSeleccion.libros, 'libro prestado', 'libros prestados')}` : ''}.`}
               </Text>
+              <Text onPress={() => setSeleccion([])} accessibilityRole="button" style={{ color: colors.primary, fontWeight: '700', fontSize: 13, marginLeft: spacing.sm }}>Limpiar</Text>
             </View>
           ) : null}
         </View>
