@@ -1,6 +1,6 @@
 // Estructura común de pantalla: encabezado + contenido centrado (maxWidth en tablets) + pull-to-refresh.
 import React from 'react';
-import { Platform, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { spacing } from '../theme/tokens';
 import { useResponsive } from '../utils/useResponsive';
@@ -10,7 +10,6 @@ import { useHayFondo } from './FondoDecorativo';
 import { fijarAnchoColumna } from '../utils/fondo';
 import { RevelaProvider, useRevelador } from './Revelador';
 import { useVolverArriba } from './VolverArriba';
-import { useTecladoAbierto } from '../hooks/useTeclado';
 
 import type { ReactNode } from 'react';
 import type { ViewStyle } from 'react-native';
@@ -34,9 +33,8 @@ interface ScreenContainerProps {
 export default function ScreenContainer({ title, brand, menu, back, right, showBell, scroll = true, refreshing, onRefresh, children, padded = true, header = true, anchoMax }: ScreenContainerProps) {
   const { colors } = useTheme();
   const { maxWidth } = useResponsive();
-  const tecladoAbierto = useTecladoAbierto();
-  // Con el teclado abierto se deja aire extra abajo para poder subir el formulario y ver los últimos campos
-  const bottom = tecladoAbierto ? spacing.lg + 160 : spacing.lg + 72; // espacio para que el botón de subir no tape lo último; // la barra de abajo (fija) ya cubre el área segura
+  // Espacio fijo abajo para que el botón de subir no tape lo último (fijo: si cambiara al abrir el teclado, la pantalla saltaría)
+  const bottom = spacing.lg + 72; // la barra de abajo (fija) ya cubre el área segura
 
   const { ref, onScroll: alDesplazar, boton } = useVolverArriba();
   const revelador = useRevelador(ref);
@@ -59,7 +57,6 @@ export default function ScreenContainer({ title, brand, menu, back, right, showB
           style={styles.flex}
           contentContainerStyle={[contenido, hayFondo && { flexGrow: 1 }, padded && { padding: spacing.lg, paddingBottom: bottom }]}
           keyboardShouldPersistTaps="handled"
-          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'} // deslizar el formulario esconde el teclado y deja ver todo
           showsVerticalScrollIndicator={false}
           refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} /> : undefined}
         >
