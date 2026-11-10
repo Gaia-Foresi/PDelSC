@@ -19,11 +19,15 @@ const estadoDe = (i) => {
   return ESTADOS.STOCK;
 };
 
-export const PERIODOS = ['todo', 'mes_actual', 'mes_anterior', '3_meses', 'mes'];
+export const PERIODOS = ['todo', 'mes_actual', 'mes_anterior', '3_meses', 'mes', 'rango'];
 export const MES_VALIDO = /^\d{4}-(0[1-9]|1[0-2])$/;
 
-/** Rango de fechas (YYYY-MM-DD) y nombre legible de cada período. Con periodo 'mes' se pasa también `mes` (YYYY-MM). */
-export function rangoDe(periodo, mes) {
+/**
+ * Rango de fechas (YYYY-MM-DD) y nombre legible de cada período.
+ * Con periodo 'mes' se pasa también `mes` (YYYY-MM). Con 'rango' se pasan `mes` (desde) y `hasta`, ambos YYYY-MM:
+ * va desde el primer día del mes inicial hasta el último día del mes final (sirve para varios meses o años).
+ */
+export function rangoDe(periodo, mes, hasta) {
   const h = hoy();
   const [y, m] = h.split('-').map(Number);
   const primero = (yy, mm) => `${yy}-${String(mm).padStart(2, '0')}-01`;
@@ -31,6 +35,11 @@ export function rangoDe(periodo, mes) {
   if (periodo === 'mes' && MES_VALIDO.test(mes || '')) {
     const [yy, mm] = mes.split('-').map(Number);
     return { desde: primero(yy, mm), hasta: ultimo(yy, mm), nombre: `Mes ${mes}` };
+  }
+  if (periodo === 'rango' && MES_VALIDO.test(mes || '') && MES_VALIDO.test(hasta || '')) {
+    const [y1, m1] = mes.split('-').map(Number);
+    const [y2, m2] = hasta.split('-').map(Number);
+    return { desde: primero(y1, m1), hasta: ultimo(y2, m2), nombre: `Del ${mes} al ${hasta}` };
   }
   if (periodo === 'mes_actual') return { desde: primero(y, m), hasta: ultimo(y, m), nombre: `Mes actual (${primero(y, m).slice(0, 7)})` };
   if (periodo === 'mes_anterior') {
@@ -66,10 +75,14 @@ function darFormato(hoja, anchos) {
 }
 
 /** Arma el Excel con toda la información. Devuelve { buffer, nombre, resumen }. */
-export async function generarExcel(periodo = 'todo', mes) {
+export async function generarExcel(periodo = 'todo', mes, hastaMes) {
   if (periodo === 'mes' && !MES_VALIDO.test(mes || '')) throw err.validacion('Elegí un mes válido.');
+  if (periodo === 'rango') {
+    if (!MES_VALIDO.test(mes || '') || !MES_VALIDO.test(hastaMes || '')) throw err.validacion('Elegí el mes de inicio y el mes final.');
+    if (mes > hastaMes) throw err.validacion('El mes de inicio no puede ser posterior al mes final.');
+  }
   const ExcelJS = await cargarExcelJS();
-  const rango = rangoDe(periodo, mes);
+  const rango = rangoDe(periodo, mes, hastaMes);
   const h = hoy();
 
   const items = await consultar(
@@ -85,6 +98,11 @@ export async function generarExcel(periodo = 'todo', mes) {
 
   // Un mes elegido sin movimientos no genera Excel: se avisa en vez de bajar un archivo vacío
   if (periodo === 'mes' && !items.length) throw err.conflicto('SIN_DATOS', `En ${nombreMes(mes)} no hubo préstamos, así que no hay Excel para descargar.`);
+  if (periodo === 'rango' && !items.length) {
+    throw err.conflicto('SIN_DATOS', mes === hastaMes
+      ? `En ${nombreMes(mes)} no hubo préstamos, así que no hay Excel para descargar.`
+      : `Entre ${nombreMes(mes)} y ${nombreMes(hastaMes)} no hubo préstamos, así que no hay Excel para descargar.`);
+  }
 
   const detalle = items.map((i) => {
     const estado = estadoDe(i);
@@ -187,7 +205,7 @@ export async function generarExcel(periodo = 'todo', mes) {
   porCategoria.forEach((f) => hojaCat.addRow([f.clave, f.total]));
   darFormato(hojaCat, [26, 18]);
 
-  const sufijo = periodo === 'todo' ? 'completo' : periodo === 'mes' ? `mes-${mes}` : periodo.replace('_', '-');
+  const sufijo = periodo === 'todo' ? 'completo' : periodo === 'mes' ? `mes-${mes}` : periodo === 'rango' ? `${mes}-a-${hastaMes}` : periodo.replace('_', '-');
   const buffer = Buffer.from(await wb.xlsx.writeBuffer());
   return { buffer, nombre: `ceibo-libros-estadisticas-${sufijo}-${h}.xlsx`, resumen };
 }

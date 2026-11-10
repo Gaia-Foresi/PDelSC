@@ -423,6 +423,15 @@ async function main() {
   check('Un mes sin préstamos avisa que no hay Excel (409 SIN_DATOS)', exVacio.status === 409 && exVacio.error.codigo === 'SIN_DATOS');
   check('Período "mes" sin mes se rechaza (400)', (await post('/estadisticas/exportar', { periodo: 'mes' }, gerente.token)).status === 400);
   check('Mes con formato inválido se rechaza (400)', (await post('/estadisticas/exportar', { periodo: 'mes', mes: '2026-13' }, gerente.token)).status === 400);
+  console.log('\n# Excel por rango de meses (desde - hasta)');
+  const mesViejo = meses.data.meses[meses.data.meses.length - 1].mes;
+  const totalLibros = meses.data.meses.reduce((t, m) => t + m.libros, 0);
+  const exRango = await post('/estadisticas/exportar', { periodo: 'rango', mes: mesViejo, hasta: mesConDatos }, gerente.token);
+  check('Exporta un rango de meses', exRango.status === 200 && exRango.data.nombre.includes(`${mesViejo}-a-${mesConDatos}`) && exRango.data.base64.startsWith('UEsD'));
+  check('El rango suma los libros de todos sus meses', exRango.data.resumen.libros_prestados === totalLibros);
+  check('Un rango de años sin préstamos avisa (409 SIN_DATOS)', (await post('/estadisticas/exportar', { periodo: 'rango', mes: '2001-01', hasta: '2003-12' }, gerente.token)).error?.codigo === 'SIN_DATOS');
+  check('Rango con inicio posterior al final se rechaza (400)', (await post('/estadisticas/exportar', { periodo: 'rango', mes: mesConDatos, hasta: '2001-01' }, gerente.token)).status === 400 || mesConDatos <= '2001-01');
+  check('Rango sin mes final se rechaza (400)', (await post('/estadisticas/exportar', { periodo: 'rango', mes: mesViejo }, gerente.token)).status === 400);
 
   console.log('\n# Notificaciones: estado del préstamo y celular');
   const cuenta = async (tipo) => Number((await pool.query('SELECT COUNT(*) AS n FROM notificaciones WHERE tipo = ?', [tipo]))[0][0].n);

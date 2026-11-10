@@ -225,7 +225,7 @@ Dos tipos de hilo: **`consulta`** (usuario → biblioteca; lo ven y responden G 
 |---|---|---|---|
 | `POST /estadisticas/resumen` | G | — | `{ totales: { libros, ejemplares, usuarios, bibliotecarios, bloqueados, prestamos_activos, prestamos_vencidos, reservas_activas }, prestamos_por_mes: [{ mes, total }], libros_mas_prestados: [{ titulo, total }], por_categoria: [{ categoria, total }] }` |
 | `POST /estadisticas/meses` | G | — | `{ meses: [{ mes, nombre, prestamos, libros }] }` — meses con préstamos, para elegir cuál descargar |
-| `POST /estadisticas/exportar` | G | `periodo?` (`todo` · `mes_actual` · `mes_anterior` · `3_meses` · `mes` + `mes: "YYYY-MM"`); un mes sin préstamos responde 409 `SIN_DATOS` | `{ nombre, base64, resumen }` — Excel con resumen, préstamos, detalle de libros, usuarios, reservas, dañados y stock |
+| `POST /estadisticas/exportar` | G | `periodo?` (`todo` · `mes_actual` · `mes_anterior` · `3_meses` · `mes` + `mes: "YYYY-MM"` · `rango` + `mes: "YYYY-MM"` (desde) + `hasta: "YYYY-MM"`, del primer día del mes inicial al último del final, sirve para varios meses o años); un período sin préstamos responde 409 `SIN_DATOS` | `{ nombre, base64, resumen }` — Excel con resumen, préstamos, detalle de libros, usuarios, reservas, dañados y stock |
 | `POST /estadisticas/analizar` | G | `archivos: [{ nombre, contenido }]` (1–12 Excel en base64, máx. 4 MB en total) | `{ analisis }` — libros más prestados, sin devolver, vencidos, dañados, por mes y por categoría |
 | `POST /estadisticas/analizar-excel` | G | igual que `/analizar` | `{ nombre, base64 }` — el análisis completo como un nuevo Excel (9 hojas) |
 | `POST /salud` | público | — | `{ estado: "ok" }` |

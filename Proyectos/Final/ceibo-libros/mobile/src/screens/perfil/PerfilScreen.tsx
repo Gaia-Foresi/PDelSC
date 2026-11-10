@@ -14,6 +14,7 @@ import type { OrigenFoto as Origen } from '../../utils/foto';
 import OrigenFoto from '../../components/OrigenFoto';
 import Avatar from '../../components/Avatar';
 import Badge from '../../components/Badge';
+import VisorFoto from '../../components/VisorFoto';
 import BloqueoBanner from '../../components/BloqueoBanner';
 import Button from '../../components/Button';
 import Card from '../../components/Card';
@@ -50,6 +51,7 @@ export default function PerfilScreen({ navigation }: PantallaProps) {
 
   // Tocar la foto pregunta si sacar una foto o elegir de la galería, y la guarda en el momento
   const [elegirOrigen, setElegirOrigen] = useState(false);
+  const [verFoto, setVerFoto] = useState(false); // foto ampliada
   const cambiarFoto = async (origen: Origen) => {
     setSubiendo(true);
     try {
@@ -81,14 +83,18 @@ export default function PerfilScreen({ navigation }: PantallaProps) {
     <ScreenContainer title="Mi perfil" menu tab refreshing={perfil.loading && !!perfil.data} onRefresh={perfil.refresh}>
       <BloqueoBanner />
       <OrigenFoto visible={elegirOrigen} onClose={() => setElegirOrigen(false)} onElegir={cambiarFoto} />
+      <VisorFoto visible={verFoto} uri={usuario.foto_url} nombre={nombreCompleto(usuario)} onClose={() => setVerFoto(false)} onCambiar={() => { setVerFoto(false); setElegirOrigen(true); }} />
       <View style={styles.cabecera}>
-        <Pressable onPress={() => setElegirOrigen(true)} disabled={subiendo} accessibilityRole="button" accessibilityLabel="Cambiar foto de perfil" style={{ opacity: subiendo ? 0.6 : 1 }}>
-          <Avatar usuario={usuario} size={132} />
-          <View style={[styles.camara, { backgroundColor: colors.primary, borderColor: colors.bg }]}>
+        <View>
+          {/* Tocar la foto la agranda (si todavía no tiene foto, ofrece ponerla); tocar la cámara abre las opciones para cambiarla */}
+          <Pressable onPress={() => (usuario.foto_url ? setVerFoto(true) : setElegirOrigen(true))} accessibilityRole="button" accessibilityLabel={usuario.foto_url ? 'Ver foto de perfil en grande' : 'Agregar foto de perfil'} style={{ opacity: subiendo ? 0.6 : 1 }}>
+            <Avatar usuario={usuario} size={132} />
+          </Pressable>
+          <Pressable onPress={() => setElegirOrigen(true)} disabled={subiendo} accessibilityRole="button" accessibilityLabel="Cambiar foto de perfil" hitSlop={8} style={[styles.camara, { backgroundColor: colors.primary, borderColor: colors.bg }]}>
             <MaterialCommunityIcons name={subiendo ? 'timer-sand' : 'camera-outline'} size={20} color={colors.onPrimary} />
-          </View>
-        </Pressable>
-        <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: spacing.xs }}>Tocá la foto para cambiarla</Text>
+          </Pressable>
+        </View>
+        <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: spacing.xs }}>Tocá la foto para verla grande, o la cámara para cambiarla</Text>
         <Text style={[styles.nombre, { color: colors.text, fontFamily: font.title }]}>{nombreCompleto(usuario)}</Text>
         {esStaff ? <Badge text={ROL_TEXTO[usuario.rol]} tone="primary" icon="shield-account-outline" style={{ alignSelf: 'center', marginTop: spacing.sm }} /> : null}
       </View>

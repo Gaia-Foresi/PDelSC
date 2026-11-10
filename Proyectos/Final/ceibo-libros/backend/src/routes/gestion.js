@@ -70,8 +70,12 @@ estadisticas.post('/resumen', validar(vacio), w(gestion.resumen));
 estadisticas.post('/meses', validar(vacio), w(gestion.mesesInforme));
 estadisticas.post('/exportar', validar(z.object({
   periodo: z.enum(PERIODOS, { message: 'Período inválido' }).optional(),
-  mes: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Mes inválido').optional(),
-}).refine((d) => d.periodo !== 'mes' || !!d.mes, { message: 'Elegí un mes', path: ['mes'] })), w(gestion.exportar));
+  mes: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Mes inválido').optional(), // con periodo 'rango' es el mes de inicio
+  hasta: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Mes inválido').optional(), // solo con periodo 'rango': mes final
+}).refine((d) => d.periodo !== 'mes' || !!d.mes, { message: 'Elegí un mes', path: ['mes'] })
+  .refine((d) => d.periodo !== 'rango' || !!d.mes, { message: 'Elegí desde qué mes', path: ['mes'] })
+  .refine((d) => d.periodo !== 'rango' || !!d.hasta, { message: 'Elegí hasta qué mes', path: ['hasta'] })
+  .refine((d) => d.periodo !== 'rango' || !d.mes || !d.hasta || d.mes <= d.hasta, { message: 'El mes de inicio no puede ser posterior al final', path: ['hasta'] })), w(gestion.exportar));
 const analisisCuerpo = z.object({
   archivos: z.array(z.object({ nombre: texto(200), contenido: z.string().min(20, 'Archivo vacío') }))
     .min(1, 'Subí al menos un archivo').max(12, 'Máximo 12 archivos')

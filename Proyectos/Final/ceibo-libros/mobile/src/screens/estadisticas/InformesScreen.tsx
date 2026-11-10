@@ -1,7 +1,7 @@
 // Informes (solo gerente): descarga un Excel con las estadísticas y toda la información de la biblioteca, y analiza
 // varios Excel de distintos meses juntos (libros más prestados, no devueltos, dañados, movimiento por mes y categoría).
 import React, { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { api } from '../../api';
 import { useAuth } from '../../context/AuthContext';
@@ -13,6 +13,7 @@ import type { ArchivoElegido } from '../../utils/archivos';
 import Button from '../../components/Button';
 import Card from '../../components/Card';
 import Chips from '../../components/Chips';
+import SelectField from '../../components/SelectField';
 import EmptyState from '../../components/EmptyState';
 import ScreenContainer from '../../components/ScreenContainer';
 import { useToast } from '../../components/Toast';
@@ -22,22 +23,23 @@ const PERIODOS = [
   { value: 'mes_actual', label: 'Este mes' },
   { value: 'mes_anterior', label: 'Mes anterior' },
   { value: '3_meses', label: 'Últimos 3 meses' },
-  { value: 'mes', label: 'Elegir un mes' },
+  { value: 'rango', label: 'Elegir desde - hasta' },
 ];
 
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-const CORTO = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const claveMes = (y: number, m: number) => `${y}-${String(m).padStart(2, '0')}`;
-// Últimos 12 meses (o desde el primer mes con datos, hasta 36), del más nuevo al más viejo
-function listaMeses(conDatos: string[]): { mes: string; nombre: string; corto: string }[] {
+const nombreDeMes = (k: string) => { const [y, m] = k.split('-').map(Number); return `${MESES[m - 1]} de ${y}`; };
+const mayus = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+// Meses para elegir: del actual hacia atrás, hasta el primer mes con datos (mínimo 12 meses, máximo 10 años)
+function listaMeses(conDatos: string[]): string[] {
   const hoy = new Date();
-  const sal: { mes: string; nombre: string; corto: string }[] = [];
-  const viejo = conDatos.length ? conDatos[conDatos.length - 1] : '';
-  for (let i = 0; i < 36; i += 1) {
+  const viejo = conDatos.length ? [...conDatos].sort()[0] : '';
+  const sal: string[] = [];
+  for (let i = 0; i < 120; i += 1) {
     const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
     const k = claveMes(d.getFullYear(), d.getMonth() + 1);
     if (i >= 12 && k < viejo) break;
-    sal.push({ mes: k, nombre: `${MESES[d.getMonth()]} de ${d.getFullYear()}`, corto: `${CORTO[d.getMonth()]} ${String(d.getFullYear()).slice(2)}` });
+    sal.push(k);
   }
   return sal;
 }
@@ -87,7 +89,8 @@ export default function InformesScreen() {
   const { esGerente } = useAuth();
   const toast = useToast();
   const [periodo, setPeriodo] = useState('todo');
-  const [mesElegido, setMesElegido] = useState<string | null>(null);
+  const [desde, setDesde] = useState<string | null>(null);
+  const [hasta, setHasta] = useState<string | null>(null);
   const [mesesDatos, setMesesDatos] = useState<{ mes: string; prestamos: number; libros: number }[] | null>(null);
   const [bajando, setBajando] = useState(false);
   const [archivos, setArchivos] = useState<ArchivoElegido[]>([]);
@@ -99,19 +102,34 @@ export default function InformesScreen() {
     api.estadisticas.meses({}).then((r) => setMesesDatos(r.meses)).catch(() => setMesesDatos([]));
   }, [esGerente]);
   const meses = useMemo(() => listaMeses((mesesDatos || []).map((m) => m.mes)), [mesesDatos]);
-  const datosDelMes = (mes: string | null) => (mes ? (mesesDatos || []).find((m) => m.mes === mes) : undefined);
+  const datosDelMes = (mes: string) => (mesesDatos || []).find((m) => m.mes === mes);
+  const opciones = useMemo(() => meses.map((k) => {
+    const d = (mesesDatos || []).find((m) => m.mes === k);
+    return { value: k, label: mayus(nombreDeMes(k)), description: d ? `${d.prestamos} ${d.prestamos === 1 ? 'préstamo' : 'préstamos'}` : 'sin datos' };
+  }), [meses, mesesDatos]);
+  // lo que hay dentro del rango elegido (para avisar antes de descargar)
+  const enRango = useMemo(() => {
+    if (!desde || !hasta || !mesesDatos) return null;
+    const dentro = mesesDatos.filter((m) => m.mes >= desde && m.mes <= hasta);
+    return { prestamos: dentro.reduce((t, m) => t + m.prestamos, 0), libros: dentro.reduce((t, m) => t + m.libros, 0), meses: dentro.length };
+  }, [desde, hasta, mesesDatos]);
+  const rangoInvalido = !!desde && !!hasta && desde > hasta;
+  const elegirPeriodo = (v: string) => {
+    setPeriodo(v);
+    if (v === 'rango' && !desde) { setDesde(meses[Math.min(meses.length - 1, 2)] ?? meses[0]); setHasta(meses[0]); } // por defecto: últimos 3 meses
+  };
 
   if (!esGerente) return <ScreenContainer title="Informes" back><EmptyState icon="lock-outline" title="Solo para el gerente" /></ScreenContainer>;
 
   const descargar = async () => {
-    if (periodo === 'mes' && !mesElegido) { toast.error('Elegí de qué mes querés el Excel.'); return; }
-    if (periodo === 'mes' && mesesDatos && !datosDelMes(mesElegido)) {
-      toast.error(`En ${meses.find((m) => m.mes === mesElegido)?.nombre} no hubo préstamos, así que no hay Excel para descargar.`);
-      return;
+    if (periodo === 'rango') {
+      if (!desde || !hasta) { toast.error('Elegí desde qué mes y hasta qué mes querés el Excel.'); return; }
+      if (rangoInvalido) { toast.error('El mes de inicio no puede ser posterior al mes final.'); return; }
+      if (enRango && !enRango.prestamos) { toast.error('En ese período no hubo préstamos, así que no hay Excel para descargar.'); return; }
     }
     setBajando(true);
     try {
-      const r = await api.estadisticas.exportar(periodo === 'mes' ? { periodo, mes: mesElegido } : { periodo });
+      const r = await api.estadisticas.exportar(periodo === 'rango' ? { periodo, mes: desde, hasta } : { periodo });
       const donde = await guardarArchivo(r.nombre, r.base64);
       toast.success(
         donde === 'descargas' ? `Excel descargado. Lo encontrás en la carpeta Descargas: ${r.nombre}`
@@ -184,36 +202,18 @@ export default function InformesScreen() {
       </Card>
 
       <Titulo texto="1. Descargar estadísticas" ayuda="El Excel trae el resumen, los préstamos, el detalle libro por libro, los usuarios, las reservas, los libros dañados y el stock." />
-      <Chips options={PERIODOS} value={periodo} onChange={setPeriodo} />
-      {periodo === 'mes' ? (
+      <Chips options={PERIODOS} value={periodo} onChange={elegirPeriodo} />
+      {periodo === 'rango' ? (
         <View style={{ marginBottom: spacing.md }}>
-          <Text style={{ color: colors.text, fontSize: 14, fontWeight: '600', marginBottom: 8 }}>¿De qué mes?</Text>
-          <View style={styles.meses}>
-            {meses.map((m) => {
-              const d = datosDelMes(m.mes);
-              const activo = mesElegido === m.mes;
-              return (
-                <Pressable
-                  key={m.mes}
-                  onPress={() => setMesElegido(m.mes)}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: activo }}
-                  accessibilityLabel={`${m.nombre}${d ? `, hay Excel con ${plural(d.prestamos, 'préstamo', 'préstamos')}` : ', sin préstamos'}`}
-                  style={[styles.mes, { backgroundColor: activo ? colors.primary : colors.card, borderColor: activo ? colors.primary : d ? colors.success : colors.border }]}
-                >
-                  <Text style={{ color: activo ? colors.onPrimary : colors.text, fontWeight: '700', fontSize: 14 }}>{m.corto}</Text>
-                  <Text style={{ color: activo ? colors.onPrimary : d ? colors.success : colors.textMuted, fontSize: 11, fontWeight: '600' }}>{d ? `${d.prestamos} ${d.prestamos === 1 ? 'préstamo' : 'préstamos'}` : 'sin datos'}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-          {mesElegido && mesesDatos ? (
-            <View style={[styles.aviso, { backgroundColor: datosDelMes(mesElegido) ? colors.primarySoft : colors.card, borderColor: datosDelMes(mesElegido) ? colors.primary : colors.border }]}>
-              <MaterialCommunityIcons name={datosDelMes(mesElegido) ? 'check-circle-outline' : 'information-outline'} size={20} color={datosDelMes(mesElegido) ? colors.primary : colors.textMuted} />
+          <SelectField label="Desde (mes)" title="Desde qué mes" value={desde} options={opciones} onChange={setDesde} placeholder="Elegí el mes de inicio" />
+          <SelectField label="Hasta (mes)" title="Hasta qué mes" value={hasta} options={opciones} onChange={setHasta} placeholder="Elegí el mes final" error={rangoInvalido ? 'El mes final tiene que ser igual o posterior al de inicio.' : undefined} />
+          {desde && hasta && !rangoInvalido && enRango ? (
+            <View style={[styles.aviso, { backgroundColor: enRango.prestamos ? colors.primarySoft : colors.card, borderColor: enRango.prestamos ? colors.primary : colors.border }]}>
+              <MaterialCommunityIcons name={enRango.prestamos ? 'check-circle-outline' : 'information-outline'} size={20} color={enRango.prestamos ? colors.primary : colors.textMuted} />
               <Text style={{ flex: 1, marginLeft: spacing.sm, color: colors.text, fontSize: 13, lineHeight: 18 }}>
-                {datosDelMes(mesElegido)
-                  ? `Hay Excel de ${meses.find((m) => m.mes === mesElegido)?.nombre}: ${plural(datosDelMes(mesElegido)!.prestamos, 'préstamo', 'préstamos')} y ${plural(datosDelMes(mesElegido)!.libros, 'libro prestado', 'libros prestados')}.`
-                  : `En ${meses.find((m) => m.mes === mesElegido)?.nombre} no hubo préstamos, así que no hay Excel para descargar.`}
+                {enRango.prestamos
+                  ? `${desde === hasta ? `Hay Excel de ${nombreDeMes(desde)}` : `Hay Excel desde ${nombreDeMes(desde)} hasta ${nombreDeMes(hasta)}`}: ${plural(enRango.prestamos, 'préstamo', 'préstamos')} y ${plural(enRango.libros, 'libro prestado', 'libros prestados')}.`
+                  : 'En ese período no hubo préstamos, así que no hay Excel para descargar.'}
               </Text>
             </View>
           ) : null}
@@ -285,8 +285,6 @@ const styles = StyleSheet.create({
   numeros: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   num: { flexGrow: 1, flexBasis: '30%', borderWidth: 1, borderRadius: radius.md, padding: spacing.md, minWidth: 100 },
   archivo: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: radius.md, padding: spacing.md, marginTop: spacing.sm },
-  meses: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  mes: { minWidth: 92, borderWidth: 1.5, borderRadius: radius.md, paddingVertical: 8, paddingHorizontal: spacing.md, alignItems: 'center' },
   aviso: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: radius.md, padding: spacing.md, marginTop: spacing.md },
   filaLista: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm },
 });
