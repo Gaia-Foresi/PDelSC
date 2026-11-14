@@ -31,6 +31,7 @@ interface CantidadProps {
   nombre?: any;
 }
 
+// Control de cantidad con botones − y +.
 function Cantidad({ valor, onChange, nombre }: CantidadProps) {
   const { colors } = useTheme();
   const boton = (icon, delta, label) => (
@@ -52,6 +53,7 @@ function Cantidad({ valor, onChange, nombre }: CantidadProps) {
   );
 }
 
+// Pantalla para armar un pedido de libros y mandarlo por email a la distribuidora.
 export default function PedirLibrosScreen({ navigation }: PantallaProps) {
   const { colors } = useTheme();
   const { esGerente } = useAuth();
@@ -67,6 +69,7 @@ export default function PedirLibrosScreen({ navigation }: PantallaProps) {
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState(null);
 
+  // Distribuidoras y pedidos anteriores (solo si es gerente).
   const dists = useAsync(() => (esGerente ? api.distribuidoras.listar() : Promise.resolve(null)), [esGerente]);
   const historial = useAsync(() => (esGerente ? api.reposicion.listar() : Promise.resolve(null)), [esGerente]);
   useRefreshOnFocus(() => { dists.refresh(); historial.refresh(); });
@@ -75,6 +78,7 @@ export default function PedirLibrosScreen({ navigation }: PantallaProps) {
     const id = setTimeout(() => setBusqueda(q.trim()), 400);
     return () => clearTimeout(id);
   }, [q]);
+  // Busca libros del catálogo para agregarlos al pedido.
   const libros = useAsync(() => (busqueda ? api.libros.listar({ q: busqueda }) : Promise.resolve(null)), [busqueda]);
 
   // Si hay una sola distribuidora, queda elegida
@@ -94,7 +98,9 @@ export default function PedirLibrosScreen({ navigation }: PantallaProps) {
       : [...prev, { clave: `l${l.id}`, libro_id: l.id, titulo: l.titulo, cantidad: 1 }]));
     setErrores((e) => ({ ...e, items: '' }));
   };
+  // Total de ejemplares pedidos (suma de las cantidades).
   const totalEjemplares = items.reduce((s, i) => s + i.cantidad, 0);
+  // Agrega un título que todavía no está en el catálogo (escrito a mano).
   const agregarTitulo = () => {
     const titulo = nuevoTitulo.trim();
     if (!titulo) return;
@@ -102,9 +108,11 @@ export default function PedirLibrosScreen({ navigation }: PantallaProps) {
     setNuevoTitulo('');
     setErrores((e) => ({ ...e, items: '' }));
   };
+  // Cambia la cantidad de un renglón o lo quita del pedido.
   const cambiarCantidad = (clave, cantidad) => setItems((prev) => prev.map((i) => (i.clave === clave ? { ...i, cantidad } : i)));
   const quitar = (clave) => setItems((prev) => prev.filter((i) => i.clave !== clave));
 
+  // Valida, pide confirmación y manda el pedido. Avisa si el email salió o si hubo un problema.
   const enviar = async () => {
     const e = {
       distribuidora: distribuidora ? '' : 'Elegí una distribuidora',

@@ -56,29 +56,45 @@ function horariosPara() {
   return { lista: generarHorarios(desde, hasta) };
 }
 
-/** Horarios agrupados por día, listos para mostrar. */
-function horariosAgrupados(tipo) {
-  const { lista } = horariosPara();
+/** ¿Ese día está bloqueado por el gerente?
+ *  - `fecha`: el día como texto 'YYYY-MM-DD' (hora local de la biblioteca).
+ *  - `bloqueos`: la lista que trae bloqueosVigentes(), con forma [{ desde, hasta }].
+ *  En criollo: recorre los bloqueos y dice "sí" si la fecha cae entre el `desde` y el `hasta` de alguno.
+ *  Se puede comparar así, con >= y <=, porque 'YYYY-MM-DD' ordena igual como texto que como fecha. */
+const diaBloqueado = (fecha, bloqueos = []) => bloqueos.some((b) => fecha >= b.desde && fecha <= b.hasta);
+
+/** Horarios agrupados por día, listos para mostrar.
+ *  En criollo: toma todos los horarios posibles y los reparte en "cajitas" por día. Si el día está cerrado,
+ *  la cajita se marca con `no_disponible: true` y queda SIN horas. Nunca se informa el motivo del cierre. */
+function horariosAgrupados(tipo, bloqueos = []) {
+  const { lista } = horariosPara(); // todos los horarios de atención de los próximos días
   const dias = [];
   for (const t of lista) {
-    const l = aLocal(t);
-    let dia = dias.find((x) => x.fecha === l.fecha);
+    const l = aLocal(t); // pasa el horario a fecha y hora locales
+    let dia = dias.find((x) => x.fecha === l.fecha); // ¿ya existe la cajita de este día?
     if (!dia) {
       const [y, m, d] = l.fecha.split('-');
       dia = { fecha: l.fecha, etiqueta: `${DIAS_CORTO[l.dow]} ${d}/${m}`, horas: [] };
+      if (diaBloqueado(l.fecha, bloqueos)) dia.no_disponible = true; // día cerrado: se marca, y la app lo dibuja tachado
       dias.push(dia);
     }
-    dia.horas.push({ hora: l.hora, iso: t.toISOString() });
+    // Las horas solo se agregan si el día NO está cerrado
+    if (!dia.no_disponible) dia.horas.push({ hora: l.hora, iso: t.toISOString() });
   }
   return dias;
 }
 
 /** Comprueba que `iso` sea uno de los horarios disponibles. Devuelve la fecha de visita y hasta cuándo se guarda la reserva. */
-function validarVisitaReserva(iso, tipo) {
+function validarVisitaReserva(iso, tipo, bloqueos = []) {
   const t = new Date(iso);
   const { lista } = horariosPara();
   if (Number.isNaN(t.getTime()) || !lista.some((x) => x.getTime() === t.getTime())) {
     throw err.validacion('Elegí un día y horario disponibles para tu visita.', { visita: 'Horario no disponible' });
+  }
+  // Segunda barrera: aunque la app no deje tocar un día cerrado, el servidor lo comprueba igual.
+  // (Si alguien manda el pedido "a mano", sin usar la app, esta línea lo frena.)
+  if (diaBloqueado(aLocal(t).fecha, bloqueos)) {
+    throw err.validacion('Ese día no está disponible para reservas. Elegí otra fecha.', { visita: 'Día no disponible' });
   }
   const base = new Date(Date.now() + (HORAS_VENTANA[tipo] || 24) * 3600000);
   const conGracia = new Date(t.getTime() + visitas.graciaHoras * 3600000);
@@ -96,4 +112,4 @@ function visitaPrestamo(iso) {
   return t;
 }
 
-export { aLocal, aUtc, publica, horariosAgrupados, validarVisitaReserva, visitaPrestamo };
+export { aLocal, aUtc, publica, diaBloqueado, horariosAgrupados, validarVisitaReserva, visitaPrestamo };

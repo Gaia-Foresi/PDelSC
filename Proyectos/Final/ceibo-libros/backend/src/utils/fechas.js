@@ -2,6 +2,8 @@
 import env from '../config/env.js';
 const { tzOffsetHoras } = env;
 
+// Ayudas internas: "dos" agrega un 0 adelante (5 -> "05"), "formatear" pasa una fecha a YYYY-MM-DD
+// y "partes" separa '2026-11-13' en [2026, 11, 13].
 const dos = (n) => String(n).padStart(2, '0');
 const formatear = (d) => `${d.getUTCFullYear()}-${dos(d.getUTCMonth() + 1)}-${dos(d.getUTCDate())}`;
 const partes = (f) => f.split('-').map(Number);

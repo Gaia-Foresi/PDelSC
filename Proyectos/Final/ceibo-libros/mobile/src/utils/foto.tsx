@@ -7,6 +7,7 @@ import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 
 const LADO = 256;
 
+// Web: dibuja la imagen recortada al cuadrado en un canvas de 256x256 y la exporta como JPEG.
 function reducirEnWeb(uri: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new window.Image();
@@ -23,6 +24,7 @@ function reducirEnWeb(uri: string): Promise<string> {
   });
 }
 
+// Celular: achica la imagen y la devuelve en base64.
 async function reducirEnCelular(uri: string): Promise<string> {
   const imagen = await ImageManipulator.manipulate(uri).resize({ width: LADO }).renderAsync();
   const guardada = await imagen.saveAsync({ compress: 0.6, format: SaveFormat.JPEG, base64: true });
@@ -90,6 +92,7 @@ export interface ResultadoFoto { foto?: string; error?: string; cancelado?: bool
  * Obtiene la foto de perfil desde la galería o sacándola con la cámara.
  * Devuelve { foto } (data URI), { cancelado: true } o { error: 'mensaje' }.
  */
+// Abre la galería o la cámara (pidiendo permiso) y devuelve la foto reducida, un error o "cancelado".
 export async function obtenerFotoDePerfil(origen: OrigenFoto = 'galeria'): Promise<ResultadoFoto> {
   try {
     const opciones: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.8 };

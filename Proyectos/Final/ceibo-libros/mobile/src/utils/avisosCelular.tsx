@@ -32,14 +32,16 @@ async function configurar() {
   configurado = true;
 }
 
-/** Pide permiso para avisar (Android 13+ lo exige). Devuelve true si se puede notificar. */
+/** Dice si se puede notificar (true = sí, false = no).
+ *  En criollo: ANTES, esta función le pedía permiso al usuario y por eso salía el cartel "¿Permitir notificaciones?".
+ *  AHORA solo mira si el permiso ya está dado y NO pregunta nada, así que el cartel no aparece.
+ *  Qué pasa según el celular: Android 12 o menos da el permiso solo; en Android 13 o más hay que activarlo a mano
+ *  en Ajustes → Aplicaciones → Ceibo Libros → Notificaciones. Si no está dado, la app sigue funcionando igual
+ *  (la campana de adentro de la app anda), solo que no manda avisos a la barra del celular. */
 async function pedirPermiso(): Promise<boolean> {
   const N = await cargar();
   const actual = await N.getPermissionsAsync();
-  if (actual.granted) return true;
-  if (actual.canAskAgain === false) return false;
-  const nuevo = await N.requestPermissionsAsync();
-  return nuevo.granted;
+  return actual.granted;
 }
 
 /** Registra este celular en el servidor para recibir los avisos. Se llama al iniciar sesión. */

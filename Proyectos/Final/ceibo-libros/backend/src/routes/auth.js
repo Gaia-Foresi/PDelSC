@@ -1,11 +1,16 @@
+// Rutas de autenticación (/api/auth/...): registro, login, códigos por email, login social y sesión.
+// Cada ruta sigue el mismo patrón: router.post(dirección, validar(esquema), controlador).
+// No llevan "autenticar" porque justamente sirven para entrar.
 import express from 'express';
 import * as ctl from '../controllers/auth.js';
 import validar from '../middlewares/validate.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { z, texto, email, password, codigo } from '../utils/esquemas.js';
 
+// Un Router es un "mini-app" con sus propias rutas; después se monta en routes/index.js.
 const router = express.Router();
 
+// S = esquemas: describen qué datos acepta cada ruta. Si llega algo distinto, responde 400.
 const S = {
   registro: z.object({ nombre: texto(60), apellido: texto(60), email, password }),
   verificarEmail: z.object({ email, codigo }),

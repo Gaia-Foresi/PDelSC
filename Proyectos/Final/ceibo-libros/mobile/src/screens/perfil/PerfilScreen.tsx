@@ -29,6 +29,7 @@ interface LineaProps {
   value?: any;
 }
 
+// Una línea de dato: ícono, nombre del dato y valor.
 function Linea({ icon, label, value }: LineaProps) {
   const { colors } = useTheme();
   return (
@@ -42,6 +43,7 @@ function Linea({ icon, label, value }: LineaProps) {
   );
 }
 
+// Pantalla de perfil: foto, datos personales, resumen de préstamos y reservas, y botones de cuenta.
 export default function PerfilScreen({ navigation }: PantallaProps) {
   const { colors } = useTheme();
   const { usuario, esStaff, cerrarSesion, recargarPerfil, resumen, actualizarUsuario } = useAuth();
@@ -68,9 +70,11 @@ export default function PerfilScreen({ navigation }: PantallaProps) {
     }
   };
 
+  // Vuelve a pedir el perfil al entrar y cada vez que se vuelve a la pantalla.
   const perfil = useAsync(() => recargarPerfil(), []);
   useRefreshOnFocus(perfil.refresh);
 
+  // Pide confirmación antes de cerrar la sesión.
   const salir = useCallback(async () => {
     const ok = await confirm({ title: '¿Cerrar sesión?', message: 'Vas a tener que ingresar de nuevo para usar la biblioteca.', confirmText: 'Cerrar sesión', destructive: true });
     if (ok) cerrarSesion();

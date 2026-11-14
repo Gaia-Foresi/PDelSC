@@ -15,8 +15,10 @@ export default function ForgotPasswordScreen({ navigation }: PantallaProps) {
   const [form, setForm] = useState({ email: '', codigo: '', password: '' });
   const [errores, setErrores] = useState<Record<string, any>>({});
   const [cargando, setCargando] = useState(false);
+  // set('email') devuelve una función que actualiza ese campo del formulario y borra su error.
   const set = (k) => (t) => { setForm((f) => ({ ...f, [k]: t })); setErrores((e) => ({ ...e, [k]: '' })); };
 
+  // Paso 1: pide al servidor que mande el código al email.
   const pedirCodigo = async () => {
     const e = { email: v.email(form.email) };
     setErrores(e);
@@ -33,6 +35,7 @@ export default function ForgotPasswordScreen({ navigation }: PantallaProps) {
     }
   };
 
+  // Paso 2: manda el código y la contraseña nueva.
   const cambiar = async () => {
     const e = { codigo: v.codigo(form.codigo), password: v.password(form.password) };
     setErrores(e);

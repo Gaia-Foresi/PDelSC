@@ -25,6 +25,7 @@ import { CamposDatosLector, formDesde, limpiarDni, validarDatosLector } from '..
 
 import type { PantallaProps } from '../../types';
 const MAX_LIBROS = 5;
+// Opciones de plazo del préstamo (en días).
 const PLAZOS = [
   { value: 7, label: '7 días' },
   { value: 14, label: '14 días' },
@@ -44,11 +45,13 @@ export function LibroPicker({ seleccion, onToggle, max = MAX_LIBROS, excluir = [
   const { colors } = useTheme();
   const [q, setQ] = useState('');
   const [busqueda, setBusqueda] = useState('');
+  // Espera 400 ms después de escribir antes de buscar.
   useEffect(() => {
     const id = setTimeout(() => setBusqueda(q.trim()), 400);
     return () => clearTimeout(id);
   }, [q]);
 
+  // Solo libros con ejemplares disponibles (como máximo 40 en pantalla).
   const libros = useAsync(() => api.libros.listar({ solo_disponibles: true, ...(busqueda ? { q: busqueda } : {}) }), [busqueda]);
   const lista = (libros.data?.libros || []).filter((l) => !excluir.includes(l.id)).slice(0, 40);
   const lleno = seleccion.length >= max;
@@ -86,6 +89,7 @@ export function LibroPicker({ seleccion, onToggle, max = MAX_LIBROS, excluir = [
   );
 }
 
+// Pantalla de préstamo nuevo (la usa el personal).
 export default function PrestamoNuevoScreen({ navigation, route }: PantallaProps) {
   const avisarLimite = useAvisoLimite();
   const { colors } = useTheme();
@@ -116,11 +120,13 @@ export default function PrestamoNuevoScreen({ navigation, route }: PantallaProps
     return () => clearTimeout(id);
   }, [q]);
 
+  // Busca lectores para elegir a quién se le presta.
   const usuarios = useAsync(
     () => (usuario ? Promise.resolve(null) : api.usuarios.listar({ rol: 'usuario', limite: 30, ...(busqueda ? { q: busqueda } : {}) })),
     [busqueda, usuario],
   );
 
+  // No se puede prestar a una cuenta bloqueada: se avisa y no se elige.
   const elegirUsuario = (u) => {
     if (u.estado === 'bloqueado') {
       toast.error(`${nombreCompleto(u)} está bloqueado ${u.tipo_bloqueo === 'dano' ? 'por daño a un libro' : 'por atraso en la devolución'}: ${u.motivo_bloqueo || 'tiene libros sin devolver'}. No se le pueden prestar libros.`);
@@ -129,8 +135,10 @@ export default function PrestamoNuevoScreen({ navigation, route }: PantallaProps
     setUsuario({ id: u.id, nombre: nombreCompleto(u), email: u.email });
   };
 
+  // Tilda o destilda un libro.
   const toggleLibro = (libro) => setLibroIds((ids) => (ids.includes(libro.id) ? ids.filter((i) => i !== libro.id) : [...ids, libro.id]));
 
+  // Valida los datos del lector, crea el préstamo y muestra el código de retiro.
   const confirmar = async () => {
     const e = validarDatosLector(datos);
     setErroresDatos(e);

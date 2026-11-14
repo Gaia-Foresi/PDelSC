@@ -4,6 +4,10 @@ import app from '../src/app.js';
 import { pool } from '../src/config/db.js';
 import { migrar } from '../src/services/migracion.js';
 
+// se asegura de que la base de datos se actualice una sola vez, 
+// aunque lo pidan muchos al mismo tiempo. Si la actualización falla, 
+// deja la puerta abierta para volver a intentarlo más adelante.
+// "preparada" guarda la promesa de la migración: si ya existe, no se vuelve a ejecutar.
 let preparada = null;
 const preparar = () => {
   if (!preparada) {
@@ -15,6 +19,8 @@ const preparar = () => {
   return preparada;
 };
 
+// Función que Vercel ejecuta en cada pedido: primero se asegura de que la base esté lista,
+// después le pasa el pedido a la app de Express.
 export default async (req, res) => {
   await preparar();
   return app(req, res);

@@ -47,6 +47,19 @@ distribuidoras.post('/crear', validar(z.object({ nombre: texto(100), email, tele
 distribuidoras.post('/actualizar', validar(z.object({ id, nombre: texto(100).optional(), email: email.optional(), telefono })), w(gestion.distActualizar));
 distribuidoras.post('/eliminar', validar(soloId), w(gestion.distEliminar));
 
+// ------------------------------------------------------- días no disponibles
+// Una fecha válida, escrita 'YYYY-MM-DD'. Primero se revisa la forma con una expresión regular y después
+// que exista de verdad (por ejemplo, rechaza el 31 de febrero).
+const fechaDia = z.string({ required_error: 'Obligatorio' }).regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, 'Fecha inválida')
+  .refine((f) => !Number.isNaN(Date.parse(f)) && new Date(f).toISOString().slice(0, 10) === f, 'Fecha inválida');
+// Permisos: todos tienen que haber iniciado sesión (autenticar). Ver la lista = gerente o bibliotecario (STAFF).
+// Crear y quitar = solo gerente. Si no corresponde, `requiereRol` corta el pedido con un error 403.
+const bloqueos = Router();
+bloqueos.use(autenticar);
+bloqueos.post('/listar', requiereRol(...STAFF), validar(vacio), w(gestion.bloqueosListar)); // el personal los ve (con el motivo), pero solo el gerente los crea y quita
+bloqueos.post('/crear', requiereRol('gerente'), validar(z.object({ desde: fechaDia, hasta: fechaDia.optional(), motivo: textoOpc(120) })), w(gestion.bloqueosCrear));
+bloqueos.post('/eliminar', requiereRol('gerente'), validar(soloId), w(gestion.bloqueosEliminar));
+
 // ------------------------------------------------------------------ reposición
 const item = z.object({
   libro_id: id.optional(),
@@ -86,4 +99,4 @@ const analisisCuerpo = z.object({
 estadisticas.post('/analizar', validar(analisisCuerpo), w(gestion.analizar));
 estadisticas.post('/analizar-excel', validar(analisisCuerpo), w(gestion.analizarExcel));
 
-export { mensajesRouter as mensajes, notificaciones, distribuidoras, reposicion, estadisticas };
+export { mensajesRouter as mensajes, notificaciones, distribuidoras, bloqueos, reposicion, estadisticas };

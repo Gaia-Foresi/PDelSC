@@ -25,6 +25,7 @@ import { useConfirm } from '../../components/Confirm';
 import { useToast } from '../../components/Toast';
 
 import type { PantallaProps, IconName } from '../../types';
+// Formulario vacío con ícono y color por defecto.
 const VACIO = { codigo: '', nombre: '', descripcion: '', icono: 'book-open-variant', color: '#8FAE8B' };
 
 export default function CategoriasScreen({ navigation, route }: PantallaProps) {
@@ -34,6 +35,7 @@ export default function CategoriasScreen({ navigation, route }: PantallaProps) {
   const confirm = useConfirm();
   const toast = useToast();
   const contenido = useListContentStyle(false);
+  // Pide las categorías y las actualiza al volver a la pantalla.
   const cats = useAsync(() => api.categorias.listar(), []);
   useRefreshOnFocus(cats.refresh);
 
@@ -46,6 +48,7 @@ export default function CategoriasScreen({ navigation, route }: PantallaProps) {
   const [panelColores, setPanelColores] = useState(false);
   const set = (k) => (t) => { setForm((f) => ({ ...f, [k]: t })); setErrores((e) => ({ ...e, [k]: '' })); };
 
+  // Íconos que coinciden con lo que se escribió en el buscador de íconos.
   const iconos = buscarIconos(busquedaIcono);
 
   // Si se llega desde "Nueva categoría" (pantalla principal) el formulario se abre solo
@@ -53,6 +56,7 @@ export default function CategoriasScreen({ navigation, route }: PantallaProps) {
     if (route?.params?.nueva) { setErrores({}); setForm(VACIO); setEditando({}); navigation.setParams({ nueva: undefined }); }
   }, [route?.params?.nueva]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Abre el formulario para editar una categoría existente.
   const abrir = (cat) => {
     setErrores({});
     setBusquedaIcono('');
@@ -61,6 +65,7 @@ export default function CategoriasScreen({ navigation, route }: PantallaProps) {
     setEditando(cat || {});
   };
 
+  // Valida y guarda: si se está editando la actualiza, si no la crea.
   const guardar = async () => {
     const e = {
       codigo: v.requerido(form.codigo, 'El código') || (form.codigo.trim().length > 5 ? 'Máximo 5 caracteres' : ''),
@@ -91,6 +96,7 @@ export default function CategoriasScreen({ navigation, route }: PantallaProps) {
     }
   };
 
+  // Elimina una categoría (solo gerente). El servidor no deja si todavía tiene libros.
   const eliminar = async (cat) => {
     const ok = await confirm({
       title: '¿Eliminar esta categoría?',

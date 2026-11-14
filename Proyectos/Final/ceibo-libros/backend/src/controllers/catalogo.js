@@ -5,21 +5,25 @@ import { err } from '../utils/httpError.js';
 import { SQL_LIBRO, conCategorias, EN_CATEGORIA, guardarCategorias, obtenerLibro, autorId, ejemplaresEnUso } from '../services/libros.js';
 
 // ---------------------------------------------------------------- categorías
+// Consulta base de categorías: además de los datos, cuenta cuántos libros activos tiene cada una.
 const SQL_CATEGORIA = `
   SELECT c.id, c.codigo, c.nombre, c.descripcion, c.icono, c.color,
          (SELECT COUNT(*) FROM libros l WHERE l.activo = 1 AND (l.categoria_id = c.id OR EXISTS (SELECT 1 FROM libro_categorias lc WHERE lc.libro_id = l.id AND lc.categoria_id = c.id))) AS total_libros
   FROM categorias c`;
 
+// Busca una categoría por id. COUNT vuelve como texto en MySQL, por eso se pasa a Number.
 const categoriaPorId = async (id) => {
   const [c] = await consultar(`${SQL_CATEGORIA} WHERE c.id = ?`, [id]);
   return c ? { ...c, total_libros: Number(c.total_libros) } : null;
 };
 
+// Lista todas las categorías.
 export const categoriasListar = async (req, res) => {
   const filas = await consultar(`${SQL_CATEGORIA} ORDER BY c.id`);
   res.json({ ok: true, data: { categorias: filas.map((c) => ({ ...c, total_libros: Number(c.total_libros) })) } });
 };
 
+// Crea una categoría. Si no mandan ícono o color, usa unos por defecto.
 export const categoriasCrear = async (req, res) => {
   const { codigo, nombre, descripcion, icono, color } = req.body;
   const r = await consultar(
@@ -28,6 +32,8 @@ export const categoriasCrear = async (req, res) => {
   res.status(201).json({ ok: true, data: { categoria: await categoriaPorId(r.insertId) } });
 };
 
+// Actualiza solo los campos que vinieron (saca los undefined).
+// "SET ?" con un objeto: mysql2 lo convierte en "campo1 = valor1, campo2 = valor2".
 export const categoriasActualizar = async (req, res) => {
   const { id, ...resto } = req.body;
   const campos = Object.fromEntries(Object.entries(resto).filter(([, v]) => v !== undefined));
@@ -36,6 +42,7 @@ export const categoriasActualizar = async (req, res) => {
   res.json({ ok: true, data: { categoria: await categoriaPorId(id) } });
 };
 
+// Elimina una categoría solo si no tiene libros activos. Todo en una transacción (todo o nada).
 export const categoriasEliminar = async (req, res) => {
   const { id } = req.body;
   if (!(await categoriaPorId(id))) throw err.noEncontrado('La categoría');
@@ -69,11 +76,14 @@ async function marcarMisReservas(libros, usuarioId) {
   return libros.map((l) => ({ ...l, reservado_por_mi: mias.has(l.id) }));
 }
 
+// Lista libros con filtros opcionales: categoría, texto de búsqueda (q) y solo disponibles.
+// Arma el WHERE de a partes: cada filtro agrega una condición y sus valores.
 export const librosListar = async (req, res) => {
   const { categoria_id, q, solo_disponibles } = req.body;
   const donde = ['l.activo = 1'];
   const params = [];
   if (categoria_id) { donde.push(EN_CATEGORIA); params.push(categoria_id, categoria_id); }
+  // LIKE '%texto%' busca el texto en cualquier parte del título o del autor.
   if (q) { donde.push('(l.titulo LIKE ? OR a.nombre LIKE ?)'); params.push(`%${q}%`, `%${q}%`); }
   const filtroStock = solo_disponibles ? 'WHERE t.disponibles > 0' : '';
   const [filas] = await pool.query(
@@ -82,8 +92,10 @@ export const librosListar = async (req, res) => {
   res.json({ ok: true, data: { libros } });
 };
 
+// Pasa "disponibles" a número si el libro existe (si es null, lo devuelve igual).
 const normalizar = (l) => (l ? { ...l, disponibles: Number(l.disponibles) } : l);
 
+// Detalle de un libro, marcando si el usuario ya lo tiene reservado.
 export const librosDetalle = async (req, res) => {
   const libro = await obtenerLibro(req.body.id);
   if (!libro) throw err.noEncontrado('El libro');
@@ -105,16 +117,19 @@ export const librosHistorial = async (req, res) => {
   res.json({ ok: true, data: { historial: filas } });
 };
 
+// Crea un libro. Puede tener varias categorías; la primera es la principal.
 export const librosCrear = async (req, res) => {
   const { titulo, autor, categoria_id, categoria_ids, descripcion, stock_total, portada_url } = req.body;
   const cats = categoria_ids?.length ? categoria_ids : [categoria_id];
   if (!cats[0]) throw err.validacion('Elegí al menos una categoría.', { categoria_ids: 'Obligatorio' });
+  // autorId busca el autor por nombre o lo crea, y devuelve su id.
   const id = await autorId(autor);
   // Si no se cargó una portada, se busca sola en internet (queda guardado el link, no la imagen)
   const portada = portada_url || await buscarPortada(titulo, autor);
   const r = await consultar(
     'INSERT INTO libros (titulo, autor_id, categoria_id, descripcion, portada_url, stock_total) VALUES (?, ?, ?, ?, ?, ?)',
     [titulo, id, cats[0], descripcion || null, portada || null, stock_total]);
+  // Si alguna categoría no existe, se borra el libro recién creado y se avisa.
   if (!(await guardarCategorias(r.insertId, cats))) {
     await consultar('DELETE FROM libros WHERE id = ?', [r.insertId]);
     throw err.validacion('Alguna de las categorías no existe.', { categoria_ids: 'Categoría inválida' });
@@ -122,6 +137,7 @@ export const librosCrear = async (req, res) => {
   res.status(201).json({ ok: true, data: { libro: normalizar(await obtenerLibro(r.insertId)) } });
 };
 
+// Actualiza un libro. Solo cambia los campos que vinieron.
 export const librosActualizar = async (req, res) => {
   const { id, autor, categoria_ids, ...resto } = req.body;
   const actual = await obtenerLibro(id);
@@ -139,6 +155,7 @@ export const librosActualizar = async (req, res) => {
     if (encontrada) campos.portada_url = encontrada;
   }
 
+  // No se puede bajar el stock por debajo de los ejemplares que están prestados o reservados.
   if (campos.stock_total !== undefined) {
     const enUso = await ejemplaresEnUso(id);
     if (campos.stock_total < enUso) {
@@ -150,11 +167,13 @@ export const librosActualizar = async (req, res) => {
   res.json({ ok: true, data: { libro: normalizar(await obtenerLibro(id)) } });
 };
 
+// Busca una portada en internet a partir del título y el autor (sin guardar nada).
 export const librosBuscarPortada = async (req, res) => {
   const url = await buscarPortada(req.body.titulo, req.body.autor);
   res.json({ ok: true, data: { portada_url: url } });
 };
 
+// "Elimina" un libro: en realidad lo marca como inactivo (no se borra de la base).
 export const librosEliminar = async (req, res) => {
   const { id } = req.body;
   if (!(await obtenerLibro(id))) throw err.noEncontrado('El libro');

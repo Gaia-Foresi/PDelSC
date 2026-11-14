@@ -21,6 +21,7 @@ import { useConfirm } from '../../components/Confirm';
 import { useToast } from '../../components/Toast';
 
 
+// Opciones del filtro: todos los libros o solo los que tienen ejemplares disponibles.
 const FILTROS = [
   { value: false, label: 'Todos' },
   { value: true, label: 'Solo disponibles' },
@@ -39,6 +40,7 @@ interface ListaCategoriaProps {
   categoria?: any;
 }
 
+// Lista de libros de la categoría, con buscador, filtro y acciones.
 function ListaCategoria({ navigation, categoria }: ListaCategoriaProps) {
   const { ref: refLista, onScroll: onScrollLista, boton: botonArriba } = useVolverArriba();
   const { bloqueado, usuario, esStaff, esGerente } = useAuth();
@@ -55,6 +57,7 @@ function ListaCategoria({ navigation, categoria }: ListaCategoriaProps) {
     return () => clearTimeout(id);
   }, [q]);
 
+  // Pide los libros de la categoría con el texto buscado y el filtro elegido.
   const libros = useAsync(
     () => api.libros.listar({
       categoria_id: categoria.id,
@@ -66,6 +69,7 @@ function ListaCategoria({ navigation, categoria }: ListaCategoriaProps) {
   useRefreshOnFocus(libros.refresh);
   const reservar = useReservar(libros.refresh);
 
+  // Elimina un libro (solo gerente), previa confirmación.
   const eliminar = async (libro) => {
     const ok = await confirm({
       title: '¿Eliminar este libro?',
@@ -83,6 +87,7 @@ function ListaCategoria({ navigation, categoria }: ListaCategoriaProps) {
     }
   };
 
+  // Lo que se muestra arriba de la lista: buscador y filtro.
   const encabezado = (
     <View>
       <BloqueoBanner />

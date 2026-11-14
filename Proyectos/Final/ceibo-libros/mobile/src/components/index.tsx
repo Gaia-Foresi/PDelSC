@@ -1,3 +1,5 @@
+// Junta los componentes más usados para importarlos de un solo lugar:
+// import { Button, Card, Input } from '../components';
 export { default as Avatar } from './Avatar';
 export { default as Badge } from './Badge';
 export { default as Button } from './Button';

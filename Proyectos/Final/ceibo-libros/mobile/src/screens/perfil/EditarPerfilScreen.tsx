@@ -26,6 +26,7 @@ export default function EditarPerfilScreen({ navigation }: PantallaProps) {
   const set = (k) => (t) => { setForm((f) => ({ ...f, [k]: t })); setErrores((e) => ({ ...e, [k]: '' })); };
 
   const [elegirOrigen, setElegirOrigen] = useState(false);
+  // Abre la cámara o la galería y deja la foto lista en el formulario (todavía no se guarda).
   const elegirFoto = async (origen: Origen) => {
     setProcesando(true);
     const r = await obtenerFotoDePerfil(origen);
@@ -34,6 +35,7 @@ export default function EditarPerfilScreen({ navigation }: PantallaProps) {
     else if (r.foto) setFoto(r.foto);
   };
 
+  // Valida y guarda los cambios en el servidor; después actualiza el usuario en toda la app.
   const guardar = async () => {
     const e = {
       nombre: v.requerido(form.nombre, 'El nombre'),

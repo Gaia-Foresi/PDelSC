@@ -24,6 +24,7 @@ import SearchBar from '../../components/SearchBar';
 import { SkeletonList } from '../../components/Skeleton';
 
 import type { PantallaProps } from '../../types';
+// Filtros que ve el lector y filtros que ve el personal.
 const FILTROS_USUARIO = [
   { value: 'todos', label: 'Todos' },
   { value: 'activo', label: 'Activos' },
@@ -43,6 +44,7 @@ interface PrestamoCardProps {
   onPress?: (...args: any[]) => any;
 }
 
+// Tarjeta de un préstamo: estado, fechas y libros. El color cambia si está por vencer o vencido.
 function PrestamoCard({ prestamo, staff, onPress }: PrestamoCardProps) {
   const { colors } = useTheme();
   const cerrado = prestamo.estado === 'cerrado';
@@ -88,6 +90,7 @@ function PrestamoCard({ prestamo, staff, onPress }: PrestamoCardProps) {
   );
 }
 
+// Pantalla de préstamos: el lector ve los suyos y el personal ve todos, con buscador.
 export default function PrestamosScreen({ navigation }: PantallaProps) {
   const { ref: refLista, onScroll: onScrollLista, boton: botonArriba } = useVolverArriba();
   const { esStaff } = useAuth();
@@ -101,6 +104,7 @@ export default function PrestamosScreen({ navigation }: PantallaProps) {
     return () => clearTimeout(id);
   }, [q]);
 
+  // El personal pide al servidor la lista filtrada; el lector pide solo los suyos.
   const datos = useAsync(
     () => (esStaff
       ? api.prestamos.listar({ ...(filtro !== 'todos' ? { estado: filtro } : {}), ...(busqueda ? { q: busqueda } : {}) })
@@ -120,6 +124,7 @@ export default function PrestamosScreen({ navigation }: PantallaProps) {
     return esStaff || filtro === 'todos' ? todos : todos.filter((p) => estadoPrestamo(p).grupo === filtro);
   }, [datos.data, esStaff, filtro]);
 
+  // Parte de arriba de la lista: buscador, filtros y botón de préstamo nuevo.
   const encabezado = (
     <View>
       {!esStaff ? <BloqueoBanner /> : null}

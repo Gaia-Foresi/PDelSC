@@ -15,6 +15,7 @@
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS dias_bloqueados;
 DROP TABLE IF EXISTS dispositivos_push;
 DROP TABLE IF EXISTS notificaciones;
 DROP TABLE IF EXISTS pedido_items;
@@ -326,4 +327,16 @@ CREATE TABLE dispositivos_push (
   UNIQUE KEY uq_push_token (token),
   INDEX idx_push_usuario (usuario_id),
   CONSTRAINT fk_push_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Días o semanas en que el gerente cierra las reservas (los usuarios solo ven "día no disponible")
+CREATE TABLE dias_bloqueados (
+  id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  desde      DATE NOT NULL,
+  hasta      DATE NOT NULL,
+  motivo     VARCHAR(120) NULL,                  -- nota interna del gerente: nunca se muestra a los usuarios
+  creado_por INT UNSIGNED NULL,
+  creado_en  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_bloqueos_fechas (desde, hasta),
+  CONSTRAINT fk_bloqueos_usuario FOREIGN KEY (creado_por) REFERENCES usuarios(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

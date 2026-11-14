@@ -1,3 +1,5 @@
+// Un "hook" es una función que empieza con "use" y reutiliza lógica de React (estado, efectos) en varias pantallas.
+// Uso: const { data, loading, error, reload } = useAsync(() => api.libros.listar(), []);
 // Carga datos de la API y expone { data, loading, error, reload }.
 // `fn` se vuelve a ejecutar cuando cambian las dependencias (deps).
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -11,10 +13,13 @@ interface EstadoAsync<T> {
 // `T` es el tipo de lo que devuelve `fn` (se deduce solo de la llamada a la API).
 export function useAsync<T = any>(fn: (...args: any[]) => Promise<T> | T, deps: unknown[] = [], { immediate = true }: { immediate?: boolean } = {}) {
   const [state, setState] = useState<EstadoAsync<T>>({ data: null, loading: immediate, error: null });
+  // "vivo" evita actualizar el estado si la pantalla ya se cerró.
   const vivo = useRef(true);
+  // "llamada" numera cada pedido: si llegan dos respuestas, solo vale la del último pedido.
   const llamada = useRef(0);
   useEffect(() => () => { vivo.current = false; }, []);
 
+  // run: ejecuta la función mostrando el estado de carga.
   const run = useCallback(async (...args: any[]) => {
     const id = ++llamada.current;
     setState((s) => ({ ...s, loading: true, error: null }));
@@ -41,10 +46,12 @@ export function useAsync<T = any>(fn: (...args: any[]) => Promise<T> | T, deps: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 
+  // Al montar la pantalla (y cada vez que cambian las dependencias) se ejecuta run.
   useEffect(() => {
     if (immediate) run();
   }, [run, immediate]);
 
+  // setData permite cambiar los datos a mano (por ejemplo, después de editar algo) sin volver a pedirlos.
   const setData = useCallback((updater: T | null | ((actual: T | null) => T | null)) => setState((s) => ({ ...s, data: typeof updater === 'function' ? (updater as (actual: T | null) => T | null)(s.data) : updater })), []);
 
   return { ...state, reload: run, refresh, setData };

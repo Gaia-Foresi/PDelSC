@@ -28,14 +28,17 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const insets = useSafeAreaInsets();
   const tecladoAbierto = useTecladoAbierto();
   const [toast, setToast] = useState<{ mensaje: string; tipo: TipoToast } | null>(null);
+  // Animated.Value maneja la opacidad del cartel para que aparezca y desaparezca suave.
   const op = useRef(new Animated.Value(0)).current;
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const esDeValidacion = useRef(false); // el cartel actual es el de "hay campos para corregir"
 
+  // Oculta el cartel con una animación.
   const hide = useCallback(() => {
     Animated.timing(op, { toValue: 0, duration: 180, useNativeDriver: Platform.OS !== 'web' }).start(() => setToast(null));
   }, [op]);
 
+  // Muestra un cartel con el tipo indicado y lo oculta solo después de unos segundos.
   const show = useCallback((mensaje: string, tipo: TipoToast = 'info') => {
     clearTimeout(timer.current);
     esDeValidacion.current = false;
@@ -46,6 +49,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => () => clearTimeout(timer.current), []);
 
+  // Funciones que ofrece useToast(): success, error, info y fromError (muestra el mensaje de un error de la API).
   const api = useRef({} as ToastApi).current;
   api.success = (m) => show(m, 'success');
   api.error = (m) => show(m, 'error');

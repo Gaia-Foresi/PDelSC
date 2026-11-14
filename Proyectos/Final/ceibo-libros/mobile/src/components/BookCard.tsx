@@ -16,9 +16,11 @@ interface PortadaProps {
   width?: number;
 }
 
+// Portada del libro. Si no tiene imagen (o no carga), muestra la inicial del título sobre el color de la categoría.
 export function Portada({ libro, color = '#8FAE8B', width = 74 }: PortadaProps) {
   const alto = width * 1.4;
   const [fallo, setFallo] = useState(false);
+  // Si cambia la portada, se vuelve a intentar cargarla.
   useEffect(() => setFallo(false), [libro.portada_url]);
   if (libro.portada_url && !fallo) {
     return (
@@ -50,9 +52,11 @@ interface BookCardProps {
   mostrarCategoria?: boolean;
 }
 
+// Tarjeta completa del libro. Muestra botones distintos según quién la ve: reservar (lector) o editar/eliminar (personal).
 export default function BookCard({ libro, color, onReservar, bloqueado, motivoBloqueo, staff, onEdit, onDelete, mostrarCategoria }: BookCardProps) {
   const { colors } = useTheme();
   const sinStock = libro.disponibles <= 0;
+  // Se puede reservar si hay stock, la cuenta no está bloqueada y todavía no lo reservó.
   const puedeReservar = (!!onReservar && !sinStock && !bloqueado) && !libro.reservado_por_mi;
   const [expandida, setExpandida] = useState(false);
   // Descripción larga (o con saltos de línea): se muestra recortada y se puede desplegar

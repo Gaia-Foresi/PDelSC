@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from 'react';
 
 let ancho = 1240;
+// "escuchas" son las funciones que quieren enterarse cuando cambia el ancho.
 const escuchas = new Set<() => void>();
 
 export function fijarAnchoColumna(nuevo: number) {
@@ -12,4 +13,5 @@ export function fijarAnchoColumna(nuevo: number) {
 }
 
 const suscribir = (f: () => void) => { escuchas.add(f); return () => { escuchas.delete(f); }; };
+// useSyncExternalStore conecta un valor guardado fuera de React con los componentes: si cambia, se redibujan.
 export const useAnchoColumna = () => useSyncExternalStore(suscribir, () => ancho, () => ancho);

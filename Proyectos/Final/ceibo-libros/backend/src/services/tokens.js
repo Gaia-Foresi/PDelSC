@@ -1,3 +1,5 @@
+// Access token: JWT que dura poco (60 min) y se manda en cada pedido.
+// Refresh token: texto al azar que dura días y sirve solo para pedir un access token nuevo.
 // Emisión y rotación de tokens: access JWT (corto) + refresh opaco (largo, guardado como hash).
 import jwt from 'jsonwebtoken';
 import env from '../config/env.js';
@@ -8,13 +10,16 @@ import { usuarioPublico, SQL_USUARIO } from '../utils/serializers.js';
 
 const { jwt: cfg } = env;
 
+// Margen de 2 minutos para tolerar un refresh token que se acaba de usar.
 const GRACIA_MS = 2 * 60 * 1000;
 const refreshInvalido = () => new HttpError(401, 'REFRESH_INVALIDO', 'Tu sesión venció. Volvé a iniciar sesión.');
 
+// Firma un JWT con el id (sub) y el rol del usuario. Vence según JWT_ACCESS_EXP.
 function firmarAccess(usuario) {
   return jwt.sign({ sub: usuario.id, rol: usuario.rol }, cfg.accessSecret, { algorithm: 'HS256', expiresIn: cfg.accessExp });
 }
 
+// Crea un refresh token al azar. En la base se guarda solo su hash; el token real lo recibe la app.
 async function crearRefresh(usuarioId) {
   const token = tokenAleatorio();
   await consultar(
@@ -58,10 +63,12 @@ async function rotarRefresh(token) {
   return { access_token: firmarAccess(usuario), refresh_token: await crearRefresh(usuario.id) };
 }
 
+// Anula un refresh token (cerrar sesión en este dispositivo).
 async function revocarRefresh(token) {
   await consultar('UPDATE refresh_tokens SET revocado = 1 WHERE token_hash = ?', [sha256(token)]);
 }
 
+// Anula todos los refresh tokens del usuario (cerrar sesión en todos los dispositivos).
 async function revocarTodos(usuarioId) {
   await consultar('UPDATE refresh_tokens SET revocado = 1 WHERE usuario_id = ?', [usuarioId]);
 }

@@ -18,6 +18,7 @@ import EmptyState from '../../components/EmptyState';
 import ScreenContainer from '../../components/ScreenContainer';
 import { useToast } from '../../components/Toast';
 
+// Períodos que se pueden elegir para descargar el Excel.
 const PERIODOS = [
   { value: 'todo', label: 'Todo el historial' },
   { value: 'mes_actual', label: 'Este mes' },
@@ -29,6 +30,7 @@ const PERIODOS = [
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 const nombreDeMes = (k: string) => { const [y, m] = k.split('-').map(Number); return `${MESES[m - 1]} de ${y}`; };
 
+// Pequeños componentes de esta pantalla: título con ayuda, número destacado y lista de filas.
 function Titulo({ texto, ayuda }: { texto: string; ayuda?: string }) {
   const { colors } = useTheme();
   return (
@@ -69,6 +71,7 @@ function Lista({ filas, vacio }: { filas: { izq: string; der: string; sub?: stri
   );
 }
 
+// Pantalla de informes: 1) descargar el Excel de un período, 2) subir varios Excel y analizarlos juntos.
 export default function InformesScreen() {
   const { colors } = useTheme();
   const { esGerente } = useAuth();
@@ -81,6 +84,7 @@ export default function InformesScreen() {
   const [analizando, setAnalizando] = useState(false);
   const [res, setRes] = useState<any>(null);
 
+  // Al abrir, pide los meses que tienen préstamos (para el selector de meses).
   useEffect(() => {
     if (!esGerente) return;
     api.estadisticas.meses({}).then((r) => setMesesDatos(r.meses)).catch(() => setMesesDatos([]));
@@ -101,6 +105,7 @@ export default function InformesScreen() {
 
   if (!esGerente) return <ScreenContainer title="Informes" back><EmptyState icon="lock-outline" title="Solo para el gerente" /></ScreenContainer>;
 
+  // Descarga el Excel: lo pide a la API (llega en base64) y lo guarda en el celular o la compu.
   const descargar = async () => {
     if (periodo === 'meses') {
       if (!seleccion.length) { toast.error('Tildá al menos un mes, o un año entero, para el Excel.'); return; }
@@ -122,6 +127,7 @@ export default function InformesScreen() {
     }
   };
 
+  // Elige Excel para analizar. Si se elige uno con el mismo nombre, reemplaza al anterior (por eso el Map).
   const elegir = async () => {
     try {
       const { validos: nuevos = [], rechazados = [] } = (await elegirExcels()) || ({} as any);
@@ -139,6 +145,7 @@ export default function InformesScreen() {
   };
 
   const [bajandoAnalisis, setBajandoAnalisis] = useState(false);
+  // Descarga el resultado del análisis como un Excel nuevo.
   const descargarAnalisis = async () => {
     setBajandoAnalisis(true);
     try {
@@ -156,6 +163,7 @@ export default function InformesScreen() {
     }
   };
 
+  // Manda los Excel elegidos a la API y muestra el análisis en pantalla.
   const analizar = async () => {
     setAnalizando(true);
     try {

@@ -4,12 +4,14 @@ import { useNavigation } from '@react-navigation/native';
 import { useConfirm } from '../components/Confirm';
 
 /** ¿El error de la API es "llegaste al límite"? */
+// ¿El error del servidor es por llegar al límite de reservas o libros?
 export const esErrorDeLimite = (e: unknown) => (e as any)?.codigo === 'LIMITE_ALCANZADO';
 
 /**
  * Devuelve una función que muestra el aviso de límite alcanzado.
  * `verReservas`: ofrece ir directo a "Mis reservas" para liberar lugar.
  */
+// Devuelve una función que muestra el aviso de límite y ofrece ir a "Mis reservas".
 export function useAvisoLimite() {
   const confirm = useConfirm() as (o: any) => Promise<boolean>;
   const navigation = useNavigation<any>();

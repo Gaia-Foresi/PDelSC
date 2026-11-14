@@ -36,6 +36,7 @@ export function useTecladoAbierto() {
  * queda detrás del teclado y devuelve ese alto para usarlo como paddingBottom de un View interno (el `ref` va en el View exterior). Si el sistema ya achicó la ventana, devuelve 0.
  * En la web no hace nada (el navegador lo resuelve solo).
  */
+// Cuánto espacio dejar abajo para que el teclado no tape el campo que se está escribiendo.
 export function useEspacioTeclado(ref: RefObject<any>): number {
   const [espacio, setEspacio] = useState(0);
 

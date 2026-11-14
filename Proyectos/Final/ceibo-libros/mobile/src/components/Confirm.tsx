@@ -13,8 +13,10 @@ interface ConfirmProviderProps {
 
 export function ConfirmProvider({ children }: ConfirmProviderProps) {
   const [opts, setOpts] = useState(null);
+  // resolver guarda la función "resolve" de la promesa, para llamarla cuando la persona elija una opción.
   const resolver = useRef(null);
 
+  // Muestra el diálogo y devuelve una promesa que termina con true (aceptó) o false (canceló).
   const confirm = useCallback((o) => new Promise((resolve) => {
     resolver.current = resolve;
     setOpts(o);

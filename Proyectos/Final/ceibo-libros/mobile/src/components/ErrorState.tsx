@@ -1,3 +1,4 @@
+// Mensaje de error con botón "Reintentar".
 import React from 'react';
 import EmptyState from './EmptyState';
 

@@ -131,6 +131,23 @@ const existeIndice = async (tabla, indice) => {
        CONSTRAINT fk_push_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
 
+  // Días o semanas en que el gerente cierra las reservas.
+  // CREATE TABLE IF NOT EXISTS = "créala solo si todavía no existe": por eso se puede ejecutar muchas veces sin romper nada.
+  // Así, cuando se despliega esta versión, la tabla aparece sola en la base que ya tenías y no hay que correr nada a mano.
+  // Columnas: id (número único), desde/hasta (primer y último día cerrado), motivo (nota interna del gerente),
+  // creado_por (quién lo cargó; si ese usuario se borra, queda vacío) y creado_en (cuándo se cargó).
+  await pool.query(
+    `CREATE TABLE IF NOT EXISTS dias_bloqueados (
+       id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+       desde      DATE NOT NULL,
+       hasta      DATE NOT NULL,
+       motivo     VARCHAR(120) NULL,
+       creado_por INT UNSIGNED NULL,
+       creado_en  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+       INDEX idx_bloqueos_fechas (desde, hasta),
+       CONSTRAINT fk_bloqueos_usuario FOREIGN KEY (creado_por) REFERENCES usuarios(id) ON DELETE SET NULL
+     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+
   return hechos;
 }
 

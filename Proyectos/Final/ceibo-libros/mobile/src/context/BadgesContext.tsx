@@ -18,11 +18,13 @@ function avisoDelSistema(texto: string) {
 
 const BadgesContext = createContext<{ mensajes: number; notificaciones: number; refrescar: () => void | Promise<void> }>({ mensajes: 0, notificaciones: 0, refrescar: () => {} });
 
+// Guarda los contadores (los numeritos rojos del menú) y los comparte con useBadges().
 export function BadgesProvider({ children }: { children: React.ReactNode }) {
   const { usuario } = useAuth();
   const [mensajes, setMensajes] = useState(0);
   const [notificaciones, setNotificaciones] = useState(0);
   const toast = useToast();
+  // useRef guarda un valor que NO redibuja la pantalla al cambiar (sirve para recordar cosas entre renders).
   const toastRef = useRef(toast);
   toastRef.current = toast;
   const previo = useRef<{ m: number; n: number } | null>(null); // null = todavía no se hizo la primera lectura (no avisar al abrir la app)
@@ -33,6 +35,7 @@ export function BadgesProvider({ children }: { children: React.ReactNode }) {
       const [m, n] = await Promise.all([api.mensajes.noLeidos(), api.notificaciones.cantidad()]);
       const nuevoM = m.total || 0;
       const nuevoN = n.total || 0;
+      // Si el número subió desde la última lectura, hay algo nuevo: se muestra un aviso.
       if (previo.current && (nuevoM > previo.current.m || nuevoN > previo.current.n)) {
         const esMensaje = nuevoM > previo.current.m;
         let titulo = esMensaje ? 'Nuevo mensaje' : 'Ceibo Libros';
@@ -55,6 +58,8 @@ export function BadgesProvider({ children }: { children: React.ReactNode }) {
     } catch (e) { /* los contadores no son críticos */ }
   }, [usuario]);
 
+  // Cuando hay usuario: lee los contadores al instante, cada 30 segundos y cada vez que la app vuelve al frente.
+  // La función que devuelve el useEffect "limpia" todo (corta el intervalo) cuando ya no hace falta.
   useEffect(() => {
     if (!usuario) { setMensajes(0); setNotificaciones(0); previo.current = null; return undefined; }
     refrescar();

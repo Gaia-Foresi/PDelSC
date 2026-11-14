@@ -10,6 +10,7 @@ export const palette = {
   carmesi: '#C62828',
 };
 
+// Colores del modo claro. Las pantallas usan estos nombres (colors.primary, colors.text...), nunca el color directo.
 export const lightColors = {
   mode: 'light',
   bg: '#F3E5D8',
@@ -36,6 +37,7 @@ export const lightColors = {
   skeleton: '#E6D3C0',
 };
 
+// Colores del modo oscuro: mismos nombres, distintos valores.
 export const darkColors = {
   mode: 'dark',
   bg: '#1F1713',

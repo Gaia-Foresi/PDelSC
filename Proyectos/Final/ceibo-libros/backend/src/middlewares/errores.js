@@ -3,6 +3,7 @@ import { HttpError } from '../utils/httpError.js';
 import env from '../config/env.js';
 const { entorno } = env;
 
+// Función auxiliar: arma la respuesta de error siempre con el mismo formato.
 const responder = (res, status, codigo, mensaje, detalles) =>
   res.status(status).json({ ok: false, error: { codigo, mensaje, ...(detalles ? { detalles } : {}) } });
 
@@ -13,12 +14,16 @@ function soloPost(req, res, next) {
   return responder(res, 405, 'METODO_NO_PERMITIDO', 'Esta API solo acepta el método POST.');
 }
 
+// Se usa cuando ninguna ruta coincidió con la dirección pedida.
 function noEncontrado(req, res) {
   return responder(res, 404, 'NO_ENCONTRADO', 'Ruta inexistente.');
 }
 
+// Middleware de errores: Express lo reconoce porque recibe 4 parámetros (e, req, res, next).
+// Traduce cada tipo de error a una respuesta clara para la app.
 // eslint-disable-next-line no-unused-vars
 function manejarErrores(e, req, res, next) {
+  // Errores nuestros (creados con err.xxx): ya traen status, código y mensaje.
   if (e instanceof HttpError) return responder(res, e.status, e.codigo, e.message, e.detalles);
 
   // JSON mal formado en el body
@@ -30,6 +35,7 @@ function manejarErrores(e, req, res, next) {
   if (e.code === 'ER_NO_REFERENCED_ROW_2') return responder(res, 400, 'VALIDACION', 'Hace referencia a un registro que no existe.');
   if (e.code === 'ER_ROW_IS_REFERENCED_2') return responder(res, 409, 'LIBRO_EN_USO', 'No se puede eliminar: está en uso.');
 
+  // Error inesperado: lo mostramos en consola y al cliente le damos un mensaje genérico (500).
   console.error('[ERROR]', req.method, req.originalUrl, entorno === 'production' ? e.message : e);
   return responder(res, 500, 'ERROR_INTERNO', 'Ocurrió un error inesperado. Probá de nuevo en un momento.');
 }

@@ -20,6 +20,7 @@ import ScreenContainer, { useListContentStyle } from '../../components/ScreenCon
 import { SkeletonList } from '../../components/Skeleton';
 
 import type { PantallaProps } from '../../types';
+// Filtros del personal: consultas pendientes, respondidas o mensajes internos.
 const FILTROS = [
   { value: 'todos', label: 'Todos' },
   { value: 'consulta', label: 'Consultas' },
@@ -36,12 +37,14 @@ export default function MensajesScreen({ navigation }: PantallaProps) {
   const [filtro, setFiltro] = useState('todos');
 
   const verRespondidos = esStaff && filtro === 'respondidos';
+  // Pide las conversaciones al servidor. Se actualiza al volver a la pantalla y cada 20 segundos.
   const hilos = useAsync(() => api.mensajes.hilos(verRespondidos ? { respondidos: true } : {}), [verRespondidos]);
   useRefreshOnFocus(hilos.refresh);
   usePolling(hilos.refresh, 20000);
   // Cuando llegan los datos, se actualiza el globito del menú inferior
   useEffect(() => { if (hilos.data) refrescar(); }, [hilos.data, refrescar]);
 
+  // Filtra la lista según el filtro elegido. useMemo solo recalcula si cambian los datos o el filtro.
   const lista = useMemo(
     () => (hilos.data?.hilos || []).filter((h) => {
       if (!esStaff) return true;
@@ -51,6 +54,7 @@ export default function MensajesScreen({ navigation }: PantallaProps) {
     [hilos.data, filtro, esStaff],
   );
 
+  // Parte de arriba de la lista: filtros y botón para escribir un mensaje nuevo.
   const encabezado = (
     <View>
       {esStaff

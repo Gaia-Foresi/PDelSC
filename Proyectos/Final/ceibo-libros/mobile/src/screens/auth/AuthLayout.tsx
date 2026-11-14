@@ -19,10 +19,12 @@ interface AuthLayoutProps {
   compactLogo?: any;
 }
 
+// children = lo que va adentro de la tarjeta (el formulario de cada pantalla).
 export default function AuthLayout({ title, subtitle, children, compactLogo }: AuthLayoutProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { landscape, height } = useResponsive();
+  // Logo chico si lo piden o si la pantalla es baja y está horizontal.
   const chico = compactLogo || (landscape && height < 520);
   const { width } = useWindowDimensions();
   const hayFondo = useHayFondo();

@@ -1,3 +1,4 @@
+// Funciones para generar códigos y tokens al azar de forma segura (con el módulo crypto de Node).
 import crypto from 'crypto';
 
 /** Código numérico de 6 dígitos criptográficamente seguro. */

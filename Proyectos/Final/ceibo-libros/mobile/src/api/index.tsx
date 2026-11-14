@@ -75,6 +75,12 @@ export const api = {
     noLeidos: privado('/mensajes/no-leidos'),
     contactos: privado('/mensajes/contactos'),
   },
+  // Días no disponibles para reservar: ver la lista, crear un bloqueo y quitarlo (cada una llama a un endpoint del servidor)
+  bloqueos: {
+    listar: privado<{ bloqueos: any[] }>('/bloqueos/listar'),
+    crear: privado('/bloqueos/crear'),
+    eliminar: privado('/bloqueos/eliminar'),
+  },
   distribuidoras: {
     listar: privado('/distribuidoras/listar'),
     crear: privado('/distribuidoras/crear'),

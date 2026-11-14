@@ -9,6 +9,7 @@ import * as R from '../services/reservas.js';
 import { crearNotificacion } from '../services/notificaciones.js';
 import { codigoRetiroUnico } from '../utils/codigos.js';
 import * as V from '../services/visitas.js';
+import { bloqueosVigentes } from '../services/bloqueos.js';
 
 const { reglas } = env;
 
@@ -112,14 +113,16 @@ export const prestamosExtender = async (req, res) => {
 
 // -------------------------------------------------------------------- reservas
 export const reservasHorarios = async (req, res) => {
-  res.json({ ok: true, data: { dias: V.horariosAgrupados(req.body.tipo) } });
+  // Se le pasan los días cerrados para que los marque como "no disponible"
+  res.json({ ok: true, data: { dias: V.horariosAgrupados(req.body.tipo, await bloqueosVigentes()) } });
 };
 
 export const reservasCrear = async (req, res) => {
   const { libro_id, tipo, nombre, apellido, curso, dni, visita } = req.body;
   if (req.usuario.estado === 'bloqueado') throw err.bloqueado(req.usuario.motivo_bloqueo);
 
-  const turno = V.validarVisitaReserva(visita, tipo); // día y hora en que va a ir a la biblioteca
+  // Si el día elegido está cerrado, esta línea corta la reserva con un mensaje genérico (sin decir el motivo)
+  const turno = V.validarVisitaReserva(visita, tipo, await bloqueosVigentes()); // día y hora en que va a ir a la biblioteca
   const id = await transaccion(async (conn) => {
     const [[libro]] = await conn.query('SELECT id, titulo, activo, stock_total FROM libros WHERE id = ? FOR UPDATE', [libro_id]);
     if (!libro || !libro.activo) throw err.noEncontrado('El libro');

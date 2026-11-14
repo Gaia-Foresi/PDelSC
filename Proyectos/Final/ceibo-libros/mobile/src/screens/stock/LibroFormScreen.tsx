@@ -19,12 +19,14 @@ import { useToast } from '../../components/Toast';
 
 import type { PantallaProps } from '../../types';
 export default function LibroFormScreen({ navigation, route }: PantallaProps) {
+  // Si llega un libro por parámetro, la pantalla es de edición; si no, de alta.
   const libro = route.params?.libro;
   const editando = !!libro;
   const { esGerente } = useAuth();
   const { colors } = useTheme();
   const confirm = useConfirm();
   const toast = useToast();
+  // Categorías para elegir.
   const cats = useAsync(() => api.categorias.listar(), []);
 
   const [form, setForm] = useState({
@@ -43,6 +45,7 @@ export default function LibroFormScreen({ navigation, route }: PantallaProps) {
   const [buscandoPortada, setBuscandoPortada] = useState(false);
   const [estadoPortada, setEstadoPortada] = useState(''); // '' | 'encontrada' | 'no-encontrada'
   const portadaManual = useRef(!!libro?.portada_url); // si el usuario escribió un link, no se pisa
+  // Busca la portada en internet con el título y el autor (forzar = buscar aunque haya un link escrito a mano).
   const buscarPortada = async (forzar = false) => {
     const titulo = form.titulo.trim();
     if (titulo.length < 3 || (!forzar && portadaManual.current)) return;
@@ -57,12 +60,14 @@ export default function LibroFormScreen({ navigation, route }: PantallaProps) {
       setBuscandoPortada(false);
     }
   };
+  // Espera 900 ms después de que se deja de escribir para buscar la portada sola.
   useEffect(() => {
     if (portadaManual.current) return undefined;
     const id = setTimeout(() => buscarPortada(false), 900);
     return () => clearTimeout(id);
   }, [form.titulo, form.autor]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Valida el formulario y devuelve true si está todo bien.
   const validar = () => {
     const e = {
       titulo: v.requerido(form.titulo, 'El título'),
@@ -76,6 +81,7 @@ export default function LibroFormScreen({ navigation, route }: PantallaProps) {
     return v.sinErrores(e);
   };
 
+  // Guarda el libro: lo actualiza si se está editando o lo crea si es nuevo.
   const guardar = async () => {
     if (!validar()) return;
     setCargando(true);
@@ -100,6 +106,7 @@ export default function LibroFormScreen({ navigation, route }: PantallaProps) {
     }
   };
 
+  // Elimina el libro (solo gerente), previa confirmación.
   const eliminar = async () => {
     const ok = await confirm({
       title: '¿Eliminar este libro?',
@@ -117,6 +124,7 @@ export default function LibroFormScreen({ navigation, route }: PantallaProps) {
     }
   };
 
+  // Tilda o destilda una categoría del libro (tiene que quedar al menos una).
   const alternarCategoria = (cid) => {
     setForm((f) => {
       const esta = f.categoria_ids.includes(cid);

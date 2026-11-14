@@ -39,6 +39,7 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
   }, { passive: true });
 }
 
+// Contenido: lo que se ve adentro de todos los proveedores (la navegación de la app).
 function Contenido() {
   const { isDark } = useTheme();
   return (
@@ -49,6 +50,8 @@ function Contenido() {
   );
 }
 
+// Componente raíz. Los "Provider" envuelven la app y comparten datos con todas las pantallas
+// (tema, sesión, contadores, avisos). El orden importa: el de adentro puede usar al de afuera.
 export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

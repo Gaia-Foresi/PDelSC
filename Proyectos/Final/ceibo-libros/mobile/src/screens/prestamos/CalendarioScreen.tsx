@@ -14,10 +14,12 @@ import ErrorState from '../../components/ErrorState';
 import ScreenContainer from '../../components/ScreenContainer';
 
 import type { PantallaProps } from '../../types';
+// iso(2026, 10, 5) -> '2026-11-05' (los meses de JavaScript van de 0 a 11, por eso el +1).
 const pad = (n) => String(n).padStart(2, '0');
 const iso = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;
 const SEMANA = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
+// Texto, color e ícono de cada tipo de visita.
 const ETIQUETA = {
   'reserva-sala': ['Reserva · sala', 'primary', 'book-open-variant'],
   'reserva-retiro': ['Reserva · retiro', 'warning', 'bookmark-outline'],
@@ -31,18 +33,22 @@ export default function CalendarioScreen({ navigation }: PantallaProps) {
   const [mes, setMes] = useState({ y: hoy.getFullYear(), m: hoy.getMonth() });
   const [dia, setDia] = useState(hoyIso);
 
+  // Día 0 del mes siguiente = último día de este mes (así se sabe cuántos días tiene).
   const diasMes = new Date(mes.y, mes.m + 1, 0).getDate();
   const desde = iso(mes.y, mes.m, 1);
   const hasta = iso(mes.y, mes.m, diasMes);
+  // Pide al servidor las visitas del mes que se está viendo.
   const datos = useAsync(() => api.calendario.listar({ desde, hasta }), [desde, hasta]);
   useRefreshOnFocus(datos.refresh);
 
+  // Agrupa las visitas por día: { '2026-11-05': [visita, visita], ... }.
   const porDia = useMemo(() => {
     const mapa = {};
     for (const e of datos.data?.eventos || []) (mapa[e.visita.fecha] ||= []).push(e);
     return mapa;
   }, [datos.data]);
 
+  // Cambia al mes anterior (-1) o al siguiente (+1).
   const cambiarMes = (delta) => {
     const f = new Date(mes.y, mes.m + delta, 1);
     setMes({ y: f.getFullYear(), m: f.getMonth() });
@@ -50,10 +56,12 @@ export default function CalendarioScreen({ navigation }: PantallaProps) {
   };
 
   // Lunes primero
+  // Cuántos espacios vacíos van antes del día 1 para que la semana empiece en lunes.
   const offset = (diaSemana(desde) + 6) % 7;
   const celdas = [...Array(offset).fill(null), ...Array.from({ length: diasMes }, (_, i) => i + 1)];
   const eventos = porDia[dia] || [];
 
+  // Al tocar una visita, abre el préstamo o la lista de reservas.
   const abrir = (e) => navigation.navigate(e.tipo === 'prestamo' ? 'PrestamoDetalle' : 'ReservasTab', e.tipo === 'prestamo' ? { id: e.ref_id } : undefined);
 
   return (

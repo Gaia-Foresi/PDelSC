@@ -1,6 +1,7 @@
 // Tipos de bloqueo de una cuenta: atraso en la devolución o daño a un libro.
 export type TipoBloqueo = 'atraso' | 'dano';
 
+// Opciones para elegir el tipo de bloqueo en la pantalla del personal.
 export const TIPOS_BLOQUEO: { value: TipoBloqueo; label: string; description: string; mensaje: string }[] = [
   {
     value: 'atraso', label: 'Atraso en la devolución', description: 'No devolvió un libro a tiempo. Se habilita sola al devolverlo.',

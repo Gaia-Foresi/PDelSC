@@ -66,7 +66,8 @@ export default function SelectorVisita({ tipo = 'retiro', value, onChange, error
         if (!activo) return;
         setDias(r.dias);
         const actual = r.dias.find((d) => d.horas.some((h) => h.iso === value));
-        const f = (actual || r.dias[0])?.fecha;
+        // El calendario abre en el mes del día ya elegido o, si no hay, del primer día que se pueda reservar (no uno cerrado)
+        const f = (actual || r.dias.find((d) => !d.no_disponible) || r.dias[0])?.fecha;
         setDia(actual ? actual.fecha : null);
         if (f) { const [y, m] = f.split('-').map(Number); setMes({ y, m: m - 1 }); }
       })
@@ -74,7 +75,10 @@ export default function SelectorVisita({ tipo = 'retiro', value, onChange, error
     return () => { activo = false; };
   }, [tipo]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const disponibles = useMemo(() => new Set((dias || []).map((d) => d.fecha)), [dias]);
+  // `disponibles` = días con horarios para elegir. `cerrados` = días que el gerente bloqueó: el servidor los manda marcados
+  // con `no_disponible` (sin decir el motivo). Se dibujan tachados y no se pueden tocar.
+  const disponibles = useMemo(() => new Set((dias || []).filter((d) => !d.no_disponible).map((d) => d.fecha)), [dias]);
+  const cerrados = useMemo(() => new Set((dias || []).filter((d) => d.no_disponible).map((d) => d.fecha)), [dias]);
   const meses = useMemo(() => [...new Set((dias || []).map((d) => d.fecha.slice(0, 7)))], [dias]);
   const idxMes = mes ? meses.indexOf(`${mes.y}-${pad(mes.m + 1)}`) : -1;
   const irMes = (delta) => {
@@ -122,6 +126,7 @@ export default function SelectorVisita({ tipo = 'retiro', value, onChange, error
                 if (!d) return <View key={`v${i}`} style={styles.celda} />;
                 const f = `${mes.y}-${pad(mes.m + 1)}-${pad(d)}`;
                 const libre = disponibles.has(f);
+                const cerrado = cerrados.has(f);
                 const sel = f === dia && value !== AHORA;
                 return (
                   <Pressable
@@ -129,16 +134,18 @@ export default function SelectorVisita({ tipo = 'retiro', value, onChange, error
                     disabled={!libre}
                     onPress={() => { setDia(f); onChange(null); }}
                     accessibilityRole="button"
-                    accessibilityLabel={libre ? diaLargo(f) : `${diaLargo(f)}, no disponible`}
+                    accessibilityLabel={libre ? diaLargo(f) : cerrado ? `${diaLargo(f)}, no disponible para reservas` : `${diaLargo(f)}, no disponible`}
                     accessibilityState={{ selected: sel, disabled: !libre }}
                     style={[styles.celda, styles.dia, libre && !sel && { backgroundColor: colors.primarySoft }, sel && { backgroundColor: colors.primary }]}
                   >
-                    <Text style={{ color: sel ? colors.onPrimary : libre ? colors.text : colors.textMuted, opacity: libre ? 1 : 0.4, fontWeight: libre ? '700' : '400' }}>{d}</Text>
+                    <Text style={{ color: sel ? colors.onPrimary : libre ? colors.text : colors.textMuted, opacity: libre ? 1 : cerrado ? 0.6 : 0.4, fontWeight: libre ? '700' : '400', textDecorationLine: cerrado ? 'line-through' : 'none' }}>{d}</Text>
                   </Pressable>
                 );
               })}
             </View>
           </View>
+          {/* Aviso corto, solo si hay algún día cerrado */}
+          {cerrados.size ? <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: 6 }}>Los días tachados no están disponibles para reservas.</Text> : null}
           <View ref={zonaHora} collapsable={false}>
             {dia && value !== AHORA ? (
               <>

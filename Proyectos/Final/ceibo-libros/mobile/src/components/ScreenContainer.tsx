@@ -30,12 +30,14 @@ interface ScreenContainerProps {
   anchoMax?: any;
 }
 
+// Cada pantalla usa este contenedor: arma la barra superior, el scroll y el "tirar para recargar".
 export default function ScreenContainer({ title, brand, menu, back, right, showBell, scroll = true, refreshing, onRefresh, children, padded = true, header = true, anchoMax }: ScreenContainerProps) {
   const { colors } = useTheme();
   const { maxWidth } = useResponsive();
   // Espacio fijo abajo para que el botón de subir no tape lo último (fijo: si cambiara al abrir el teclado, la pantalla saltaría)
   const bottom = spacing.lg + 72; // la barra de abajo (fija) ya cubre el área segura
 
+  // Botón "volver arriba" y revelador de errores, conectados al mismo scroll.
   const { ref, onScroll: alDesplazar, boton } = useVolverArriba();
   const revelador = useRevelador(ref);
   const onScroll = (e) => { alDesplazar(e); revelador.onScroll(e); };
@@ -75,6 +77,7 @@ export default function ScreenContainer({ title, brand, menu, back, right, showB
 }
 
 // Estilo para el contenido de un FlatList (centrado y con el mismo padding)
+// Estilo para listas largas (FlatList), para que se vean igual que las pantallas con scroll.
 export function useListContentStyle(_conAcciones?: boolean): ViewStyle {
   const { maxWidth } = useResponsive();
   return { width: '100%', maxWidth, alignSelf: 'center', padding: spacing.lg, paddingBottom: spacing.xl + 64 };

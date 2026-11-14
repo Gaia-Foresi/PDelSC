@@ -1,6 +1,8 @@
+// Versión en JavaScript común (require) de manualRoles.tsx, para scripts que corren con Node.
 // Qué secciones del manual ve cada rol y cómo se numeran. Lo usan la pantalla del manual y el generador de PDF.
 const manual = require('./manual.json');
 
+// Datos de cada manual: nombre del rol, título y nombre del PDF.
 const ROLES = {
   usuario: { etiqueta: 'Usuario (lector)', titulo: 'Manual del usuario', archivo: 'manual-usuario' },
   bibliotecario: { etiqueta: 'Bibliotecario', titulo: 'Manual del bibliotecario', archivo: 'manual-bibliotecario' },

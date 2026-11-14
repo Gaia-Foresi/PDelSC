@@ -17,6 +17,7 @@ import { useVolverArriba } from '../../components/VolverArriba';
 import ScreenContainer, { useListContentStyle } from '../../components/ScreenContainer';
 import { SkeletonList } from '../../components/Skeleton';
 
+// Ícono, color y nombre de cada tipo de notificación.
 const TIPOS = {
   recordatorio_devolucion: { icon: 'calendar-clock-outline', tono: 'warning' },
   vencimiento: { icon: 'clock-alert-outline', tono: 'danger' },
@@ -34,6 +35,7 @@ export default function NotificacionesScreen() {
   const { colors } = useTheme();
   const { refrescar } = useBadges();
   const contenido = useListContentStyle(false);
+  // Pide las notificaciones al servidor.
   const datos = useAsync(() => api.notificaciones.listar({}), []);
 
   const toast = useToast();
@@ -55,6 +57,7 @@ export default function NotificacionesScreen() {
     }
   };
 
+  // Colores de fondo y de ícono según el tono del aviso.
   const color = (tono) => ({
     warning: [colors.warningSoft, colors.warning],
     danger: [colors.dangerSoft, colors.danger],

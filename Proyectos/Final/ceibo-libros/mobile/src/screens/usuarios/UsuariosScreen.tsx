@@ -20,6 +20,7 @@ import SearchBar from '../../components/SearchBar';
 import { SkeletonList } from '../../components/Skeleton';
 
 import type { PantallaProps } from '../../types';
+// Filtros: el gerente puede ver también bibliotecarios; el bibliotecario, solo usuarios.
 const FILTROS_GERENTE = [
   { value: 'todos', label: 'Todos' },
   { value: 'usuario', label: 'Usuarios' },
@@ -40,11 +41,13 @@ export default function UsuariosScreen({ navigation }: PantallaProps) {
   const [busqueda, setBusqueda] = useState('');
   const [filtro, setFiltro] = useState('todos');
 
+  // Espera 400 ms después de escribir antes de buscar.
   useEffect(() => {
     const id = setTimeout(() => setBusqueda(q.trim()), 400);
     return () => clearTimeout(id);
   }, [q]);
 
+  // Pide los usuarios con los filtros elegidos.
   const datos = useAsync(() => {
     const body: Record<string, any> = { ...(busqueda ? { q: busqueda } : {}) };
     if (filtro === 'bloqueado') body.estado = 'bloqueado';
@@ -55,6 +58,7 @@ export default function UsuariosScreen({ navigation }: PantallaProps) {
 
   if (!esStaff) return <ScreenContainer title="Usuarios" menu tab><EmptyState icon="lock-outline" title="Sección solo para el personal" /></ScreenContainer>;
 
+  // Parte de arriba de la lista: buscador y filtros.
   const encabezado = (
     <View>
       <SearchBar value={q} onChangeText={setQ} placeholder="Buscar por nombre o email" />

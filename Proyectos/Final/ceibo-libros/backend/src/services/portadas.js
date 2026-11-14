@@ -2,6 +2,7 @@
 // Primero Open Library; si no hay, Google Books. Nunca lanza errores: si no encuentra nada devuelve null.
 const TIMEOUT_MS = 7000;
 
+// Pide un JSON a una URL. Si falla o tarda demasiado, devuelve null en vez de un error.
 async function pedirJson(url) {
   try {
     const r = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS), headers: { Accept: 'application/json', 'User-Agent': 'CeiboLibros/1.0' } });
@@ -12,8 +13,10 @@ async function pedirJson(url) {
   }
 }
 
+// Saca espacios repetidos y los de los costados.
 const limpiar = (t) => String(t || '').replace(/\s+/g, ' ').trim();
 
+// Busca en Open Library y arma la URL de la imagen con el id de la portada.
 async function openLibrary(titulo, autor) {
   const q = new URLSearchParams({ title: titulo, limit: '5', fields: 'cover_i,title,author_name' });
   if (autor) q.set('author', autor);
@@ -22,6 +25,7 @@ async function openLibrary(titulo, autor) {
   return doc ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg` : null;
 }
 
+// Busca en Google Books y devuelve la miniatura (forzando https).
 async function googleBooks(titulo, autor) {
   const q = `intitle:${titulo}${autor ? `+inauthor:${autor}` : ''}`;
   const j = await pedirJson(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q).replace(/%2B/g, '+')}&maxResults=5&printType=books`);
@@ -31,6 +35,7 @@ async function googleBooks(titulo, autor) {
 }
 
 /** @returns {Promise<string|null>} URL de la portada o null */
+// Prueba en orden: Open Library con autor, Google Books, y Open Library sin autor. Devuelve la primera que encuentre.
 async function buscarPortada(titulo, autor) {
   const t = limpiar(titulo);
   if (!t) return null;
@@ -57,6 +62,7 @@ async function completarPortadasFaltantes(pool, { limite = 60, todas = false, lo
     } else {
       log(`  · sin portada: ${l.titulo}`);
     }
+    // Pausa de 250 ms entre libros, para no saturar a los servicios externos.
     await new Promise((r) => setTimeout(r, 250));
   }
   return { revisados: libros.length, completados: ok };

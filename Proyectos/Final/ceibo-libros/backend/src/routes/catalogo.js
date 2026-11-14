@@ -1,3 +1,5 @@
+// Rutas del catálogo: categorías (/api/categorias/...) y libros (/api/libros/...).
+// Ver, cualquier usuario logueado. Crear y editar, el staff. Eliminar, solo el gerente.
 import express from 'express';
 import * as ctl from '../controllers/catalogo.js';
 import autenticar from '../middlewares/auth.js';
@@ -8,9 +10,11 @@ import { z, id, texto, textoOpc, color, urlOpc } from '../utils/esquemas.js';
 
 const { Router } = express;
 
+// "vacio" acepta un body sin datos. "soloId" pide únicamente { id }.
 const vacio = z.object({}).passthrough();
 const soloId = z.object({ id });
 
+// Campos comunes de una categoría; se reutilizan en crear y actualizar.
 const categoriaBase = {
   codigo: texto(5),
   nombre: texto(60),
@@ -18,6 +22,7 @@ const categoriaBase = {
   icono: texto(40),
   color,
 };
+// S = esquemas de cada ruta. En "actualizar" casi todo es .optional(): se manda solo lo que cambia.
 const S = {
   catCrear: z.object({ ...categoriaBase, descripcion: textoOpc(255), icono: categoriaBase.icono.optional(), color: color.optional() }),
   catActualizar: z.object({
@@ -54,6 +59,7 @@ const S = {
   }),
 };
 
+// Router de categorías: primero autentica y después cada ruta pide su rol.
 const categorias = Router();
 categorias.use(autenticar);
 categorias.post('/listar', validar(vacio), asyncHandler(ctl.categoriasListar));
@@ -61,6 +67,7 @@ categorias.post('/crear', requiereRol(...STAFF), validar(S.catCrear), asyncHandl
 categorias.post('/actualizar', requiereRol(...STAFF), validar(S.catActualizar), asyncHandler(ctl.categoriasActualizar));
 categorias.post('/eliminar', requiereRol('gerente'), validar(soloId), asyncHandler(ctl.categoriasEliminar));
 
+// Router de libros.
 const libros = Router();
 libros.use(autenticar);
 libros.post('/listar', validar(S.libroListar), asyncHandler(ctl.librosListar));

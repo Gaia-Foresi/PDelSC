@@ -1,6 +1,8 @@
+// rateLimit cuenta cuántos pedidos hace cada IP en una ventana de tiempo y, si se pasa, responde 429.
 // Límites de peticiones (anti fuerza bruta).
 import rateLimit from 'express-rate-limit';
 
+// Lo que se responde cuando alguien supera el límite.
 const respuesta = {
   ok: false,
   error: { codigo: 'DEMASIADOS_INTENTOS', mensaje: 'Demasiados intentos. Esperá unos minutos y probá de nuevo.' },

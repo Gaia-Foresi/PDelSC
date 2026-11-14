@@ -16,8 +16,10 @@ export type DondeQuedo = 'descargas' | 'carpeta' | 'compartido';
  * Web: lo baja a la carpeta Descargas del navegador. Android: deja elegir una carpeta (ej. Documentos) y lo guarda ahí;
  * si se cancela, abre el menú de compartir. iPhone: menú de compartir ("Guardar en Archivos").
  */
+// Guarda un archivo que llega en base64. Devuelve dónde quedó (descargas, carpeta elegida o compartido).
 export async function guardarArchivo(nombre: string, base64: string, mime = MIME_XLSX): Promise<DondeQuedo> {
   if (Platform.OS === 'web') {
+    // Web: se convierte el base64 en bytes, se arma un link de descarga invisible y se le hace "clic".
     const bin = atob(base64);
     const bytes = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i += 1) bytes[i] = bin.charCodeAt(i);
@@ -31,6 +33,7 @@ export async function guardarArchivo(nombre: string, base64: string, mime = MIME
     setTimeout(() => URL.revokeObjectURL(url), 5000);
     return 'descargas';
   }
+  // Android: se le pide al usuario una carpeta para guardar el archivo.
   if (Platform.OS === 'android') {
     const saf = FileSystem.StorageAccessFramework;
     const permiso = await saf.requestDirectoryPermissionsAsync();
@@ -40,6 +43,7 @@ export async function guardarArchivo(nombre: string, base64: string, mime = MIME
       return 'carpeta';
     }
   }
+  // Si no, se guarda en una carpeta temporal y se abre el menú de compartir.
   const uri = `${FileSystem.cacheDirectory}${nombre}`;
   await FileSystem.writeAsStringAsync(uri, base64, { encoding: FileSystem.EncodingType.Base64 });
   if (!(await Sharing.isAvailableAsync())) throw new Error('Este dispositivo no permite guardar o compartir archivos.');
@@ -47,6 +51,7 @@ export async function guardarArchivo(nombre: string, base64: string, mime = MIME
   return 'compartido';
 }
 
+// Lee un archivo elegido en la web y devuelve su contenido en base64.
 const leerWeb = (file: File): Promise<string> => new Promise((resolve, reject) => {
   const r = new FileReader();
   r.onload = () => resolve(String(r.result).split(',')[1] || '');
@@ -57,6 +62,7 @@ const leerWeb = (file: File): Promise<string> => new Promise((resolve, reject) =
 const esXlsx = (nombre: string) => /\.xlsx$/i.test(nombre);
 
 /** Abre el selector y devuelve los Excel (.xlsx) elegidos en base64. Lo que no sea un .xlsx se rechaza y se devuelve aparte. */
+// Abre el selector de archivos y devuelve los Excel válidos y los nombres de los que se rechazaron.
 export async function elegirExcels(): Promise<{ validos: ArchivoElegido[]; rechazados: string[] }> {
   // En el celular se muestran todos los archivos: Drive y WhatsApp a veces guardan el Excel con otro tipo y no aparecería.
   // Lo que no termine en .xlsx se rechaza igual más abajo.

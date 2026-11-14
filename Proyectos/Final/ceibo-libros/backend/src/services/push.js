@@ -4,10 +4,12 @@
 import { consultar } from '../config/db.js';
 
 const URL_EXPO = 'https://exp.host/--/api/v2/push/send';
+// Expresión regular: así tiene que verse un token válido de Expo, ej. ExponentPushToken[abc123].
 const TOKEN_VALIDO = /^(Expo|Exponent)PushToken\[[A-Za-z0-9_-]+\]$/;
 
 const tokenValido = (t) => typeof t === 'string' && TOKEN_VALIDO.test(t);
 
+// Guarda el token del celular de la persona (o lo reasigna si ya existía).
 async function registrarToken(usuarioId, token, plataforma = 'android') {
   if (!tokenValido(token)) return false;
   // Un celular pertenece a una sola persona a la vez: si cambia de cuenta, el token pasa a la nueva
@@ -18,6 +20,7 @@ async function registrarToken(usuarioId, token, plataforma = 'android') {
   return true;
 }
 
+// Borra el token (por ejemplo, al cerrar sesión).
 async function quitarToken(usuarioId, token) {
   await consultar('DELETE FROM dispositivos_push WHERE usuario_id = ? AND token = ?', [usuarioId, token]);
 }

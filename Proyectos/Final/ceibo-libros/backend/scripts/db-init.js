@@ -13,12 +13,15 @@ const { db } = env;
 // Si existe y no se indicó --reset, detiene el proceso para evitar borrar datos por accidente. 
 // Si puede continuar, lee y ejecuta schema.sql para crear las tablas. 
 // Finalmente, muestra un mensaje de éxito, cierra la conexión y captura posibles errores.
+// (async () => { ... })() es una función que se define y se ejecuta al instante. Se usa para poder usar await.
 (async () => {
   const conexion = await mysql.createConnection({
     host: db.host, port: db.port, user: db.user, password: db.password, database: db.database,
     ssl: db.ssl ? { rejectUnauthorized: db.rechazarNoAutorizado, ...(db.ca ? { ca: db.ca } : {}) } : undefined,
     multipleStatements: true, charset: 'utf8mb4',
   });
+  // crea las tablas de la base de datos a partir de un archivo .sql. 
+  // Antes de hacerlo se fija si ya existen, para no pisar datos sin quere
   try {
     const [existe] = await conexion.query("SELECT COUNT(*) AS n FROM information_schema.tables WHERE table_schema = ? AND table_name = 'usuarios'", [db.database]);
     if (existe[0].n > 0 && !process.argv.includes('--reset')) {

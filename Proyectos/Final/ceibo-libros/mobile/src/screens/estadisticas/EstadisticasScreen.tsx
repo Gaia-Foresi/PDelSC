@@ -88,6 +88,7 @@ interface BarrasVerticalesProps {
 // Barras verticales: una por mes, con eje de valores y líneas guía
 function BarrasVerticales({ datos }: BarrasVerticalesProps) {
   const { colors } = useTheme();
+  // El valor más alto define la escala: esa barra ocupa todo el alto y las demás, en proporción.
   const max = Math.max(1, ...datos.map((d) => d.total));
   const tope = max <= 4 ? max : Math.ceil(max / 2) * 2; // número "redondo" para el eje
   const marcas = tope <= 4 ? Array.from({ length: tope + 1 }, (_, i) => i) : [0, tope / 2, tope];
@@ -160,6 +161,7 @@ interface RankingProps {
 // Ranking en barras horizontales: etiqueta, cantidad y (opcional) porcentaje del total
 function Ranking({ datos, etiqueta, vacio, conPorcentaje }: RankingProps) {
   const { colors } = useTheme();
+  // Cada barra mide en proporción al valor más alto.
   const max = Math.max(1, ...datos.map((d) => d.total));
   const suma = datos.reduce((s, d) => s + d.total, 0);
   if (!datos.length || suma === 0) return <Text style={{ color: colors.textMuted }}>{vacio}</Text>;
@@ -186,15 +188,18 @@ function Ranking({ datos, etiqueta, vacio, conPorcentaje }: RankingProps) {
   );
 }
 
+// Pantalla: pide el resumen a la API (solo si es gerente) y lo dibuja en tarjetas y gráficos.
 export default function EstadisticasScreen({ navigation }: PantallaProps) {
   const { colors } = useTheme();
   const { esGerente } = useAuth();
   const { width, maxWidth, columns } = useResponsive();
+  // useAsync pide los datos al abrir; useRefreshOnFocus los actualiza al volver a la pantalla.
   const stats = useAsync(() => (esGerente ? api.estadisticas.resumen() : Promise.resolve(null)), [esGerente]);
   useRefreshOnFocus(stats.refresh);
 
   if (!esGerente) return <ScreenContainer title="Estadísticas" back><EmptyState icon="lock-outline" title="Solo para el gerente" /></ScreenContainer>;
 
+  // Calcula el ancho de cada tarjeta según cuántas columnas entran en la pantalla.
   const area = Math.min(width, maxWidth || width) - spacing.lg * 2;
   const cols = columns >= 3 ? 3 : 2;
   const gap = spacing.md;

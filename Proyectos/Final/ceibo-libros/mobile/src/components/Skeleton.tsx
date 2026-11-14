@@ -1,3 +1,4 @@
+// "Esqueleto": cajas grises que se muestran mientras cargan los datos, en lugar de una pantalla vacía.
 import React, { useEffect, useRef } from 'react';
 import { Animated, Platform, View } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';

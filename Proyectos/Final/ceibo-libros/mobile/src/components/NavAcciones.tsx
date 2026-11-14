@@ -77,7 +77,11 @@ export function useAccesos(): Acceso[] {
       { icon: 'shield-crown-outline', texto: 'Panel de administración', pantalla: 'Admin' },
       { icon: 'truck-delivery-outline', texto: 'Pedir libros', pantalla: 'PedirLibros' },
     ] as Acceso[] : []),
-    ...(esStaff ? [{ icon: 'calendar-month-outline', texto: 'Calendario de visitas', pantalla: 'Calendario' }] as Acceso[] : []),
+    ...(esStaff ? [
+      { icon: 'calendar-month-outline', texto: 'Calendario de visitas', pantalla: 'Calendario' },
+      // Lo ven el gerente y el bibliotecario (esStaff): el gerente puede cambiar los días, el bibliotecario solo mirarlos
+      { icon: 'calendar-remove-outline', texto: 'Días no disponibles', pantalla: 'Bloqueos' },
+    ] as Acceso[] : []),
   ];
 }
 

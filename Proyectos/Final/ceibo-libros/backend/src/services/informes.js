@@ -4,14 +4,18 @@ import { consultar } from '../config/db.js';
 import { err } from '../utils/httpError.js';
 import { hoy, sumarDias, diasEntre } from '../utils/fechas.js';
 
+// Nombre y columnas de la hoja principal. Se usan al crear el Excel y también al leerlo para analizarlo.
 const HOJA_DETALLE = 'Detalle de libros';
 const COLUMNAS_DETALLE = ['ID préstamo', 'ID libro', 'Libro', 'Autor', 'Categoría', 'Lector', 'Curso', 'Fecha de préstamo', 'Vence', 'Devuelto el', 'Estado del ejemplar', 'Vencido', 'Mes'];
 
+// Estados posibles de cada ejemplar prestado.
 const ESTADOS = { PRESTADO: 'Prestado', ESPERA: 'Devuelto - en espera', STOCK: 'Devuelto - en stock', DANADO: 'Dañado' };
 // Si un mismo ejemplar aparece en dos archivos, vale el estado más avanzado
 const RANGO = { [ESTADOS.PRESTADO]: 1, [ESTADOS.ESPERA]: 2, [ESTADOS.STOCK]: 3, [ESTADOS.DANADO]: 4 };
 
+// Pasa una fecha a 'YYYY-MM-DD' (o '' si no hay).
 const fechaCorta = (f) => (f ? new Date(f).toISOString().slice(0, 10) : '');
+// Traduce los datos de la base (devuelto_en, revision) al estado que se muestra en el Excel.
 const estadoDe = (i) => {
   if (!i.devuelto_en) return ESTADOS.PRESTADO;
   if (i.revision === 'danado') return ESTADOS.DANADO;
@@ -19,6 +23,7 @@ const estadoDe = (i) => {
   return ESTADOS.STOCK;
 };
 
+// Períodos que se pueden pedir. MES_VALIDO comprueba el formato 'YYYY-MM'.
 export const PERIODOS = ['todo', 'mes_actual', 'mes_anterior', '3_meses', 'mes', 'rango', 'meses'];
 export const MES_VALIDO = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -30,6 +35,7 @@ export const MES_VALIDO = /^\d{4}-(0[1-9]|1[0-2])$/;
 export function rangoDe(periodo, mes, hasta, lista) {
   const h = hoy();
   const [y, m] = h.split('-').map(Number);
+  // primero(): primer día del mes. ultimo(): el día anterior al primero del mes siguiente.
   const primero = (yy, mm) => `${yy}-${String(mm).padStart(2, '0')}-01`;
   const ultimo = (yy, mm) => sumarDias(primero(mm === 12 ? yy + 1 : yy, mm === 12 ? 1 : mm + 1), -1);
   if (periodo === 'mes' && MES_VALIDO.test(mes || '')) {
@@ -58,6 +64,7 @@ export function rangoDe(periodo, mes, hasta, lista) {
 }
 
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+// '2026-03' -> 'marzo de 2026'.
 const nombreMes = (mes) => { const [y, m] = mes.split('-').map(Number); return `${MESES[m - 1]} de ${y}`; };
 
 /** Meses en los que hubo préstamos (para elegir cuál descargar), del más nuevo al más viejo. */
@@ -69,11 +76,13 @@ export async function mesesConDatos() {
   return filas.map((f) => ({ mes: f.mes, nombre: nombreMes(f.mes), prestamos: Number(f.prestamos), libros: Number(f.libros) }));
 }
 
+// import() dinámico: carga la librería recién cuando hace falta.
 async function cargarExcelJS() {
   const mod = await import('exceljs');
   return mod.default || mod;
 }
 
+// Estilo de las hojas: encabezado en negrita con fondo verde, fila 1 fija y ancho de cada columna.
 function darFormato(hoja, anchos) {
   hoja.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
   hoja.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2E4A2E' } };
@@ -92,6 +101,7 @@ export async function generarExcel(periodo = 'todo', mes, hastaMes, lista) {
     if (!MES_VALIDO.test(mes || '') || !MES_VALIDO.test(hastaMes || '')) throw err.validacion('Elegí el mes de inicio y el mes final.');
     if (mes > hastaMes) throw err.validacion('El mes de inicio no puede ser posterior al mes final.');
   }
+  // Pasos: 1) validar el período, 2) consultar los datos, 3) armar las hojas, 4) devolver el archivo.
   const ExcelJS = await cargarExcelJS();
   const rango = rangoDe(periodo, mes, hastaMes, lista);
   const h = hoy();
@@ -121,6 +131,7 @@ export async function generarExcel(periodo = 'todo', mes, hastaMes, lista) {
       : `Entre ${nombreMes(mes)} y ${nombreMes(hastaMes)} no hubo préstamos, así que no hay Excel para descargar.`);
   }
 
+  // Cada renglón del detalle es una lista con el mismo orden que COLUMNAS_DETALLE.
   const detalle = items.map((i) => {
     const estado = estadoDe(i);
     return [
@@ -130,6 +141,7 @@ export async function generarExcel(periodo = 'todo', mes, hastaMes, lista) {
     ];
   });
 
+  // Cuenta cuántas filas tienen un estado dado (la columna 10 es "Estado del ejemplar").
   const cuenta = (estado) => detalle.filter((f) => f[10] === estado).length;
   const [t] = await consultar(
     `SELECT (SELECT COUNT(*) FROM libros WHERE activo = 1) AS libros,
@@ -150,6 +162,7 @@ export async function generarExcel(periodo = 'todo', mes, hastaMes, lista) {
     danados: cuenta(ESTADOS.DANADO),
   };
 
+  // wb = workbook (el libro de Excel). Cada addWorksheet agrega una hoja (pestaña).
   const wb = new ExcelJS.Workbook();
   wb.creator = 'Ceibo Libros';
   wb.created = new Date();
@@ -223,6 +236,7 @@ export async function generarExcel(periodo = 'todo', mes, hastaMes, lista) {
   darFormato(hojaCat, [26, 18]);
 
   const sufijo = periodo === 'todo' ? 'completo' : periodo === 'mes' ? `mes-${mes}` : periodo === 'rango' ? `${mes}-a-${hastaMes}` : periodo === 'meses' ? `seleccion-${lista[0]}-a-${lista[lista.length - 1]}` : periodo.replace('_', '-');
+  // El Excel se genera en memoria como "buffer" (bytes). El controlador lo manda en base64.
   const buffer = Buffer.from(await wb.xlsx.writeBuffer());
   return { buffer, nombre: `ceibo-libros-estadisticas-${sufijo}-${h}.xlsx`, resumen };
 }
@@ -239,6 +253,7 @@ function agrupar(filas, col, colExtra) {
   return [...mapa.values()].sort((a, b) => b.total - a.total || a.clave.localeCompare(b.clave));
 }
 
+// Lee el valor de una celda como texto (las celdas con fórmulas o links vienen como objeto).
 const texto = (v) => {
   if (v === null || v === undefined) return '';
   if (typeof v === 'object') return String(v.text ?? v.result ?? '').trim();
@@ -250,6 +265,7 @@ const texto = (v) => {
  * y devuelve el análisis: qué libros salieron más, cuáles no se devolvieron, cuántos se dañaron, etc.
  */
 export async function analizarArchivos(archivos) {
+  // Map sirve para no repetir: la clave es "idPréstamo-idLibro" y guarda una sola fila por ejemplar.
   const ExcelJS = await cargarExcelJS();
   const registros = new Map(); // "idPréstamo-idLibro" -> fila
   const leidos = [];
@@ -258,9 +274,11 @@ export async function analizarArchivos(archivos) {
   for (const a of archivos) {
     try {
       const wb = new ExcelJS.Workbook();
+      // El archivo llega en base64: se convierte a bytes y se abre con exceljs.
       await wb.xlsx.load(Buffer.from(a.contenido, 'base64'));
       const hoja = wb.getWorksheet(HOJA_DETALLE);
       if (!hoja) throw new Error('falta la hoja');
+      // Se arma un mapa "nombre de columna -> número de columna" leyendo la fila de títulos.
       const cab = {};
       hoja.getRow(1).eachCell((c, n) => { cab[texto(c.value)] = n; });
       if (COLUMNAS_DETALLE.some((n) => !cab[n])) throw new Error('faltan columnas');
@@ -289,6 +307,7 @@ export async function analizarArchivos(archivos) {
 
   const h = hoy();
   const todos = [...registros.values()];
+  // ordenar(): pasa un Map a lista ordenada de mayor a menor. contar(): cuenta cuántas veces aparece cada clave.
   const ordenar = (m) => [...m.entries()].map(([clave, total]) => ({ clave, total })).sort((a, b) => b.total - a.total || a.clave.localeCompare(b.clave));
   const contar = (lista, fn) => { const m = new Map(); lista.forEach((r) => { const k = fn(r); m.set(k, (m.get(k) || 0) + 1); }); return m; };
 

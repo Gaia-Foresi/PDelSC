@@ -24,6 +24,7 @@ import { SkeletonList } from '../../components/Skeleton';
 import { useToast } from '../../components/Toast';
 
 import type { PantallaProps } from '../../types';
+// Filtros de la lista y roles que se pueden asignar.
 const FILTROS = [
   { value: 'todos', label: 'Todos' },
   { value: 'bibliotecario', label: 'Bibliotecarios' },
@@ -48,11 +49,13 @@ export default function AdminScreen({ navigation }: PantallaProps) {
   const [filtro, setFiltro] = useState('todos');
   const [elegido, setElegido] = useState(null); // usuario al que se le cambia el rol
 
+  // Espera 400 ms después de escribir antes de buscar.
   useEffect(() => {
     const id = setTimeout(() => setBusqueda(q.trim()), 400);
     return () => clearTimeout(id);
   }, [q]);
 
+  // Pide los usuarios con los filtros elegidos.
   const datos = useAsync(() => {
     const body: Record<string, any> = { ...(busqueda ? { q: busqueda } : {}), limite: 100 };
     if (filtro === 'bloqueado') body.estado = 'bloqueado';
@@ -69,6 +72,7 @@ export default function AdminScreen({ navigation }: PantallaProps) {
     );
   }
 
+  // Cambia el rol del usuario elegido, previa confirmación.
   const cambiar = async (rol) => {
     if (!elegido || rol.value === elegido.rol) { setElegido(null); return; }
     const u = elegido;
@@ -90,6 +94,7 @@ export default function AdminScreen({ navigation }: PantallaProps) {
     }
   };
 
+  // Parte de arriba de la lista: buscador y filtros.
   const encabezado = (
     <View>
       <Text style={{ color: colors.textMuted, marginBottom: spacing.md, lineHeight: 20 }}>

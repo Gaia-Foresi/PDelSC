@@ -1,8 +1,10 @@
+// Un "pool" es un grupo de conexiones abiertas que se reutilizan: es más rápido que abrir una por consulta.
 // Pool de conexiones a MySQL (base de datos alojada en la nube).
 import mysql from 'mysql2/promise';
 import env from './env.js';
 const { db } = env;
 
+// Si la base pide conexión segura (SSL), armamos sus opciones; si no, queda undefined.
 const ssl = db.ssl
   ? { rejectUnauthorized: db.rechazarNoAutorizado, ...(db.ca ? { ca: db.ca } : {}) }
   : undefined;
@@ -30,7 +32,10 @@ async function consultar(sql, params = []) {
   return filas;
 }
 
-/** Ejecuta `fn(conexion)` dentro de una transacción; hace rollback si algo falla. */
+// ejecuta varias consultas como una sola unidad (“todo o nada”). 
+// Pide una conexión propia al pool, inicia la transacción y ejecuta fn pasándole esa conexión. 
+// Si todo sale bien hace commit y devuelve el resultado. Si algo falla hace rollback y relanza el error. 
+// En el finally siempre libera la conexión con release() para no agotar el pool.
 async function transaccion(fn) {
   const conexion = await pool.getConnection();
   try {

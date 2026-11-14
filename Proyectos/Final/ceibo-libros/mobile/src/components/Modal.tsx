@@ -23,6 +23,7 @@ interface ConfirmDialogProps {
 }
 
 // Confirmación: "¿Seguro que querés eliminar…?"
+// Diálogo centrado con título, mensaje y dos botones.
 export function ConfirmDialog({ visible, title, message, confirmText = 'Aceptar', cancelText = 'Cancelar', destructive, icon, onConfirm, onCancel }: ConfirmDialogProps) {
   const { colors } = useTheme();
   const apilado = (confirmText || '').length > 13 || (cancelText || '').length > 13;
@@ -64,6 +65,7 @@ interface SheetModalProps {
 }
 
 // Hoja inferior con título y contenido (formularios, selectores)
+// Panel que sube desde abajo de la pantalla. Se cierra con onClose.
 export function SheetModal({ visible, title, onClose, children, footer }: SheetModalProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();

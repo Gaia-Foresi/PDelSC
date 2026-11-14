@@ -1,3 +1,4 @@
+// Pantalla de registro: nombre, apellido, email y contraseña. Después pide el código enviado por email.
 import React, { useState } from 'react';
 import { Keyboard, StyleSheet, Text, View } from 'react-native';
 import { api } from '../../api';
@@ -19,6 +20,7 @@ export default function RegisterScreen({ navigation }: PantallaProps) {
   const [cargando, setCargando] = useState(false);
   const set = (k) => (t) => { setForm((f) => ({ ...f, [k]: t })); setErrores((e) => ({ ...e, [k]: '' })); };
 
+  // Valida los campos y, si están bien, crea la cuenta y va a la pantalla del código.
   const enviar = async () => {
     const e = {
       nombre: v.requerido(form.nombre, 'El nombre'),

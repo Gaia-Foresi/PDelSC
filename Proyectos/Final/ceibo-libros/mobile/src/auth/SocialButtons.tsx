@@ -17,6 +17,7 @@ import { MIN_TAP, radius, spacing } from '../theme/tokens';
 import type { IconName } from '../types';
 WebBrowser.maybeCompleteAuthSession();
 
+// Dirección a la que vuelve el proveedor después de que la persona inicia sesión (ceibolibros://oauth).
 const redirectUri = AuthSession.makeRedirectUri({ scheme: 'ceibolibros', path: 'oauth' });
 // Esta es la dirección que hay que registrar en GitHub y Discord (se ve en la consola al iniciar la app)
 if (__DEV__) console.info(`[login social] URI de redirección para GitHub/Discord: ${redirectUri}`);
@@ -40,6 +41,7 @@ interface ProviderButtonProps {
   disabled?: boolean;
 }
 
+// Botón visual de un proveedor (ícono, nombre y estado de carga).
 function ProviderButton({ nombre, icon, onPress, loading, disabled }: ProviderButtonProps) {
   const { colors } = useTheme();
   return (
@@ -57,6 +59,7 @@ function ProviderButton({ nombre, icon, onPress, loading, disabled }: ProviderBu
 }
 
 // Lógica común: manda el resultado al backend y abre la sesión
+// Hook común a los tres proveedores: manda lo que devolvió el proveedor al backend e inicia la sesión.
 function useCompletar(modo) {
   const { iniciarSesion } = useAuth();
   const toast = useToast();
@@ -79,6 +82,7 @@ interface GoogleRealProps {
   modo?: string;
 }
 
+// Google: abre la ventana de Google y, si sale bien, manda el token al backend.
 function GoogleReal({ modo }: GoogleRealProps) {
   const { cargando, completar, toast } = useCompletar(modo);
   const [request, response, promptAsync] = Google.useAuthRequest({
@@ -108,6 +112,7 @@ interface GitHubRealProps {
   modo?: string;
 }
 
+// GitHub: abre la ventana de GitHub y recibe un "code" que el backend canjea.
 function GitHubReal({ modo }: GitHubRealProps) {
   const { cargando, completar, toast } = useCompletar(modo);
   const [request, response, promptAsync] = AuthSession.useAuthRequest(
@@ -131,6 +136,7 @@ interface DiscordRealProps {
   modo?: string;
 }
 
+// Discord: abre la ventana de Discord y manda el token al backend.
 function DiscordReal({ modo }: DiscordRealProps) {
   const { cargando, completar, toast } = useCompletar(modo);
   const [request, response, promptAsync] = AuthSession.useAuthRequest(

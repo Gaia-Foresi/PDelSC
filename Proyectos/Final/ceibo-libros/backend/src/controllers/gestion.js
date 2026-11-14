@@ -4,6 +4,8 @@ import { err } from '../utils/httpError.js';
 import { hoy } from '../utils/fechas.js';
 import { enviarEmail, plantilla, escapar } from '../services/mailer.js';
 import { registrarToken, quitarToken } from '../services/push.js';
+import env from '../config/env.js';
+import { aLocal } from '../services/visitas.js';
 import { generarExcel, generarExcelAnalisis, analizarArchivos, mesesConDatos } from '../services/informes.js';
 
 // ------------------------------------------------------------ notificaciones
@@ -64,6 +66,42 @@ export const distActualizar = async (req, res) => {
 export const distEliminar = async (req, res) => {
   if (!(await distPorId(req.body.id))) throw err.noEncontrado('La distribuidora');
   await consultar('UPDATE distribuidoras SET activo = 0 WHERE id = ?', [req.body.id]); // baja lógica: conserva el historial de pedidos
+  res.json({ ok: true, data: { eliminado: true } });
+};
+
+// ------------------------------------------------------- días no disponibles
+// Tres acciones: ver los bloqueos, crear uno y quitarlo. Ver lo puede hacer el personal; crear y quitar, solo el gerente
+// (eso se controla en routes/gestion.js, antes de llegar acá).
+
+/** Lista los bloqueos que siguen vigentes (los que no terminaron), con el motivo y cuántas reservas activas ya caen adentro.
+ *  Lo ven el gerente y el bibliotecario. El usuario común no llega acá: el servidor le responde "sin permiso". */
+export const bloqueosListar = async (req, res) => {
+  const hoyLocal = aLocal(new Date()).fecha; // la fecha de hoy en la biblioteca, como 'YYYY-MM-DD'
+  const filas = await consultar(
+    `SELECT b.id, b.desde, b.hasta, b.motivo,
+       (SELECT COUNT(*) FROM reservas r WHERE r.estado = 'activa'
+          AND DATE(DATE_ADD(r.visita_en, INTERVAL ? HOUR)) BETWEEN b.desde AND b.hasta) AS reservas_activas
+     FROM dias_bloqueados b WHERE b.hasta >= ? ORDER BY b.desde, b.id`, [env.tzOffsetHoras, hoyLocal]);
+  res.json({ ok: true, data: { bloqueos: filas.map((b) => ({ ...b, reservas_activas: Number(b.reservas_activas) })) } });
+};
+
+/** Crea un bloqueo. Si no viene `hasta`, es un solo día. Antes de guardar, revisa que las fechas tengan sentido. */
+export const bloqueosCrear = async (req, res) => {
+  const { desde, hasta, motivo } = req.body;
+  const fin = hasta || desde; // sin "hasta" = el bloqueo dura un solo día
+  // Reglas: el final no puede ser anterior al inicio, no se bloquea el pasado y el máximo es 1 año por vez
+  if (fin < desde) throw err.validacion('La fecha final no puede ser anterior a la inicial.', { hasta: 'Anterior a la fecha inicial' });
+  if (fin < aLocal(new Date()).fecha) throw err.validacion('Elegí fechas de hoy en adelante.', { desde: 'Fecha pasada' });
+  const dias = (Date.parse(fin) - Date.parse(desde)) / 86400000 + 1; // 86.400.000 = milisegundos que tiene un día
+  if (dias > 366) throw err.validacion('Podés bloquear hasta 1 año por vez.', { hasta: 'Rango demasiado largo' });
+  const r = await consultar('INSERT INTO dias_bloqueados (desde, hasta, motivo, creado_por) VALUES (?, ?, ?, ?)', [desde, fin, motivo || null, req.usuario.id]);
+  res.status(201).json({ ok: true, data: { id: r.insertId } });
+};
+
+/** Quita un bloqueo: los días vuelven a poder reservarse. Se borra la fila de la tabla. Si el id no existe, responde 404. */
+export const bloqueosEliminar = async (req, res) => {
+  const r = await consultar('DELETE FROM dias_bloqueados WHERE id = ?', [req.body.id]);
+  if (!r.affectedRows) throw err.noEncontrado('El bloqueo');
   res.json({ ok: true, data: { eliminado: true } });
 };
 

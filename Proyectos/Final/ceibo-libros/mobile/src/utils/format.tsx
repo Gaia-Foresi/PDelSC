@@ -1,4 +1,5 @@
 // Formato de fechas y textos en español (sin depender de Intl para que ande igual en todos lados).
+// pad agrega un 0 adelante: 5 -> "05".
 const pad = (n: number) => String(n).padStart(2, '0');
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
@@ -10,6 +11,7 @@ export function fecha(valor?: string | Date | null): string {
   return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
 }
 
+// Fecha y hora con el formato local del celular.
 export function fechaHora(valor?: string | Date | null): string {
   if (!valor) return '';
   const d = new Date(valor);
@@ -41,6 +43,7 @@ export function mesCorto(ym: string): string {
   return `${MESES[Number(m) - 1] || ym} ${String(y).slice(2)}`;
 }
 
+// Iniciales para el avatar: "Lucía Lectora" -> "LL".
 export function iniciales(nombre = '', apellido = ''): string {
   const a = nombre.trim()[0] || '';
   const b = apellido.trim()[0] || (nombre.trim().split(' ')[1] || '')[0] || '';
@@ -49,8 +52,10 @@ export function iniciales(nombre = '', apellido = ''): string {
 
 export const nombreCompleto = (u?: { nombre?: string | null; apellido?: string | null } | null): string => [u?.nombre, u?.apellido].filter(Boolean).join(' ');
 
+// Texto lindo de cada rol.
 export const ROL_TEXTO: Record<string, string> = { gerente: 'Gerente', bibliotecario: 'Bibliotecario', usuario: 'Usuario' };
 
+// Texto de cuántos días faltan o pasaron: "Vence mañana", "Vencido hace 3 días"...
 export function diasTexto(prestamo) {
   if (prestamo.estado === 'cerrado') return 'Devuelto';
   const d = prestamo.dias_restantes;
@@ -96,9 +101,11 @@ const MESES_LARGO = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'jul
 export { MESES_LARGO };
 
 /** 'YYYY-MM-DD' → día de la semana (0 = domingo), sin depender del huso horario del dispositivo. */
+// Número del día de la semana (0 = domingo) de una fecha 'YYYY-MM-DD'.
 export const diaSemana = (fechaIso) => { const [y, m, d] = fechaIso.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)).getUTCDay(); };
 
 /** Visita de la API ({ fecha, hora }) → "vie 23/10 · 09:30 hs". */
+// Texto de la visita, por ejemplo "lun 15/10 · 10:30".
 export function visitaTexto(v) {
   if (!v) return '';
   const [, m, d] = v.fecha.split('-');
@@ -106,6 +113,7 @@ export function visitaTexto(v) {
 }
 
 /** 'YYYY-MM-DD' → "viernes 23 de octubre". */
+// Día largo, por ejemplo "lunes 15 de octubre".
 export function diaLargo(fechaIso) {
   const [, m, d] = fechaIso.split('-').map(Number);
   return `${DIAS_LARGO[diaSemana(fechaIso)]} ${d} de ${MESES_LARGO[m - 1]}`;
@@ -119,4 +127,5 @@ export function diasEntre(desde, hasta) {
   return Math.max(1, Math.ceil((b - a) / 86400000));
 }
 
+// plural(3, 'libro', 'libros') -> "3 libros".
 export const plural = (n, uno, varios) => `${n} ${n === 1 ? uno : varios}`;

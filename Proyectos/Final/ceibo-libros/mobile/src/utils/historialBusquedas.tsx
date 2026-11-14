@@ -11,8 +11,10 @@ export interface BusquedaGuardada {
 export const MAX_HISTORIAL = 200; // historial completo
 export const MAX_RAPIDO = 5; // historial rápido (debajo del buscador)
 
+// Cada usuario tiene su propia clave, así no se mezclan los historiales en un mismo celular.
 export const claveHistorial = (usuarioId?: number | string | null) => `historial_busquedas_${usuarioId || 'anon'}`;
 
+// Lee el historial guardado (si hay listas viejas de solo texto, las convierte al formato nuevo).
 export async function leerHistorial(usuarioId?: number | string | null): Promise<BusquedaGuardada[]> {
   const guardado = await leer(claveHistorial(usuarioId));
   if (!Array.isArray(guardado)) return [];
@@ -21,6 +23,7 @@ export async function leerHistorial(usuarioId?: number | string | null): Promise
     .filter((h) => h.q.trim().length > 0);
 }
 
+// Guarda el historial completo, cortado al máximo permitido.
 export function guardarHistorial(usuarioId: number | string | null | undefined, lista: BusquedaGuardada[]) {
   return guardar(claveHistorial(usuarioId), lista.slice(0, MAX_HISTORIAL));
 }
@@ -65,6 +68,7 @@ export async function quitarDelRapido(usuarioId: number | string | null | undefi
 export const borrarRapido = (usuarioId?: number | string | null) => guardarRapido(usuarioId, []);
 
 export async function quitarBusqueda(usuarioId: number | string | null | undefined, texto: string): Promise<BusquedaGuardada[]> {
+  // Quita una búsqueda del historial completo.
   const nueva = (await leerHistorial(usuarioId)).filter((h) => h.q !== texto);
   await guardarHistorial(usuarioId, nueva);
   return nueva;

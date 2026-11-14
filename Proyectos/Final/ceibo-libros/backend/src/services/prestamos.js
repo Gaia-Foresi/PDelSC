@@ -9,6 +9,7 @@ import { publica } from './visitas.js';
 
 const { reglas } = env;
 
+// Consulta base: préstamo + lector (u) + quien lo registró (s). La tabla usuarios se usa dos veces con distinto alias.
 const SQL_PRESTAMO = `
   SELECT p.id, p.usuario_id, p.fecha_inicio, p.fecha_vencimiento, p.estado, p.cerrado_en, p.visita_en, p.codigo_retiro,
          p.datos_nombre, p.datos_apellido, p.datos_dni,
@@ -28,6 +29,7 @@ async function cargarPrestamos(where = '', params = [], { limite = 200, conn = p
   const [filas] = await conn.query(`${SQL_PRESTAMO} ${where} ORDER BY p.id DESC LIMIT ${Number(limite)}`, params);
   if (!filas.length) return [];
 
+  // Los libros de todos los préstamos se traen en UNA sola consulta (IN) y después se reparten con filter.
   const [items] = await conn.query(
     `SELECT pi.prestamo_id, pi.libro_id, l.titulo, a.nombre AS autor, pi.devuelto_en, pi.revision, pi.repuesto_en
      FROM prestamo_items pi
@@ -46,6 +48,7 @@ async function cargarPrestamos(where = '', params = [], { limite = 200, conn = p
     fecha_inicio: f.fecha_inicio,
     fecha_vencimiento: f.fecha_vencimiento,
     estado: f.estado,
+    // "vencido" y "dias_restantes" no se guardan en la base: se calculan cada vez comparando con hoy.
     vencido: f.estado === 'activo' && f.fecha_vencimiento < hoyStr,
     dias_restantes: f.estado === 'activo' ? diasEntre(hoyStr, f.fecha_vencimiento) : null,
     items: items
@@ -54,6 +57,7 @@ async function cargarPrestamos(where = '', params = [], { limite = 200, conn = p
   }));
 }
 
+// Un préstamo por id, o null.
 async function obtenerPrestamo(id, conn = pool) {
   const [p] = await cargarPrestamos('WHERE p.id = ?', [id], { conn });
   return p || null;
@@ -74,6 +78,8 @@ async function ediciones(prestamoId, conn = pool) {
  * Debe llamarse dentro de una transacción.
  */
 async function verificarStock(conn, libroIds) {
+  // FOR UPDATE traba las filas de esos libros hasta que termine la transacción:
+  // así dos préstamos simultáneos no pueden llevarse el último ejemplar.
   const [filas] = await conn.query(
     `SELECT l.id, l.titulo, l.activo,
         CAST(l.stock_total AS SIGNED)
@@ -90,6 +96,7 @@ async function verificarStock(conn, libroIds) {
 const cumplirReservas = (conn, usuarioId, libroIds) =>
   conn.query("UPDATE reservas SET estado = 'cumplida' WHERE usuario_id = ? AND libro_id IN (?) AND estado = 'activa'", [usuarioId, libroIds]);
 
+// No se le presta a un usuario que no existe o que está bloqueado.
 async function validarUsuarioParaPrestamo(conn, usuarioId) {
   const [[u]] = await conn.query('SELECT id, estado, motivo_bloqueo FROM usuarios WHERE id = ? FOR UPDATE', [usuarioId]);
   if (!u) throw err.noEncontrado('El usuario');
@@ -131,10 +138,12 @@ async function verificarDatosSinGuardar(conn, usuarioId, datos = {}, exigir = tr
 
 /** Crea un préstamo con uno o más libros. `codigo` permite conservar el de la reserva de origen. */
 async function crearPrestamo({ usuarioId, libroIds, dias, staffId, datos, codigo, visita, exigirDatos = true }) {
+  // new Set() saca ids repetidos.
   const ids = [...new Set(libroIds)];
   if (ids.length > reglas.prestamoMaxLibros) {
     throw err.conflicto('LIMITE_ALCANZADO', `Un préstamo admite hasta ${reglas.prestamoMaxLibros} libros.`);
   }
+  // Todo dentro de una transacción: si algo falla, no queda un préstamo a medio crear.
   const id = await transaccion(async (conn) => {
     await validarUsuarioParaPrestamo(conn, usuarioId);
     const dados = await verificarDatosSinGuardar(conn, usuarioId, datos, exigirDatos); // lo que escribe el personal NO cambia el perfil del lector
@@ -144,6 +153,7 @@ async function crearPrestamo({ usuarioId, libroIds, dias, staffId, datos, codigo
     const inicio = hoy();
     const [r] = await conn.query(
       'INSERT INTO prestamos (usuario_id, registrado_por, fecha_inicio, fecha_vencimiento, visita_en, codigo_retiro, datos_nombre, datos_apellido, datos_dni) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      // Vence en "dias" días (o los días por defecto). Si viene de una reserva, conserva su código de retiro.
       [usuarioId, staffId, inicio, sumarDias(inicio, dias || reglas.prestamoDiasDefecto), visita || new Date(), codigo || await codigoRetiroUnico(conn),
         dados.nombre || null, dados.apellido || null, dados.dni || null]);
     await conn.query('INSERT INTO prestamo_items (prestamo_id, libro_id) VALUES ?', [ids.map((l) => [r.insertId, l])]);
@@ -151,6 +161,7 @@ async function crearPrestamo({ usuarioId, libroIds, dias, staffId, datos, codigo
   });
   const creado = await obtenerPrestamo(id);
   // Aviso al lector: su préstamo quedó activo
+  // .catch(() => {}): si falla el aviso, el préstamo igual queda creado.
   await crearNotificacion({
     usuarioId, tipo: 'prestamo_nuevo', titulo: 'Tu préstamo está activo',
     cuerpo: `Préstamo #${id} registrado. Tenés que devolver los libros hasta el ${aLegible(creado.fecha_vencimiento)}.`, prestamoId: id,
@@ -195,6 +206,7 @@ async function devolver({ prestamoId, libroId }) {
     if (!p) throw err.noEncontrado('El préstamo');
     if (p.estado !== 'activo') throw err.estado('El préstamo ya está cerrado.');
 
+    // Marca el libro (o todos) como devuelto y "pendiente" de revisión.
     const [r] = await conn.query(
       `UPDATE prestamo_items SET devuelto_en = NOW(), revision = 'pendiente' WHERE prestamo_id = ? AND devuelto_en IS NULL ${libroId ? 'AND libro_id = ?' : ''}`,
       libroId ? [prestamoId, libroId] : [prestamoId]);
@@ -202,6 +214,7 @@ async function devolver({ prestamoId, libroId }) {
 
     const [[{ pendientes }]] = await conn.query(
       'SELECT COUNT(*) AS pendientes FROM prestamo_items WHERE prestamo_id = ? AND devuelto_en IS NULL', [prestamoId]);
+    // Si ya no queda ningún libro afuera, se cierra el préstamo.
     if (Number(pendientes) === 0) {
       await conn.query("UPDATE prestamos SET estado = 'cerrado', cerrado_en = NOW() WHERE id = ?", [prestamoId]);
     }

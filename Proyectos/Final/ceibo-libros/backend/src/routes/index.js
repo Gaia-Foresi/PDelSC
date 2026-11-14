@@ -38,6 +38,7 @@ api.use('/calendario', calendario);
 api.use('/mensajes', gestion.mensajes);
 api.use('/notificaciones', gestion.notificaciones);
 api.use('/distribuidoras', gestion.distribuidoras);
+api.use('/bloqueos', gestion.bloqueos);
 api.use('/reposicion', gestion.reposicion);
 api.use('/estadisticas', gestion.estadisticas);
 

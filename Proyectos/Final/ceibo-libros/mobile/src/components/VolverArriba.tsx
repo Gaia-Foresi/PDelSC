@@ -27,6 +27,7 @@ export function BotonVolverArriba({ visible, onPress }: { visible: boolean; onPr
 /**
  * Para un ScrollView o FlatList: pasale `ref` y `onScroll` (con scrollEventThrottle) y mostrá `boton` dentro del contenedor.
  */
+// Hook: se conecta al scroll de la lista y dice cuándo mostrar el botón y cómo subir.
 export function useVolverArriba() {
   const ref = useRef<any>(null);
   const [visible, setVisible] = useState(false);
@@ -34,6 +35,7 @@ export function useVolverArriba() {
     const pasado = e.nativeEvent.contentOffset.y > UMBRAL;
     setVisible((v) => (v === pasado ? v : pasado)); // si no cambia, React no vuelve a dibujar
   }, []);
+  // Sube hasta arriba: las listas usan scrollToOffset y los ScrollView usan scrollTo.
   const subir = useCallback(() => {
     const lista = ref.current;
     if (!lista) return;

@@ -1,3 +1,4 @@
+// Buscador: campo de texto con lupa y botón para borrar.
 import React from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';

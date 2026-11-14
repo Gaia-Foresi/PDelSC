@@ -1,3 +1,5 @@
+// Pantalla de inicio de sesión: email y contraseña, o ingreso con Google, GitHub o Discord.
+// Patrón de los formularios de la app: un estado "form" con los campos, otro "errores" y otro "cargando".
 import React, { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { api } from '../../api';
@@ -19,23 +21,29 @@ export default function LoginScreen({ navigation }: PantallaProps) {
   const [form, setForm] = useState({ email: '', password: '' });
   const [errores, setErrores] = useState<Record<string, any>>({});
   const [cargando, setCargando] = useState(false);
+  // set('email') devuelve una función que actualiza ese campo del formulario y borra su error.
   const set = (k) => (t) => { setForm((f) => ({ ...f, [k]: t })); setErrores((e) => ({ ...e, [k]: '' })); };
 
+  // Al tocar "Ingresar": 1) valida en la app, 2) llama a la API, 3) según la respuesta pide un código o entra.
   const enviar = async () => {
     const e = { email: v.email(form.email), password: v.requerido(form.password, 'La contraseña') };
     setErrores(e);
     if (!v.sinErrores(e)) return;
     setCargando(true);
     try {
+      // El email se limpia y se pasa a minúscula, igual que lo guarda el servidor.
       const email = form.email.trim().toLowerCase();
       const data = await api.auth.login({ email, password: form.password });
+      // Si falta verificar el email o tiene 2 pasos activos, va a la pantalla del código; si no, inicia sesión.
       if (data.requiere_verificacion) navigation.navigate('Codigo', { email, proposito: 'verificar_email' });
       else if (data.requiere_2fa) navigation.navigate('Codigo', { email, proposito: 'login_2fa' });
       else await iniciarSesion(data);
     } catch (err) {
+      // Si el servidor marcó errores por campo, se muestran debajo de cada uno.
       if (err.detalles) setErrores(err.detalles);
       toast.fromError(err);
     } finally {
+      // finally se ejecuta siempre (salga bien o mal): deja de mostrar "cargando".
       setCargando(false);
     }
   };

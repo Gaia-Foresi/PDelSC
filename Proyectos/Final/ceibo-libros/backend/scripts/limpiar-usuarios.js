@@ -43,6 +43,7 @@ const emails = emailArg.split(',').map((s) => s.trim().toLowerCase()).filter(Boo
   // genera los espacios necesarios para una consulta SQL 
   // y consigue una conexión con la base de datos.
   const ids = lista.map((u) => u.id);
+  // Arma "?,?,?" con un signo por cada id, para usarlos de forma segura en el IN (...).
   const en = ids.map(() => '?').join(',');
   const conn = await pool.getConnection();
 

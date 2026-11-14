@@ -21,6 +21,7 @@ interface SelectFieldProps {
 // options: [{ value, label, description? }]
 export default function SelectField({ label, value, options, onChange, placeholder = 'Elegir…', error, title }: SelectFieldProps) {
   const { colors } = useTheme();
+  // "abierto" dice si se ve la hoja con las opciones. "actual" es la opción elegida.
   const [abierto, setAbierto] = useState(false);
   const actual = options.find((o) => o.value === value);
   const revela = useRevelaCampos();

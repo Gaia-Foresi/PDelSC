@@ -27,6 +27,7 @@ interface DatoProps {
   alerta?: any;
 }
 
+// Recuadro con un número y su título (se marca en rojo si es una alerta).
 function Dato({ valor, titulo, alerta }: DatoProps) {
   const { colors } = useTheme();
   return (
@@ -47,6 +48,7 @@ export default function StockScreen({ navigation }: PantallaProps) {
   const [q, setQ] = useState('');
   const [filtro, setFiltro] = useState(null); // null = todas | 'agotados' | id de categoría
 
+  // Pide libros, categorías y devoluciones pendientes de revisión, todo junto.
   const libros = useAsync(() => api.libros.listar({}), []);
   const cats = useAsync(() => api.categorias.listar(), []);
   const pendientes = useAsync(() => api.prestamos.pendientes(), []);
@@ -54,6 +56,7 @@ export default function StockScreen({ navigation }: PantallaProps) {
   useRefreshOnFocus(recargar);
 
   const todos = useMemo(() => libros.data?.libros || [], [libros.data]);
+  // Resumen calculado a partir de la lista de libros (totales, agotados, stock bajo).
   const resumen = useMemo(() => ({
     titulos: todos.length,
     ejemplares: todos.reduce((s, l) => s + l.stock_total, 0),
@@ -70,6 +73,7 @@ export default function StockScreen({ navigation }: PantallaProps) {
     });
   }, [todos, q, filtro]);
 
+  // Opciones de filtro: todos, agotados y una por cada categoría.
   const opciones = [
     { value: null, label: 'Todas' },
     { value: 'agotados', label: `Agotados (${resumen.agotados})` },
@@ -101,6 +105,7 @@ export default function StockScreen({ navigation }: PantallaProps) {
     }
   };
 
+  // Elimina un libro (solo gerente), previa confirmación.
   const eliminar = async (libro) => {
     const ok = await confirm({
       title: '¿Eliminar este libro?',
@@ -118,6 +123,7 @@ export default function StockScreen({ navigation }: PantallaProps) {
     }
   };
 
+  // Parte de arriba de la lista: resumen, devoluciones pendientes, buscador y filtros.
   const encabezado = (
     <View>
       <View style={styles.datos}>

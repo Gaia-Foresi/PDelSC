@@ -11,7 +11,9 @@ import { useAccesos } from '../components/NavAcciones';
 
 export default function DrawerContent({ navigation }: any) {
   const { colors } = useTheme();
+  // insets = márgenes seguros del celular (la "muesca" de la cámara y la barra del sistema).
   const insets = useSafeAreaInsets();
+  // useAccesos devuelve los accesos del menú que corresponden al rol del usuario.
   const accesos = useAccesos();
   return (
     <View style={[styles.flex, { backgroundColor: colors.surface, paddingTop: insets.top }]}>
@@ -36,6 +38,7 @@ export default function DrawerContent({ navigation }: any) {
   );
 }
 
+// StyleSheet.create define los estilos fijos del componente (como un CSS).
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.lg, borderBottomWidth: 1 },

@@ -8,9 +8,11 @@ import { textoSobre } from '../utils/format';
 import Button from './Button';
 
 // ---- conversión de colores ----
+// Convierte valores rojo, verde y azul (0 a 255) a texto hexadecimal: (255, 0, 0) -> "#ff0000".
 const aHex = (r: number, g: number, b: number) => `#${[r, g, b].map((n) => Math.round(n).toString(16).padStart(2, '0')).join('')}`.toUpperCase();
 
 /** h: 0-360, s y v: 0-1 -> #RRGGBB */
+// HSV = tono (h, 0-360), saturación (s, 0-1) y brillo (v, 0-1). Esta función lo pasa a hexadecimal.
 export function hsvAHex(h: number, s: number, v: number): string {
   const c = v * s;
   const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
@@ -20,6 +22,7 @@ export function hsvAHex(h: number, s: number, v: number): string {
 }
 
 /** #RRGGBB -> { h: 0-360, s: 0-1, v: 0-1 } */
+// La inversa: de hexadecimal a HSV.
 export function hexAHsv(hex: string): { h: number; s: number; v: number } {
   const n = /^#[0-9a-fA-F]{6}$/.test(hex) ? hex : '#8FAE8B';
   const r = parseInt(n.slice(1, 3), 16) / 255;
@@ -43,12 +46,14 @@ interface BarraProps {
 
 const ALTO_BARRA = 44;
 
+// Barra que se arrastra con el dedo. PanResponder detecta el toque y el movimiento.
 function Barra({ etiqueta, valor, onChange, franjas }: BarraProps) {
   const { colors } = useTheme();
   const ancho = useRef(1);
   const cambiar = useRef(onChange);
   cambiar.current = onChange;
 
+  // Convierte la posición del dedo en un valor entre 0 y 1.
   const mover = (x: number) => cambiar.current(Math.min(1, Math.max(0, x / ancho.current)));
   const pan = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => true,
@@ -88,6 +93,7 @@ interface PanelColoresProps {
   onCancel?: () => void;
 }
 
+// Panel completo: tres barras (tono, intensidad y brillo) y una vista previa del color.
 export default function PanelColores({ visible, color = '#8FAE8B', onConfirm, onCancel }: PanelColoresProps) {
   const { colors } = useTheme();
   const [hsv, setHsv] = useState(() => hexAHsv(color));
@@ -96,6 +102,7 @@ export default function PanelColores({ visible, color = '#8FAE8B', onConfirm, on
   useEffect(() => { if (visible) setHsv(hexAHsv(color)); }, [visible, color]);
 
   const hex = hsvAHex(hsv.h, hsv.s, hsv.v);
+  // Franjas de colores para dibujar cada barra.
   const tonos = useMemo(() => Array.from({ length: 36 }, (_, i) => hsvAHex(i * 10, 1, 1)), []);
   const intensidad = useMemo(() => Array.from({ length: 20 }, (_, i) => hsvAHex(hsv.h, i / 19, hsv.v)), [hsv.h, hsv.v]);
   const brillo = useMemo(() => Array.from({ length: 20 }, (_, i) => hsvAHex(hsv.h, hsv.s, i / 19)), [hsv.h, hsv.s]);

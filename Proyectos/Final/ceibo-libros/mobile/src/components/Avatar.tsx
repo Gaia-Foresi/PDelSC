@@ -1,9 +1,11 @@
+// Componente Avatar: muestra la foto de perfil en un círculo o, si no hay foto, las iniciales.
 import React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { iniciales } from '../utils/format';
 
 
+// Props = los datos que recibe el componente desde afuera (como los parámetros de una función).
 interface AvatarProps {
   usuario?: any;
   size?: number;

@@ -1,3 +1,4 @@
+// Rutas de usuarios (/api/usuarios/...) y del panel de administración (/api/admin/...).
 import express from 'express';
 import * as ctl from '../controllers/usuarios.js';
 import autenticar from '../middlewares/auth.js';
@@ -8,6 +9,7 @@ import { z, id, texto, textoOpc, password, curso, dni } from '../utils/esquemas.
 
 const router = express.Router();
 
+// S = esquemas de cada ruta.
 const S = {
   vacio: z.object({}).passthrough(),
   actualizar: z.object({
@@ -23,6 +25,7 @@ const S = {
   }),
   cambiarPassword: z.object({ password_actual: z.string().max(72).optional(), password_nueva: password }),
   dosPasos: z.object({ activar: z.boolean({ required_error: 'Obligatorio', invalid_type_error: 'Debe ser verdadero o falso' }) }),
+  // Listado con filtros y paginación: "pagina" y "limite" tienen valores por defecto.
   listar: z.object({
     q: z.string().trim().max(80).optional(),
     rol: z.enum(['gerente', 'bibliotecario', 'usuario']).optional(),
@@ -39,6 +42,7 @@ const S = {
   cambiarRol: z.object({ id, rol: z.enum(['gerente', 'bibliotecario', 'usuario'], { message: 'Rol inválido' }) }),
 };
 
+// Rutas del propio perfil (cualquier usuario logueado) y gestión de usuarios (solo staff).
 const usuarios = router;
 usuarios.use(autenticar);
 usuarios.post('/perfil', validar(S.vacio), asyncHandler(ctl.perfil));

@@ -1,13 +1,16 @@
 import { avisarCorrecto, avisarErrores } from './formularios';
 
 // Validaciones de formularios. Cada función devuelve un texto de error o '' si está bien.
+// Campo obligatorio: si está vacío (o solo tiene espacios), devuelve el mensaje de error.
 export const requerido = (v, nombre = 'Este campo') => (String(v ?? '').trim() ? '' : `${nombre} es obligatorio`);
 
+// Email: obligatorio y con formato válido.
 export const email = (v) => {
   if (!String(v ?? '').trim()) return 'Ingresá tu email';
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()) ? '' : 'El email no es válido';
 };
 
+// Contraseña: las mismas reglas que pide el backend.
 export const password = (v) => {
   if (!v) return 'Ingresá una contraseña';
   if (v.length < 8) return 'Mínimo 8 caracteres';
@@ -15,8 +18,10 @@ export const password = (v) => {
   return '';
 };
 
+// Código de verificación: exactamente 6 números.
 export const codigo = (v) => (/^\d{6}$/.test(String(v ?? '').trim()) ? '' : 'El código tiene 6 números');
 
+// Número con un valor mínimo.
 export const numeroMin = (v, min, nombre = 'El valor') => {
   const n = Number(v);
   if (v === '' || v === null || v === undefined || Number.isNaN(n)) return `${nombre} debe ser un número`;

@@ -8,6 +8,7 @@ import { crearNotificacion } from '../services/notificaciones.js';
 import { cargarPrestamos } from '../services/prestamos.js';
 import { listarReservas } from '../services/reservas.js';
 
+// Carga un usuario por id con su rol.
 const cargar = async (id) => (await consultar(`${SQL_USUARIO} WHERE u.id = ?`, [id]))[0];
 
 /** El bibliotecario solo gestiona usuarios comunes; el gerente gestiona a todos. */
@@ -17,6 +18,7 @@ function validarAlcance(actor, objetivo) {
   }
 }
 
+// Mi perfil: mis datos más un resumen (préstamos y reservas activas, y el máximo de reservas permitido).
 export const perfil = async (req, res) => {
   const u = await cargar(req.usuario.id);
   const [{ prestamos_activos }] = await consultar(
@@ -27,6 +29,7 @@ export const perfil = async (req, res) => {
   res.json({ ok: true, data: { usuario: usuarioPublico(u), resumen: { prestamos_activos, reservas_activas, reservas_max: env.reglas.reservasMaxActivas } } });
 };
 
+// Actualiza mi perfil. Solo toca los campos que vinieron; un texto vacío ('') se guarda como null.
 export const actualizarPerfil = async (req, res) => {
   const campos = {};
   for (const k of ['nombre', 'apellido', 'telefono', 'curso', 'dni', 'foto_url']) {
@@ -38,6 +41,7 @@ export const actualizarPerfil = async (req, res) => {
   res.json({ ok: true, data: { usuario: usuarioPublico(await cargar(req.usuario.id)) } });
 };
 
+// Cambia mi contraseña. Quien entró con Google/GitHub/Discord puede no tener contraseña: ahí no se pide la actual.
 export const cambiarPassword = async (req, res) => {
   const { password_actual, password_nueva } = req.body;
   const [u] = await consultar('SELECT password_hash FROM usuarios WHERE id = ?', [req.usuario.id]);
@@ -51,11 +55,13 @@ export const cambiarPassword = async (req, res) => {
   res.json({ ok: true, data: { actualizado: true } });
 };
 
+// Activa o desactiva la verificación en dos pasos (código por email al iniciar sesión).
 export const dosPasos = async (req, res) => {
   await consultar('UPDATE usuarios SET dos_pasos_activo = ? WHERE id = ?', [req.body.activar ? 1 : 0, req.usuario.id]);
   res.json({ ok: true, data: { usuario: usuarioPublico(await cargar(req.usuario.id)) } });
 };
 
+// Lista usuarios (staff) con filtros y paginación. El bibliotecario solo ve usuarios comunes.
 export const listar = async (req, res) => {
   const { q, rol, estado, pagina, limite } = req.body;
   const donde = [];
@@ -70,6 +76,8 @@ export const listar = async (req, res) => {
   }
   const W = donde.length ? `WHERE ${donde.join(' AND ')}` : '';
 
+  // Primero contamos el total (para saber cuántas páginas hay) y después traemos solo la página pedida.
+  // OFFSET = cuántas filas saltear: página 1 saltea 0, página 2 saltea "limite", etc.
   const [{ total }] = await consultar(`SELECT COUNT(*) AS total FROM usuarios u JOIN roles r ON r.id = u.rol_id ${W}`, params);
   const filas = await consultar(
     `SELECT x.*, (SELECT COUNT(*) FROM prestamo_items pi JOIN prestamos p ON p.id = pi.prestamo_id
@@ -87,6 +95,7 @@ export const listar = async (req, res) => {
   });
 };
 
+// Detalle de un usuario con sus préstamos y reservas. Promise.all hace las dos consultas al mismo tiempo.
 export const detalle = async (req, res) => {
   const u = await cargar(req.body.id);
   if (!u) throw err.noEncontrado('El usuario');
@@ -98,6 +107,7 @@ export const detalle = async (req, res) => {
   res.json({ ok: true, data: { usuario: usuarioPublico(u), prestamos, reservas } });
 };
 
+// Bloquea a un usuario común (por atraso o por daño) y le avisa con una notificación.
 export const bloquear = async (req, res) => {
   const u = await cargar(req.body.id);
   if (!u) throw err.noEncontrado('El usuario');
@@ -111,6 +121,7 @@ export const bloquear = async (req, res) => {
   res.json({ ok: true, data: { usuario: usuarioPublico(await cargar(u.id)) } });
 };
 
+// Desbloquea a un usuario y le avisa.
 export const desbloquear = async (req, res) => {
   const u = await cargar(req.body.id);
   if (!u) throw err.noEncontrado('El usuario');
@@ -123,6 +134,7 @@ export const desbloquear = async (req, res) => {
 };
 
 // Panel de administración (solo gerente)
+// No se puede cambiar el propio rol (así el gerente no se queda sin acceso por error).
 export const cambiarRol = async (req, res) => {
   const { id, rol } = req.body;
   if (id === req.usuario.id) throw err.sinPermiso('No podés cambiar tu propio rol.');

@@ -15,6 +15,7 @@ import type { PantallaProps } from '../../types';
 const ESPERA = 30; // segundos entre reenvíos
 
 export default function CodeScreen({ route, navigation }: PantallaProps) {
+  // route.params trae los datos que mandó la pantalla anterior: el email y para qué es el código.
   const { email, proposito } = route.params;
   const { colors } = useTheme();
   const { iniciarSesion } = useAuth();
@@ -24,6 +25,7 @@ export default function CodeScreen({ route, navigation }: PantallaProps) {
   const [cargando, setCargando] = useState(false);
   const [espera, setEspera] = useState(ESPERA);
 
+  // Cuenta regresiva: cada segundo resta 1 hasta llegar a 0 (recién ahí se puede reenviar).
   useEffect(() => {
     if (espera <= 0) return undefined;
     const id = setTimeout(() => setEspera((s) => s - 1), 1000);
@@ -32,6 +34,7 @@ export default function CodeScreen({ route, navigation }: PantallaProps) {
 
   const es2fa = proposito === 'login_2fa';
 
+  // Valida el código en la app, lo manda al servidor y, si está bien, inicia la sesión.
   const verificar = async () => {
     const e = v.codigo(codigo);
     setError(e);
@@ -49,6 +52,7 @@ export default function CodeScreen({ route, navigation }: PantallaProps) {
     }
   };
 
+  // Pide un código nuevo y reinicia la espera de 30 segundos.
   const reenviar = async () => {
     try {
       await api.auth.reenviarCodigo({ email, proposito });

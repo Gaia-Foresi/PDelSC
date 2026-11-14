@@ -25,6 +25,7 @@ import { LibroPicker } from './PrestamoNuevoScreen';
 
 import type { PantallaProps } from '../../types';
 const MAX_ABIERTOS = 5;
+// Opciones de días para extender el plazo.
 const EXTENSIONES = [
   { value: 3, label: '3 días' },
   { value: 7, label: '7 días' },
@@ -39,6 +40,7 @@ export default function PrestamoDetalleScreen({ navigation, route }: PantallaPro
   const { esStaff } = useAuth();
   const confirm = useConfirm();
   const toast = useToast();
+  // Pide el préstamo al servidor.
   const detalle = useAsync(() => api.prestamos.detalle({ id }), [id]);
   const prestamo = detalle.data?.prestamo;
 
@@ -48,8 +50,10 @@ export default function PrestamoDetalleScreen({ navigation, route }: PantallaPro
   const [extendiendo, setExtendiendo] = useState(false);
   const [dias, setDias] = useState(7);
 
+  // Cada acción devuelve el préstamo actualizado: se reemplaza en pantalla sin volver a pedirlo.
   const aplicar = (p) => detalle.setData({ prestamo: p });
 
+  // Registra la devolución de un libro (o de todos si no se indica cuál), previa confirmación.
   const devolver = async (item) => {
     const todos = !item;
     const ok = await confirm({
@@ -99,9 +103,11 @@ export default function PrestamoDetalleScreen({ navigation, route }: PantallaPro
     }
   };
 
+  // Cuántos libros quedan sin devolver y cuántos más se pueden agregar (máximo 5).
   const abiertos = prestamo ? prestamo.items.filter((i) => !i.devuelto_en).length : 0;
   const cupo = Math.max(0, MAX_ABIERTOS - abiertos);
 
+  // Agrega los libros elegidos al préstamo.
   const agregar = async () => {
     setOcupado(true);
     try {
@@ -118,6 +124,7 @@ export default function PrestamoDetalleScreen({ navigation, route }: PantallaPro
     }
   };
 
+  // Extiende el plazo los días elegidos.
   const extender = async () => {
     setOcupado(true);
     try {
@@ -132,6 +139,7 @@ export default function PrestamoDetalleScreen({ navigation, route }: PantallaPro
     }
   };
 
+  // Tilda o destilda un libro para agregarlo.
   const toggleNuevo = (libro) => setNuevos((ids) => (ids.includes(libro.id) ? ids.filter((i) => i !== libro.id) : [...ids, libro.id]));
 
   const activo = prestamo?.estado === 'activo';
@@ -267,6 +275,7 @@ interface FilaProps {
   valor?: any;
 }
 
+// Fila de dato: etiqueta a la izquierda y valor a la derecha.
 function Fila({ etiqueta, valor }: FilaProps) {
   const { colors } = useTheme();
   return (

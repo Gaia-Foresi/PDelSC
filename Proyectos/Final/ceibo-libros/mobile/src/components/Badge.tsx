@@ -1,3 +1,4 @@
+// Etiqueta chiquita de color (ej.: "Disponible", "Vencido"), con ícono opcional.
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -16,6 +17,7 @@ interface BadgeProps {
 // tone: neutral | success | danger | warning | primary
 export default function Badge({ text, tone = 'neutral', icon, style }: BadgeProps) {
   const { colors } = useTheme();
+  // Colores de fondo y texto según el "tono" elegido.
   const t = {
     neutral: [colors.surfaceAlt, colors.text],
     success: [colors.successSoft, colors.success],

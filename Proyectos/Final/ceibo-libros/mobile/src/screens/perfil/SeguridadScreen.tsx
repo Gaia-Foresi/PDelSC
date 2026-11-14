@@ -24,6 +24,7 @@ export default function SeguridadScreen() {
   const [guardando, setGuardando] = useState(false);
   const set = (k) => (t) => { setForm((f) => ({ ...f, [k]: t })); setErrores((e) => ({ ...e, [k]: '' })); };
 
+  // Activa o desactiva la verificación en 2 pasos (para desactivarla, pide confirmación).
   const cambiar2fa = async (activar) => {
     if (!activar) {
       const ok = await confirm({
@@ -45,6 +46,7 @@ export default function SeguridadScreen() {
     }
   };
 
+  // Valida (la nueva tiene que coincidir con "repetir") y cambia la contraseña.
   const cambiarPassword = async () => {
     const e = {
       nueva: v.password(form.nueva),

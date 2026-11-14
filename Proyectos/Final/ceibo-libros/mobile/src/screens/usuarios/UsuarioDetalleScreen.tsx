@@ -25,12 +25,14 @@ import { useToast } from '../../components/Toast';
 import type { PantallaProps } from '../../types';
 import { TIPOS_BLOQUEO, textoTipoBloqueo } from '../../utils/bloqueo';
 import type { TipoBloqueo } from '../../utils/bloqueo';
+// Mensaje que se propone por defecto al bloquear.
 const MOTIVO_BASE = TIPOS_BLOQUEO[0].mensaje;
 const ROLES = [
   { value: 'usuario', label: 'Usuario', description: 'Reserva libros, ve sus préstamos y consulta a la biblioteca.' },
   { value: 'bibliotecario', label: 'Bibliotecario', description: 'Gestiona stock, préstamos, reservas y usuarios.' },
   { value: 'gerente', label: 'Gerente', description: 'Acceso total: estadísticas, panel de admin y pedidos.' },
 ];
+// Color de cada estado de reserva.
 const ESTADO_RESERVA = { activa: 'primary', cumplida: 'success', cancelada: 'neutral', vencida: 'warning' };
 
 export default function UsuarioDetalleScreen({ navigation, route }: PantallaProps) {
@@ -45,6 +47,7 @@ export default function UsuarioDetalleScreen({ navigation, route }: PantallaProp
   const [errorMotivo, setErrorMotivo] = useState('');
   const [trabajando, setTrabajando] = useState(false);
 
+  // Pide el detalle del usuario: datos, préstamos y reservas.
   const det = useAsync(() => api.usuarios.detalle({ id }), [id]);
   useRefreshOnFocus(det.refresh);
 
@@ -52,6 +55,7 @@ export default function UsuarioDetalleScreen({ navigation, route }: PantallaProp
   const esComun = u?.rol === 'usuario';
   const soyYo = u?.id === yo.id;
 
+  // Bloquea al usuario con el motivo escrito (es el mensaje que va a ver en la app).
   const bloquear = async () => {
     if (!motivo.trim()) { setErrorMotivo('Escribí el mensaje que va a ver el usuario'); return; }
     // Se cierra el formulario ANTES de confirmar: si no, los dos cuadros quedan superpuestos y la confirmación se ve detrás
@@ -75,6 +79,7 @@ export default function UsuarioDetalleScreen({ navigation, route }: PantallaProp
     }
   };
 
+  // Desbloquea al usuario, previa confirmación.
   const desbloquear = async () => {
     const ok = await confirm({ title: `¿Desbloquear a ${u.nombre}?`, message: 'Va a poder volver a reservar y pedir libros.', confirmText: 'Desbloquear' });
     if (!ok) return;
@@ -90,6 +95,7 @@ export default function UsuarioDetalleScreen({ navigation, route }: PantallaProp
     }
   };
 
+  // Cambia el rol (solo gerente), previa confirmación.
   const cambiarRol = async (rol) => {
     if (rol === u.rol) return;
     const ok = await confirm({
@@ -107,6 +113,7 @@ export default function UsuarioDetalleScreen({ navigation, route }: PantallaProp
     }
   };
 
+  // Mientras carga se muestra el esqueleto; si falla, el error con "Reintentar".
   if (det.loading && !det.data) return <ScreenContainer title="Usuario" back><SkeletonList count={3} /></ScreenContainer>;
   if (det.error && !det.data) return <ScreenContainer title="Usuario" back><ErrorState error={det.error} onRetry={det.reload} /></ScreenContainer>;
 

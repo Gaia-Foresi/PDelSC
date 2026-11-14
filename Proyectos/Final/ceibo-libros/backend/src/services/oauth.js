@@ -1,3 +1,4 @@
+// OAuth = iniciar sesión con una cuenta de otro servicio. Cada función le pregunta al proveedor quién es el usuario.
 // Verificación de identidad con redes sociales. Devuelve { uid, email, nombre, apellido, foto }.
 // El servidor SIEMPRE valida con el proveedor: nunca confía en datos que mande la app.
 import env from '../config/env.js';
@@ -5,8 +6,10 @@ import { HttpError } from '../utils/httpError.js';
 
 const { oauth } = env;
 
+// Arma un error 502 (falló un servicio externo).
 const falla = (mensaje) => new HttpError(502, 'PROVEEDOR_SOCIAL', mensaje);
 
+// Hace un pedido HTTP y devuelve el JSON. Si tarda más de 10 s, se corta (AbortSignal.timeout).
 async function pedirJson(url, opciones = {}) {
   let r;
   try {

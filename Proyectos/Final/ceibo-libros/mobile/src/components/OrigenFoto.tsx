@@ -17,6 +17,7 @@ interface Props {
 
 export default function OrigenFoto({ visible, onClose, onElegir, onQuitar }: Props) {
   const { colors } = useTheme();
+  // Una opción de la lista (ícono, título y texto).
   const Opcion = ({ icon, titulo, texto, onPress, danger }: { icon: IconName; titulo: string; texto?: string; onPress: () => void; danger?: boolean }) => (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={titulo} style={({ pressed }) => [styles.opcion, { borderColor: colors.border, backgroundColor: pressed ? colors.primarySoft : colors.card }]}>
       <View style={[styles.icono, { backgroundColor: danger ? colors.dangerSoft : colors.primarySoft }]}>

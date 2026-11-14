@@ -1,3 +1,4 @@
+// Primer archivo que se ejecuta: registra el componente App como raíz de la aplicación.
 import { registerRootComponent } from 'expo';
 
 import App from './App';

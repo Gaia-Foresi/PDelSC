@@ -6,6 +6,7 @@ import { err } from '../utils/httpError.js';
 import { crearNotificacion } from '../services/notificaciones.js';
 import { esStaff } from '../middlewares/roles.js';
 
+// Cuando un usuario común habla con el personal, del otro lado se muestra "la biblioteca" y no una persona.
 const BIBLIOTECA = { id: null, nombre: 'Biblioteca Ceibo Libros', rol: 'biblioteca' };
 const nombreCompleto = (u) => `${u.nombre} ${u.apellido || ''}`.trim();
 
@@ -52,11 +53,14 @@ async function resolverContrapartes(hilos, usuario, conn) {
   return mapa;
 }
 
+// Parte del SQL que filtra los hilos que puedo ver: participo en el hilo, o es una consulta y soy staff.
 const SQL_VISIBLES = `
   FROM hilos h
   LEFT JOIN hilo_participantes hp ON hp.hilo_id = h.id AND hp.usuario_id = ?
   WHERE (hp.usuario_id IS NOT NULL OR (h.tipo = 'consulta' AND ?))`;
 
+// Lista mis conversaciones con el último mensaje y cuántos no leí.
+// El staff ve por separado las consultas respondidas y las pendientes (filtro "respondidos").
 export const hilos = async (req, res) => {
   const staff = esStaff(req.usuario) ? 1 : 0;
   const filas = await consultar(
@@ -84,6 +88,7 @@ export const hilos = async (req, res) => {
   });
 };
 
+// Abre una conversación: devuelve todos sus mensajes y la marca como leída.
 export const hilo = async (req, res) => {
   const datos = await transaccion(async (conn) => {
     const h = await cargarHiloVisible(req.body.hilo_id, req.usuario, conn);
@@ -94,6 +99,7 @@ export const hilo = async (req, res) => {
 
     // Marcar como leído (si es un bibliotecario/gerente que mira una consulta, pasa a ser participante)
     if (mensajes.length) {
+      // ON DUPLICATE KEY UPDATE: si ya era participante, solo actualiza el último mensaje leído.
       await conn.query(
         `INSERT INTO hilo_participantes (hilo_id, usuario_id, ultimo_leido_id) VALUES (?, ?, ?)
          ON DUPLICATE KEY UPDATE ultimo_leido_id = GREATEST(COALESCE(ultimo_leido_id, 0), VALUES(ultimo_leido_id))`,
@@ -141,6 +147,8 @@ async function avisarMensaje(hilo, req, cuerpo) {
   }
 }
 
+// Crea una conversación nueva con su primer mensaje.
+// Consulta = de usuario a la biblioteca. Interno = entre el gerente y un bibliotecario.
 export const crear = async (req, res) => {
   const { tipo, asunto, cuerpo, destinatario_id } = req.body;
   const staff = esStaff(req.usuario);
@@ -170,6 +178,7 @@ export const crear = async (req, res) => {
   res.status(201).json({ ok: true, data: { hilo: { id: hiloId, tipo, asunto } } });
 };
 
+// Agrega un mensaje a una conversación existente y avisa a los demás.
 export const enviar = async (req, res) => {
   const mensaje = await transaccion(async (conn) => {
     const h = await cargarHiloVisible(req.body.hilo_id, req.usuario, conn);
@@ -194,6 +203,7 @@ export const enviar = async (req, res) => {
   });
 };
 
+// Total de mensajes sin leer (para el numerito en la app). Al staff no le cuenta las consultas ya respondidas.
 export const noLeidos = async (req, res) => {
   const staff = esStaff(req.usuario) ? 1 : 0;
   const [{ total }] = await consultar(
@@ -209,6 +219,7 @@ export const noLeidos = async (req, res) => {
   res.json({ ok: true, data: { total: Number(total) } });
 };
 
+// Con quién puede abrir un mensaje interno: el gerente ve bibliotecarios, y un bibliotecario ve al gerente.
 export const contactos = async (req, res) => {
   const buscado = req.usuario.rol === 'gerente' ? 'bibliotecario' : 'gerente';
   const filas = await consultar(

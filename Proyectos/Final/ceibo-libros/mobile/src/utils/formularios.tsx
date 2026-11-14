@@ -2,8 +2,10 @@
 // Lo escuchan (1) el desplazamiento automático hasta el primer campo con error y (2) el aviso (toast) con la cantidad de campos.
 type Escucha = (cantidad?: number) => void;
 
+// Set = lista sin repetidos. Guarda las funciones que quieren enterarse del aviso.
 const escuchas = new Set<Escucha>();
 
+// Se suscribe al aviso y devuelve la función para desuscribirse.
 export function alAvisarErrores(fn: Escucha): () => void {
   escuchas.add(fn);
   return () => { escuchas.delete(fn); };

@@ -7,6 +7,7 @@ import { enviarPush } from './push.js';
  * no duplica y devuelve false; si se creó devuelve true.
  */
 async function crearNotificacion({ usuarioId, tipo, titulo, cuerpo, prestamoId = null }, conn = pool) {
+  // INSERT IGNORE: si la fila choca con una clave única (aviso repetido), no da error y no inserta nada.
   const [r] = await conn.query(
     'INSERT IGNORE INTO notificaciones (usuario_id, tipo, titulo, cuerpo, prestamo_id) VALUES (?, ?, ?, ?, ?)',
     [usuarioId, tipo, titulo, cuerpo, prestamoId]);

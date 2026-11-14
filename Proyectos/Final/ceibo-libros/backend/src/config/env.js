@@ -1,15 +1,21 @@
+// Todo lo configurable (claves, puertos, horarios) sale del archivo .env y se junta en un solo objeto.
 // Carga y valida las variables de entorno una sola vez.
 import dotenv from 'dotenv';
 import fs from 'fs';
 
+// Lee el archivo .env y carga sus valores en process.env.
 dotenv.config();
 
+// busca una variable de entorno y, si no existe, frena todo el programa con un error claro. 
+// Sirve para asegurarte de que la configuración necesaria esté cargada antes de arrancar.
 function requerida(nombre) {
   const v = process.env[nombre];
   if (!v) throw new Error(`Falta la variable de entorno ${nombre} (copiá .env.example a .env y completala).`);
   return v;
 }
 
+// lee un número de la configuración del sistema (variables de entorno) y, 
+// si no está, usa un valor por defecto.
 function numero(nombre, defecto) {
   const v = process.env[nombre];
   return v === undefined || v === '' ? defecto : Number(v);
@@ -20,9 +26,9 @@ let ca = null;
 if (process.env.DB_SSL_CA_PATH) ca = fs.readFileSync(process.env.DB_SSL_CA_PATH, 'utf8');
 else if (process.env.DB_SSL_CA) ca = process.env.DB_SSL_CA.replace(/\\n/g, '\n');
 
-// Railway (y otros hosts) entregan la base como una sola dirección: mysql://usuario:clave@host:puerto/base
-// Si está definida (MYSQL_URL o DATABASE_URL) y no hay DB_HOST, se usa para completar las variables DB_*.
 const urlBase = process.env.MYSQL_URL || process.env.DATABASE_URL;
+// desarma una URL de conexión a la base de datos y la separa en sus partes (host, puerto, usuario, contraseña y nombre de la base), 
+// para que el resto del programa las encuentre cada una por separado.
 if (urlBase && !process.env.DB_HOST) {
   try {
     const u = new URL(urlBase);
@@ -36,6 +42,7 @@ if (urlBase && !process.env.DB_HOST) {
   }
 }
 
+// Objeto final con toda la configuración, agrupada por tema. El resto del código lo importa como "env".
 export default {
   entorno: process.env.NODE_ENV || 'development',
   puerto: numero('PORT', 4000),

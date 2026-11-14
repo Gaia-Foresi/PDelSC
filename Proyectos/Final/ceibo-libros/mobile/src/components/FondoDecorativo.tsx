@@ -8,6 +8,7 @@ import { useAnchoColumna } from '../utils/fondo';
 import { ANCHO_MENU_FIJO } from '../utils/useResponsive';
 
 /** ¿Se muestra el dibujo? Solo web y pantalla ancha. */
+// ¿Hay que mostrar el dibujo de fondo? Solo en la web y con pantalla ancha.
 export function useHayFondo(): boolean {
   const { width } = useWindowDimensions();
   return Platform.OS === 'web' && width >= ANCHO_MENU_FIJO;
@@ -31,6 +32,7 @@ interface Colores {
   opTallo: number; opHoja: number; opFlor: number; opLibro: number;
 }
 
+// Colores del dibujo según el modo claro u oscuro.
 function paleta(oscuro: boolean): Colores {
   return oscuro
     ? {
@@ -45,8 +47,10 @@ function paleta(oscuro: boolean): Colores {
     };
 }
 
+// Forma de una hoja dibujada con curvas (SVG).
 const hojaPath = (l: number, a: number) => `M0 0 C${l * 0.3} ${-a}, ${l * 0.75} ${-a}, ${l} 0 C${l * 0.75} ${a}, ${l * 0.3} ${a}, 0 0 Z`;
 
+// Una flor (SVG) en la posición indicada.
 function Flor({ x, y, r, color, centro, rot, op }: { x: number; y: number; r: number; color: string; centro: string; rot: number; op: number }) {
   return (
     <G transform={`translate(${x} ${y}) rotate(${rot})`} opacity={op}>
@@ -58,6 +62,7 @@ function Flor({ x, y, r, color, centro, rot, op }: { x: number; y: number; r: nu
   );
 }
 
+// Un libro (SVG) en la posición indicada.
 function Libro({ x, y, w, rot, color, hojas, brillo, abierto, op }: { x: number; y: number; w: number; rot: number; color: string; hojas: string; brillo: string; abierto: boolean; op: number }) {
   const h = w * 1.32;
   return (
@@ -150,6 +155,7 @@ function zona(ancho: number, alto: number, pal: Colores, sem: number) {
   return elementos;
 }
 
+// Dibuja las dos zonas laterales (izquierda y derecha). useMemo evita recalcular el dibujo en cada render.
 export default function FondoDecorativo() {
   const { colors } = useTheme();
   const { width, height } = useWindowDimensions();

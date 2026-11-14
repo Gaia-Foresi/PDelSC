@@ -1,3 +1,4 @@
+// Botón reutilizable de la app: con variantes de color, ícono opcional y estado "cargando".
 import React from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -22,8 +23,10 @@ interface ButtonProps {
 // variant: primary | secondary | danger | ghost | soft
 export default function Button({ title, onPress, variant = 'primary', icon, loading, disabled, small, style, fullWidth = true, accessibilityLabel }: ButtonProps) {
   const { colors } = useTheme();
+  // Mientras carga o si está deshabilitado, no se puede tocar.
   const inactivo = disabled || loading;
 
+  // Colores de cada variante.
   const estilos = {
     primary: { bg: colors.primary, fg: colors.onPrimary, border: colors.primary },
     secondary: { bg: 'transparent', fg: colors.primary, border: colors.primary },

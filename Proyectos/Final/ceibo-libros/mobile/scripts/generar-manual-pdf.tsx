@@ -1,4 +1,5 @@
 // @ts-nocheck
+// @ts-nocheck (arriba) le dice a TypeScript que no revise este archivo: es un script suelto de Node.
 // Genera los manuales en PDF a partir de src/content/manual.json:
 //   assets/manuales/manual-usuario.pdf · manual-bibliotecario.pdf · manual-gerente.pdf  (los abre la app según el rol)
 //   docs/  -> una copia de cada uno + Manual_Completo.pdf (todos los roles juntos)
@@ -9,6 +10,7 @@ import PDFDocument from 'pdfkit';
 import manual from '../src/content/manual.json';
 import { ROLES, seccionesDe } from '../src/content/manualRoles';
 
+// Colores del PDF, nombre de cada rol e introducción de cada manual.
 const COLORES = { texto: '#3E2723', suave: '#6B564D', verde: '#2E4A2E', crema: '#F3E5D8', linea: '#D9C4AE' };
 const ETIQUETAS = { todos: 'Todos los roles', usuario: 'Usuario (lector)', bibliotecario: 'Bibliotecario', gerente: 'Gerente' };
 const INTRO_ROL = {
@@ -17,11 +19,14 @@ const INTRO_ROL = {
   gerente: 'Esta guía explica cómo usar la aplicación como gerente de la biblioteca. Incluye las tareas del bibliotecario y las funciones exclusivas del gerente.',
 };
 
+// Carpetas donde se guardan los PDF: la de la app (assets) y la de documentación (docs).
 const carpetaApp = path.join(__dirname, '../assets/manuales');
 const carpetaDocs = path.join(__dirname, '../../docs');
 fs.mkdirSync(carpetaApp, { recursive: true });
 fs.mkdirSync(carpetaDocs, { recursive: true });
 
+// Crea un PDF con portada, índice, secciones y preguntas frecuentes. Devuelve una promesa que termina
+// cuando el archivo quedó escrito. pdfkit va "escribiendo" el documento de arriba hacia abajo.
 function crearPdf({ titulo, subtitulo, intro, secciones, pie, destinos, mostrarRol }) {
   return new Promise((resolve) => {
     const doc = new PDFDocument({
@@ -98,6 +103,7 @@ function crearPdf({ titulo, subtitulo, intro, secciones, pie, destinos, mostrarR
 }
 
 (async () => {
+  // Un PDF por rol (en la app y en docs) y al final la versión completa.
   const nombresDocs = { usuario: 'Manual_Usuario.pdf', bibliotecario: 'Manual_Bibliotecario.pdf', gerente: 'Manual_Gerente.pdf' };
   for (const [rol, info] of Object.entries(ROLES)) {
     await crearPdf({

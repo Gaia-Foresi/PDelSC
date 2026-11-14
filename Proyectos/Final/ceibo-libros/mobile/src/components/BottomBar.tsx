@@ -25,7 +25,7 @@ const PERTENECE = {
   Inicio: 'Inicio', LibrosCategoria: 'Inicio',
   Mensajes: 'Mensajes', Hilo: 'Mensajes', NuevoMensaje: 'Mensajes',
   Stock: 'Stock', LibroForm: 'Stock', Categorias: 'Stock', PedirLibros: 'Stock', Distribuidoras: 'Stock',
-  ReservasTab: 'ReservasTab', Reservas: 'ReservasTab', Calendario: 'ReservasTab',
+  ReservasTab: 'ReservasTab', Reservas: 'ReservasTab', Calendario: 'ReservasTab', Bloqueos: 'ReservasTab', // en esta pantalla queda resaltado el botón "Reservas" de la barra de abajo
   Prestamos: 'Prestamos', PrestamoDetalle: 'Prestamos', PrestamoNuevo: 'Prestamos',
   Usuarios: 'Usuarios', UsuarioDetalle: 'Usuarios', Admin: 'Usuarios',
   Perfil: 'Perfil', EditarPerfil: 'Perfil', Seguridad: 'Perfil',

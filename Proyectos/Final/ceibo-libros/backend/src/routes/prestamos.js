@@ -1,3 +1,4 @@
+// Rutas de préstamos (/api/prestamos/...) y reservas (/api/reservas/...).
 import express from 'express';
 import * as ctl from '../controllers/prestamos.js';
 import autenticar from '../middlewares/auth.js';
@@ -11,10 +12,13 @@ const { Router } = express;
 const { reglas } = env;
 
 const vacio = z.object({}).passthrough();
+// dias(max): número entero entre 1 y max.
 const dias = (max) => z.coerce.number({ invalid_type_error: 'Debe ser un número' }).int('Debe ser entero').min(1, 'Mínimo 1 día').max(max, `Máximo ${max} días`);
+// libroIds: lista de ids de libros, como mucho la cantidad máxima de libros por préstamo.
 const libroIds = z.array(id, { required_error: 'Obligatorio', invalid_type_error: 'Debe ser una lista' })
   .min(1, 'Elegí al menos un libro').max(reglas.prestamoMaxLibros, `Máximo ${reglas.prestamoMaxLibros} libros`);
 
+// fechaHora: fecha y hora en formato ISO (ej. 2026-11-13T14:30:00.000Z).
 const fechaHora = z.string({ required_error: 'Obligatorio' }).datetime({ message: 'Fecha y hora inválidas' });
 
 const S = {
@@ -46,6 +50,7 @@ const S = {
   atender: z.object({ id, dias: dias(60).optional() }),
 };
 
+// Préstamos: todos tienen que estar logueados. Los usuarios comunes solo pueden ver los suyos (/mis y /detalle).
 const prestamos = Router();
 prestamos.use(autenticar);
 prestamos.post('/crear', requiereRol(...STAFF), validar(S.crear), asyncHandler(ctl.prestamosCrear));
@@ -58,6 +63,7 @@ prestamos.post('/pendientes', requiereRol(...STAFF), validar(vacio), asyncHandle
 prestamos.post('/revisar', requiereRol(...STAFF), validar(S.revisar), asyncHandler(ctl.prestamosRevisar));
 prestamos.post('/extender', requiereRol(...STAFF), validar(S.extender), asyncHandler(ctl.prestamosExtender));
 
+// Reservas: cualquier usuario logueado puede reservar, ver las suyas y cancelar. Listar y atender son del staff.
 const reservas = Router();
 reservas.use(autenticar);
 reservas.post('/horarios', validar(S.horarios), asyncHandler(ctl.reservasHorarios));

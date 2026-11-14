@@ -4,6 +4,7 @@ import Constants from 'expo-constants';
 const extra = Constants.expoConfig?.extra || {};
 const oauth = extra.oauth || {};
 
+// Si no hay URL configurada, usa 10.0.2.2: así el emulador de Android llega a la compu donde corre el backend.
 export const API_URL = (process.env.EXPO_PUBLIC_API_URL || extra.apiUrl || 'http://10.0.2.2:4000/api').replace(/\/$/, '');
 
 export const OAUTH = {

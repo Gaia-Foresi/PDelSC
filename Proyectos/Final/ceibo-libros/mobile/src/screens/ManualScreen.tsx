@@ -28,6 +28,7 @@ interface SeccionProps {
   seccion?: any;
 }
 
+// Una sección del manual que se abre y se cierra al tocar el título.
 function Seccion({ seccion, abiertaInicial }: SeccionProps & { abiertaInicial?: boolean }) {
   const { colors } = useTheme();
   const [abierta, setAbierta] = useState(!!abiertaInicial);
@@ -56,6 +57,7 @@ function Seccion({ seccion, abiertaInicial }: SeccionProps & { abiertaInicial?: 
   );
 }
 
+// Pantalla del manual: muestra solo las secciones que corresponden al rol del usuario.
 export default function ManualScreen() {
   const { colors } = useTheme();
   const { usuario } = useAuth();
@@ -65,9 +67,11 @@ export default function ManualScreen() {
   const [todoAbierto, setTodoAbierto] = useState(false);
   const rol = usuario?.rol || 'usuario';
 
+  // Descarga (celular) o muestra (web) el PDF del manual de su rol.
   const descargar = async () => {
     setDescargando(true);
     try {
+      // Asset.fromModule obtiene el archivo PDF que viene incluido dentro de la app.
       const asset = Asset.fromModule(PDFS[usuario?.rol] || PDFS.usuario);
       await asset.downloadAsync();
       const uri = asset.localUri || asset.uri;

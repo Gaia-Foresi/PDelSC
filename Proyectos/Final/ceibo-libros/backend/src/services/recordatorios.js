@@ -1,3 +1,4 @@
+// Se ejecuta todos los días (lo programa server.js con cron) y también se puede disparar desde afuera.
 // Tarea diaria: vence reservas, avisa devoluciones próximas y bloquea a quienes tienen libros vencidos.
 import { consultar } from '../config/db.js';
 import env from '../config/env.js';
@@ -8,12 +9,14 @@ import { enviarEmail, plantilla, escapar } from './mailer.js';
 
 const { reglas } = env;
 
+// Manda un email sin que un error corte la tarea: si falla, solo lo anota en consola.
 async function emailSeguro(datos) {
   try { await enviarEmail(datos); } catch (e) { console.error('[recordatorios] email fallido:', e.message); }
 }
 
 async function ejecutarRecordatorios() {
   const hoyStr = hoy();
+  // "limite" = hoy + N días. Se avisa a quien tenga que devolver entre hoy y esa fecha.
   const limite = sumarDias(hoyStr, reglas.recordatorioDias);
   const resumen = { reservasVencidas: 0, recordatorios: 0, vencidos: 0, bloqueados: 0 };
 
@@ -28,6 +31,7 @@ async function ejecutarRecordatorios() {
   for (const p of proximos) {
     const cuando = p.fecha_vencimiento === hoyStr ? 'hoy' : `el ${aLegible(p.fecha_vencimiento)}`;
     const cuerpo = `Tus libros vencen ${cuando}. Acercate a la biblioteca a devolverlos o pedí una extensión.`;
+    // crearNotificacion devuelve false si ese aviso ya se había mandado: así no se repite el email todos los días.
     const nueva = await crearNotificacion({
       usuarioId: p.uid, tipo: 'recordatorio_devolucion', titulo: 'Se acerca la fecha de devolución', cuerpo, prestamoId: p.id,
     });
@@ -59,6 +63,7 @@ async function ejecutarRecordatorios() {
         html: plantilla('Préstamo vencido', `<p>Hola ${escapar(p.nombre)}.</p><p>${escapar(cuerpo)}</p>`),
       });
     }
+    // Solo se bloquea a quien todavía está activo.
     if (p.estado !== 'bloqueado') {
       const motivo = 'Tenés libros sin devolver con el plazo vencido. Devolvelos en la biblioteca y tu cuenta se habilita automáticamente.';
       await consultar("UPDATE usuarios SET estado = 'bloqueado', motivo_bloqueo = ?, tipo_bloqueo = 'atraso', bloqueado_en = NOW() WHERE id = ? AND estado = 'activo'", [motivo, p.uid]);

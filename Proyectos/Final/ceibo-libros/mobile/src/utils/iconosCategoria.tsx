@@ -33,22 +33,27 @@ const DEFINICIONES: Def[] = [
 
 export interface IconoCategoria { nombre: string; claves: string }
 
+// Convierte las definiciones en objetos { nombre, claves }.
 export const ICONOS_CATEGORIA: IconoCategoria[] = DEFINICIONES
   .filter(([n]) => (MaterialCommunityIcons.glyphMap as Record<string, number>)[n])
   .map(([nombre, claves]) => ({ nombre, claves }));
 
+// Saca las tildes y pasa a minúscula, para que "ciéncia" encuentre "ciencia".
 const sinTildes = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
+// Filtra los íconos cuyo nombre o palabras clave contienen el texto buscado.
 export function buscarIconos(texto: string): IconoCategoria[] {
   const q = sinTildes(texto.trim());
   if (!q) return ICONOS_CATEGORIA;
   return ICONOS_CATEGORIA.filter((i) => sinTildes(`${i.nombre} ${i.claves}`).includes(q));
 }
 
+// Colores sugeridos para las categorías.
 export const COLORES_CATEGORIA = [
   '#8FAE8B', '#4A5D23', '#2E4A2E', '#9CAF88', '#6B8E23', '#2E7D32', '#00796B', '#26A69A',
   '#0277BD', '#1565C0', '#3F51B5', '#5E35B1', '#8E24AA', '#AD1457', '#C62828', '#E53935',
   '#EF6C00', '#F9A825', '#E0C097', '#B85C38', '#8D5524', '#5D4037', '#37474F', '#607D8B',
 ];
 
+// Expresión regular para un color válido: # seguido de 6 caracteres hexadecimales.
 export const HEX_VALIDO = /^#[0-9A-Fa-f]{6}$/;

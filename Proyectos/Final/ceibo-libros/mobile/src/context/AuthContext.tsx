@@ -6,6 +6,7 @@ import { quitarAvisos, registrarAvisos } from '../utils/avisosCelular';
 import type { ResumenPerfil, Sesion, Usuario } from '../types';
 
 
+// Lo que comparte este contexto con toda la app.
 interface AuthValue {
   usuario: Usuario | null;
   resumen: ResumenPerfil | null;
@@ -21,9 +22,12 @@ interface AuthValue {
 
 const AuthContext = createContext<AuthValue>(null as unknown as AuthValue);
 
+// AuthProvider envuelve la app y guarda quién está logueado. Cualquier pantalla lo lee con useAuth().
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  // useState guarda un dato que, al cambiar, hace que la pantalla se vuelva a dibujar.
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [resumen, setResumen] = useState<ResumenPerfil | null>(null);
+  // "restaurando" es true mientras se lee la sesión guardada (se muestra una pantalla de carga).
   const [restaurando, setRestaurando] = useState(true);
 
   // Si el cliente HTTP no logra renovar el token, volvemos al login
@@ -60,6 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Con la sesión iniciada, este celular queda registrado para recibir notificaciones
   useEffect(() => { if (usuario) registrarAvisos(); }, [usuario?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Cierra la sesión: avisa al servidor (sin esperar), borra los datos guardados y vuelve al login.
   const cerrarSesion = useCallback(async () => {
     await quitarAvisos(); // antes de perder la sesión, para poder avisarle al servidor
     const { refresh_token } = getSesion();
@@ -69,11 +74,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setResumen(null);
   }, []);
 
+  // Actualiza los datos del usuario en pantalla y en el almacenamiento (por ejemplo, al editar el perfil).
   const actualizarUsuario = useCallback(async (nuevo: Usuario) => {
     setUsuario(nuevo);
     await guardarSesion({ usuario: nuevo });
   }, []);
 
+  // Vuelve a pedir el perfil al servidor (datos y resumen de préstamos y reservas).
   const recargarPerfil = useCallback(async () => {
     const data = await api.usuarios.perfil();
     await actualizarUsuario(data.usuario);
@@ -92,4 +99,5 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
+// Hook para usar la sesión: const { usuario, cerrarSesion } = useAuth();
 export const useAuth = () => useContext(AuthContext);

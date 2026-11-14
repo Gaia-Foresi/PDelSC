@@ -19,15 +19,18 @@ export default function NuevoMensajeScreen({ navigation }: PantallaProps) {
   const { colors } = useTheme();
   const { esStaff, usuario } = useAuth();
   const toast = useToast();
+  // El usuario manda consultas a la biblioteca; el personal manda mensajes internos.
   const tipo = esStaff ? 'interno' : 'consulta';
   const [form, setForm] = useState({ destinatario: null, asunto: '', cuerpo: '' });
   const [errores, setErrores] = useState<Record<string, any>>({});
   const [enviando, setEnviando] = useState(false);
   const set = (k) => (t) => { setForm((f) => ({ ...f, [k]: t })); setErrores((e) => ({ ...e, [k]: '' })); };
 
+  // Solo el personal necesita la lista de contactos (a quién escribirle).
   const contactos = useAsync(() => (esStaff ? api.mensajes.contactos() : Promise.resolve(null)), [esStaff]);
   const opciones = (contactos.data?.contactos || []).map((c) => ({ value: c.id, label: c.nombre, description: ROL_TEXTO[c.rol] }));
 
+  // Valida y crea la conversación. Si sale bien, abre el hilo recién creado.
   const enviar = async () => {
     const e = {
       asunto: v.requerido(form.asunto, 'El asunto'),

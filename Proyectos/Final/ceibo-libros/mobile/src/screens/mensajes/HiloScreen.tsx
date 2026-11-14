@@ -19,11 +19,13 @@ import type { PantallaProps } from '../../types';
 
 // Pantalla de conversación: muestra los mensajes del hilo, permite enviar nuevos y se actualiza automáticamente.
 export default function HiloScreen({ route }: PantallaProps) {
+  // id y asunto llegan desde la lista de conversaciones.
   const { id, asunto } = route.params;
   const { colors } = useTheme();
   const toast = useToast();
   const { maxWidth } = useResponsive();
   const { refrescar } = useBadges();
+  // Referencia a la lista, para poder bajarla hasta el último mensaje.
   const lista = useRef(null);
   const [texto, setTexto] = useState('');
   const [enviando, setEnviando] = useState(false);

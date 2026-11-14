@@ -1,3 +1,4 @@
+// Pantalla de "no hay nada para mostrar" con ícono, texto y un botón opcional.
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';

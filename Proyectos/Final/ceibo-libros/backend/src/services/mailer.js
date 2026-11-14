@@ -3,6 +3,7 @@ import nodemailer from 'nodemailer';
 import env from '../config/env.js';
 const { smtp } = env;
 
+// El "transporte" es la conexión con el servidor de correo (SMTP). Si no está configurado, queda null.
 let transporte = null;
 if (smtp.host) {
   transporte = nodemailer.createTransport({
@@ -16,6 +17,7 @@ if (smtp.host) {
   });
 }
 
+// Reemplaza caracteres especiales de HTML (< > & " ') para que un texto no rompa el email ni meta código.
 const escapar = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 /** Plantilla simple con los colores de la marca. `html` ya debe venir escapado por quien llama. */

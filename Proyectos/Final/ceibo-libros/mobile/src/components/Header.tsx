@@ -20,6 +20,7 @@ interface IconButtonProps {
   color?: string;
 }
 
+// Botón redondo con ícono y, opcionalmente, un numerito (badge).
 export function IconButton({ icon, onPress, label, badge, color }: IconButtonProps) {
   const { colors } = useTheme();
   return (
@@ -43,6 +44,7 @@ interface HeaderProps {
   showBell?: boolean;
 }
 
+// brand: muestra el logo; back: muestra la flecha para volver; right: botones extra a la derecha.
 export default function Header({ title, brand, menu, back, right, showBell = true }: HeaderProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();

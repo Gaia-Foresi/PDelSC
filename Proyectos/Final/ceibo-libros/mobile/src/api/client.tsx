@@ -6,8 +6,10 @@ import { API_URL } from './config';
 import type { Cuerpo } from '../types';
 import { cargarSesion, getSesion, guardarSesion, limpiarSesion, notificarSesionPerdida } from './session';
 
+// Si la API no responde en 15 segundos, se corta el pedido.
 const TIMEOUT_MS = 15000;
 
+// Error propio con el mismo formato que manda el backend (codigo, mensaje, detalles, status).
 interface ApiErrorDatos {
   codigo: string;
   mensaje: string;
@@ -28,6 +30,7 @@ export class ApiError extends Error {
   }
 }
 
+// Hace el pedido HTTP. AbortController permite cancelarlo cuando se cumple el tiempo límite.
 async function enviar(ruta: string, cuerpo: Cuerpo | undefined, token: string | null): Promise<any> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -40,6 +43,7 @@ async function enviar(ruta: string, cuerpo: Cuerpo | undefined, token: string | 
     });
     let json = null;
     try { json = await res.json(); } catch (e) { /* respuesta sin JSON */ }
+    // Si salió bien, devuelve solo "data" (lo que importa); si no, arma un ApiError.
     if (res.ok && json?.ok !== false) return json?.data ?? {};
     const err = json?.error || {};
     throw new ApiError({
@@ -89,6 +93,8 @@ function renovarTokens(): Promise<string> {
   return renovando;
 }
 
+// Función que usa toda la app para hablar con la API.
+// Si el token venció, lo renueva una vez y repite el pedido sin que el usuario se entere.
 export async function post<T = any>(ruta: string, cuerpo: Cuerpo = {}, { auth = true }: { auth?: boolean } = {}): Promise<T> {
   if (!auth) return enviar(ruta, cuerpo, null);
   try {

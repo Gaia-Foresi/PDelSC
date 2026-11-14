@@ -15,6 +15,7 @@ interface CodigoRetiroProps {
 export default function CodigoRetiro({ codigo, compacto, texto = 'Código de retiro' }: CodigoRetiroProps) {
   const { colors } = useTheme();
   if (!codigo) return null;
+  // Separa las letras con espacios para que se lea mejor: "ABC123" -> "A B C 1 2 3".
   const separado = codigo.split('').join(compacto ? '' : ' ');
   return (
     <View

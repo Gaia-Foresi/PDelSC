@@ -12,6 +12,7 @@ interface ChipsProps {
   style?: StyleProp<ViewStyle>;
 }
 
+// options: [{ value, label }]. value: la opción elegida. onChange: se llama al tocar otra opción.
 export default function Chips({ options, value, onChange, style }: ChipsProps) {
   const { colors } = useTheme();
   return (

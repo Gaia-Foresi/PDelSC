@@ -1,3 +1,4 @@
+// Tarjeta: caja con fondo, borde y sombra. Si recibe onPress, se puede tocar.
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';

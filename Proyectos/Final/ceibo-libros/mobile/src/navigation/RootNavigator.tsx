@@ -30,6 +30,7 @@ import PrestamoDetalleScreen from '../screens/prestamos/PrestamoDetalleScreen';
 import PrestamoNuevoScreen from '../screens/prestamos/PrestamoNuevoScreen';
 import ReservasScreen from '../screens/prestamos/ReservasScreen';
 import CalendarioScreen from '../screens/prestamos/CalendarioScreen';
+import BloqueosScreen from '../screens/prestamos/BloqueosScreen';
 import PerfilScreen from '../screens/perfil/PerfilScreen';
 import EditarPerfilScreen from '../screens/perfil/EditarPerfilScreen';
 import SeguridadScreen from '../screens/perfil/SeguridadScreen';
@@ -74,7 +75,7 @@ const linking = {
           Hilo: { path: 'mensajes/:id', ...numero },
           PrestamoDetalle: { path: 'prestamos/:id', ...numero },
           UsuarioDetalle: { path: 'usuarios/:id', ...numero },
-          Reservas: 'libros-reservados', Calendario: 'calendario', Estadisticas: 'estadisticas', Informes: 'informes',
+          Reservas: 'libros-reservados', Calendario: 'calendario', Bloqueos: 'dias-no-disponibles', Estadisticas: 'estadisticas', Informes: 'informes',
           Categorias: 'categorias', EditarPerfil: 'perfil/editar', Seguridad: 'perfil/seguridad', Admin: 'administracion',
           PedirLibros: 'pedir-libros', Distribuidoras: 'distribuidoras', Notificaciones: 'notificaciones', Manual: 'manual', HistorialBusquedas: 'historial-busquedas',
         },
@@ -166,6 +167,8 @@ function PilaPrincipal() {
       <Stack.Screen name="PrestamoNuevo" component={PrestamoNuevoScreen} />
       <Stack.Screen name="Reservas" component={ReservasScreen} />
       <Stack.Screen name="Calendario" component={CalendarioScreen} />
+      {/* Pantalla "Días no disponibles" (gerente: edita; bibliotecario: solo mira) */}
+      <Stack.Screen name="Bloqueos" component={BloqueosScreen} />
       <Stack.Screen name="Estadisticas" component={EstadisticasScreen} />
       <Stack.Screen name="Informes" component={InformesScreen} />
       <Stack.Screen name="Hilo" component={HiloScreen} />

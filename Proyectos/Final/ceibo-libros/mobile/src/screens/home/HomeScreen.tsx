@@ -23,6 +23,7 @@ import BloqueoBanner from '../../components/BloqueoBanner';
 import HorarioAtencion from '../../components/HorarioAtencion';
 
 import type { PantallaProps } from '../../types';
+// Si el ícono guardado no existe en la librería, usa uno genérico (así no se rompe la pantalla).
 export function iconoSeguro(nombre) {
   return MaterialCommunityIcons.glyphMap[nombre] ? nombre : 'book-open-page-variant';
 }
@@ -39,6 +40,7 @@ export const CAT_ALTO = 170;
 const GAP_COMPU = 12;
 const FILAS_HISTORIAL = 3;
 
+// Tarjeta de una categoría: ícono y nombre sobre su color.
 function CategoriaCard({ categoria, ancho, alto, onPress }: CategoriaCardProps) {
   const { colors } = useTheme();
   const color = categoria.color || colors.secondary;
@@ -64,6 +66,7 @@ interface NuevaCategoriaCardProps {
   onPress?: (...args: any[]) => any;
 }
 
+// Tarjeta "+ Nueva categoría" (solo la ve el gerente).
 function NuevaCategoriaCard({ ancho, alto, onPress }: NuevaCategoriaCardProps) {
   const { colors } = useTheme();
   return (
@@ -123,24 +126,29 @@ function HistorialBusquedas({ historial, onUsar, onQuitar, onBorrarTodo, altoMax
   );
 }
 
+// Pantalla de inicio: buscador de libros y grilla de categorías.
 export default function HomeScreen({ navigation, route }: PantallaProps) {
   const { colors } = useTheme();
   const { bloqueado, usuario, esGerente } = useAuth();
   const { width, columns, maxWidth } = useResponsive();
   const [q, setQ] = useState('');
   const [busqueda, setBusqueda] = useState('');
+  // qRef guarda el texto actual sin redibujar la pantalla (lo usan funciones que se ejecutan al salir).
   const qRef = useRef('');
   qRef.current = q;
 
+  // Lista de categorías desde la API.
   const cats = useAsync(() => api.categorias.listar(), []);
   useRefreshOnFocus(cats.refresh);
 
   // Espera 400 ms después de escribir antes de buscar
+  // "Debounce": espera a que la persona deje de escribir 400 ms antes de buscar, para no hacer un pedido por letra.
   useEffect(() => {
     const id = setTimeout(() => setBusqueda(q.trim()), 400);
     return () => clearTimeout(id);
   }, [q]);
 
+  // Resultados de la búsqueda (solo si hay texto).
   const resultados = useAsync(() => (busqueda ? api.libros.listar({ q: busqueda }) : Promise.resolve(null)), [busqueda]);
   const reservar = useReservar(resultados.refresh);
 
@@ -157,6 +165,7 @@ export default function HomeScreen({ navigation, route }: PantallaProps) {
     return () => { vivo = false; };
   }, [usuario?.id]);
 
+  // Guarda el texto buscado en el historial.
   const recordar = useCallback(async () => {
     const texto = qRef.current.trim();
     if (texto.length < 2) return;
@@ -193,6 +202,7 @@ export default function HomeScreen({ navigation, route }: PantallaProps) {
     }, [recordar, limpiarBusqueda]),
   );
 
+  // Ancho de cada tarjeta según las columnas que entran.
   const areaUtil = Math.min(width, maxWidth || width) - spacing.lg * 2;
   const gap = spacing.md;
   const ancho = Math.floor((areaUtil - gap * (columns - 1)) / columns);
@@ -209,6 +219,7 @@ export default function HomeScreen({ navigation, route }: PantallaProps) {
     </View>
   );
 
+  // Lista de tarjetas: las categorías y, si es gerente, la tarjeta para crear una nueva.
   const items: any[] = cats.data ? [...cats.data.categorias, ...(esGerente ? [{ id: 'nueva', nueva: true }] : [])] : [];
   const grilla = (anchoCat: number, alto?: number) => (
     cats.loading && !items.length ? (
@@ -226,6 +237,7 @@ export default function HomeScreen({ navigation, route }: PantallaProps) {
     )
   );
 
+  // Compu: dos columnas (buscador e historial a la izquierda, categorías a la derecha).
   if (compu) {
     const ANCHO_IZQ = 360;
     const anchoDer = Math.min(width, ANCHO_MAX_COMPU) - spacing.lg * 3 - ANCHO_IZQ;

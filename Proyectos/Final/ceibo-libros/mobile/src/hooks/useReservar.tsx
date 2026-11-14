@@ -7,6 +7,7 @@ import { useDatosLector } from '../components/DatosLector';
 import { useToast } from '../components/Toast';
 import { esErrorDeLimite, useAvisoLimite } from './useLimite';
 
+// Devuelve la función reservar(libro, tipo). "onDone" se ejecuta cuando la reserva salió bien.
 export function useReservar(onDone) {
   const { pedirDatos, mostrarCodigo } = useDatosLector();
   const { recargarPerfil, esStaff } = useAuth();
@@ -22,6 +23,7 @@ export function useReservar(onDone) {
         return false;
       }
     } catch { /* si no se pudo consultar, el servidor igual valida el límite */ }
+    // Abre el formulario con nombre, apellido, DNI y horario de visita. Si la persona cancela, devuelve null.
     const datos = await pedirDatos({
       titulo: sala ? 'Reservar para leer en sala' : 'Reservar para llevar',
       mensaje: sala

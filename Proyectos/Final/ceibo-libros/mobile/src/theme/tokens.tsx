@@ -19,13 +19,16 @@ export const type = {
   tiny: { fontSize: 11, lineHeight: 14 },
 };
 
+// Sombra: en Android se usa "elevation" y en iOS las propiedades shadow*.
 export const shadow = (color = '#000') =>
   Platform.select({
     web: { boxShadow: '0 2px 8px rgba(62, 39, 35, 0.12)' },
     default: { shadowColor: color, shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
   });
 
+// Tamaño mínimo de algo que se toca (44 px), para que sea cómodo con el dedo.
 export const MIN_TAP = 44;
+// Ancho máximo del contenido en pantallas grandes (compu o tablet).
 export const CONTENT_MAX_WIDTH = 720;
 
 // Quita el recuadro que el navegador dibuja al enfocar un campo (propiedad que solo existe en la web)

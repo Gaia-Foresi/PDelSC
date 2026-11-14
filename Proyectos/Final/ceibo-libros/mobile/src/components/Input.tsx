@@ -1,3 +1,4 @@
+// Campo de texto reutilizable de la app.
 import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -22,8 +23,10 @@ interface InputProps {
 // Campo de texto con etiqueta, error en línea y (si es contraseña) botón para mostrar/ocultar
 export default function Input({ label, error, hint, secure, icon, multiline, style, inputStyle, ...rest }: InputProps) {
   const { colors } = useTheme();
+  // "foco" cambia el color del borde mientras se escribe. "oculto" tapa la contraseña.
   const [foco, setFoco] = useState(false);
   const [oculto, setOculto] = useState(true);
+  // Color del borde: rojo si hay error, color principal si se está escribiendo y gris si no.
   const borde = error ? colors.danger : foco ? colors.primary : colors.border;
 
   // Se registra para que, si hay un error, la pantalla se desplace hasta acá y el campo reciba el foco

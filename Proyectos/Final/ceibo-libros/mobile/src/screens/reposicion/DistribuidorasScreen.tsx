@@ -19,6 +19,7 @@ import ScreenContainer, { useListContentStyle } from '../../components/ScreenCon
 import { SkeletonList } from '../../components/Skeleton';
 import { useToast } from '../../components/Toast';
 
+// Formulario vacío (para crear una distribuidora nueva).
 const VACIO = { nombre: '', email: '', telefono: '' };
 
 export default function DistribuidorasScreen() {
@@ -34,16 +35,19 @@ export default function DistribuidorasScreen() {
   const [guardando, setGuardando] = useState(false);
   const set = (k) => (t) => { setForm((f) => ({ ...f, [k]: t })); setErrores((e) => ({ ...e, [k]: '' })); };
 
+  // Pide la lista de distribuidoras (solo si es gerente).
   const datos = useAsync(() => (esGerente ? api.distribuidoras.listar() : Promise.resolve(null)), [esGerente]);
 
   if (!esGerente) return <ScreenContainer title="Distribuidoras" back><EmptyState icon="lock-outline" title="Solo para el gerente" /></ScreenContainer>;
 
+  // Abre el formulario: con los datos de la distribuidora si se edita, o vacío si es nueva.
   const abrir = (d) => {
     setEditando(d || {});
     setForm(d ? { nombre: d.nombre, email: d.email, telefono: d.telefono || '' } : VACIO);
     setErrores({});
   };
 
+  // Valida y guarda: si tiene id la actualiza, si no la crea.
   const guardar = async () => {
     const e = { nombre: v.requerido(form.nombre, 'El nombre'), email: v.email(form.email) };
     setErrores(e);
@@ -64,6 +68,7 @@ export default function DistribuidorasScreen() {
     }
   };
 
+  // Elimina una distribuidora, previa confirmación.
   const eliminar = async (d) => {
     const ok = await confirm({
       title: `¿Eliminar a ${d.nombre}?`,

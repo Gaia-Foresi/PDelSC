@@ -8,6 +8,7 @@ import { radius, spacing } from '../../theme/tokens';
 import { plural } from '../../utils/format';
 
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+// Arma la clave 'YYYY-MM' de un mes: clave(2026, 3) -> '2026-03'.
 const clave = (y: number, m: number) => `${y}-${String(m).padStart(2, '0')}`;
 
 interface Props {
@@ -21,6 +22,7 @@ export default function SelectorMeses({ datos, seleccion, onChange }: Props) {
   const hoy = new Date();
   const anioActual = hoy.getFullYear();
   const mesActual = clave(anioActual, hoy.getMonth() + 1);
+  // Map y Set permiten buscar rápido si un mes tiene datos o si está elegido.
   const porMes = useMemo(() => new Map(datos.map((d) => [d.mes, d])), [datos]);
   const elegidos = useMemo(() => new Set(seleccion), [seleccion]);
 
@@ -34,15 +36,18 @@ export default function SelectorMeses({ datos, seleccion, onChange }: Props) {
   }, [datos, anioActual]);
 
   const [abiertos, setAbiertos] = useState<Set<number>>(() => new Set([anioActual]));
+  // Abre o cierra la pestaña de un año.
   const alternarAbierto = (y: number) => setAbiertos((p) => { const n = new Set(p); if (n.has(y)) n.delete(y); else n.add(y); return n; });
 
   // meses de un año que se pueden elegir (los futuros todavía no tienen préstamos)
   const elegibles = (y: number) => Array.from({ length: 12 }, (_, i) => clave(y, i + 1)).filter((k) => k <= mesActual);
+  // Tilda o destilda un mes y avisa la nueva selección (ordenada).
   const alternarMes = (k: string) => {
     const n = new Set(elegidos);
     if (n.has(k)) n.delete(k); else n.add(k);
     onChange([...n].sort());
   };
+  // Tilda o destilda todos los meses elegibles del año.
   const alternarAnio = (y: number) => {
     const meses = elegibles(y);
     const todos = meses.every((k) => elegidos.has(k));
@@ -51,6 +56,7 @@ export default function SelectorMeses({ datos, seleccion, onChange }: Props) {
     onChange([...n].sort());
   };
 
+  // Casilla de verificación con tres estados: todo, algo o nada.
   const Casilla = ({ estado, size = 24 }: { estado: 'todo' | 'algo' | 'nada'; size?: number }) => (
     <MaterialCommunityIcons
       name={estado === 'todo' ? 'checkbox-marked' : estado === 'algo' ? 'minus-box' : 'checkbox-blank-outline'}

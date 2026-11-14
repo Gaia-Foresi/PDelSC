@@ -1,6 +1,8 @@
+// Un "servicio" guarda lógica que usan varios controladores, para no repetirla.
 // Consultas compartidas de libros (con ejemplares disponibles calculados).
 import { pool } from '../config/db.js';
 
+// GREATEST(0, ...) evita que el resultado dé negativo. "en_espera" = devueltos que esperan revisión.
 // disponibles = stock_total - prestados sin devolver - reservas activas vigentes
 const SQL_LIBRO = `
   SELECT l.id, l.titulo, a.nombre AS autor, l.categoria_id, c.nombre AS categoria, c.codigo AS categoria_codigo,
@@ -15,6 +17,7 @@ const SQL_LIBRO = `
   JOIN categorias c ON c.id = l.categoria_id`;
 
 /** Agrega a cada libro la lista `categorias` (la principal primero, después las adicionales). */
+// "conn = pool" es un valor por defecto: si no le pasan una conexión (por ejemplo, de una transacción), usa el pool.
 async function conCategorias(libros, conn = pool) {
   if (!libros.length) return libros;
   const [filas] = await conn.query(
@@ -30,6 +33,7 @@ async function conCategorias(libros, conn = pool) {
   }));
 }
 
+// Busca un libro activo por id, con sus categorías. Si no existe devuelve null.
 async function obtenerLibro(id, conn = pool) {
   const [filas] = await conn.query(`${SQL_LIBRO} WHERE l.id = ? AND l.activo = 1`, [id]);
   return filas[0] ? (await conCategorias([filas[0]], conn))[0] : null;
@@ -51,6 +55,8 @@ async function guardarCategorias(libroId, ids, conn = pool) {
 }
 
 /** Busca el autor por nombre o lo crea; devuelve su id. */
+// ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id): si el autor ya existe, no lo duplica
+// y igual devuelve su id en insertId. Es un truco de MySQL para "buscar o crear" en una sola consulta.
 async function autorId(nombre, conn = pool) {
   const [r] = await conn.query(
     'INSERT INTO autores (nombre) VALUES (?) ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id)', [nombre]);

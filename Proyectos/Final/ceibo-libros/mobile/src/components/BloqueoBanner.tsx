@@ -10,6 +10,7 @@ import { textoTipoBloqueo } from '../utils/bloqueo';
 export default function BloqueoBanner() {
   const { colors } = useTheme();
   const { bloqueado, usuario } = useAuth();
+  // Si la cuenta no está bloqueada, el componente no dibuja nada (return null).
   if (!bloqueado) return null;
   return (
     <View style={[styles.box, { backgroundColor: colors.dangerSoft, borderColor: colors.danger }]} accessibilityRole="alert">

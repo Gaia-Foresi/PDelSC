@@ -5,6 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 // Vuelve a pedir los datos cada vez que se vuelve a la pantalla (sin mostrar el esqueleto)
 export function useRefreshOnFocus(refresh: () => unknown) {
   const primera = useRef(true);
+  // useFocusEffect se ejecuta cada vez que la pantalla queda visible (la primera vez se saltea).
   useFocusEffect(
     useCallback(() => {
       if (primera.current) { primera.current = false; return; }
@@ -19,6 +20,7 @@ export function usePolling(fn: () => unknown, ms = 15000) {
   useEffect(() => { ref.current = fn; }, [fn]);
   useFocusEffect(
     useCallback(() => {
+      // setInterval repite la función cada "ms" milisegundos; al salir de la pantalla se corta con clearInterval.
       const id = setInterval(() => ref.current(), ms);
       return () => clearInterval(id);
     }, [ms]),

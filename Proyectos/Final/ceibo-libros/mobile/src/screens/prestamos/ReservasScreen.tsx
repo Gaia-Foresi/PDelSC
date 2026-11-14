@@ -23,6 +23,7 @@ import { useConfirm } from '../../components/Confirm';
 import { useToast } from '../../components/Toast';
 
 import type { PantallaProps } from '../../types';
+// Filtros que ve el lector y filtros que ve el personal.
 const FILTROS_USUARIO = [
   { value: 'activa', label: 'Activas' },
   { value: 'cumplida', label: 'Retiradas' },
@@ -36,11 +37,13 @@ const FILTROS_STAFF = [
   { value: 'cancelada', label: 'Canceladas' },
   { value: 'vencida', label: 'Vencidas' },
 ];
+// Color y texto de cada estado de reserva.
 const TONO_ESTADO = { activa: 'success', cumplida: 'primary', cancelada: 'neutral', vencida: 'danger' };
 const TEXTO_ESTADO = { activa: 'Activa', cumplida: 'Cumplida', cancelada: 'Cancelada', vencida: 'Vencida' };
 
 export default function ReservasScreen({ navigation, route }: PantallaProps) {
   const { ref: refLista, onScroll: onScrollLista, boton: botonArriba } = useVolverArriba();
+  // Esta pantalla se usa como pestaña y también como pantalla suelta; enTab indica cuál es el caso.
   const enTab = route?.name === 'ReservasTab';
   const { colors } = useTheme();
   const { esStaff } = useAuth();
@@ -58,6 +61,7 @@ export default function ReservasScreen({ navigation, route }: PantallaProps) {
   }, [q]);
 
   const estado = filtro === 'todas' ? undefined : filtro;
+  // Pide las reservas: el personal ve todas (con buscador) y el lector solo las suyas.
   const datos = useAsync(
     () => (esStaff
       ? api.reservas.listar({ ...(estado ? { estado } : {}), ...(busqueda ? { q: busqueda } : {}) })
@@ -66,6 +70,7 @@ export default function ReservasScreen({ navigation, route }: PantallaProps) {
   );
   useRefreshOnFocus(datos.refresh);
 
+  // Cancela una reserva, previa confirmación.
   const cancelar = async (r) => {
     const ok = await confirm({
       title: '¿Cancelar la reserva?',
@@ -87,6 +92,7 @@ export default function ReservasScreen({ navigation, route }: PantallaProps) {
     }
   };
 
+  // Atiende una reserva cuando la persona llega: la de sala se marca cumplida y la de retiro se convierte en préstamo.
   const atender = async (r) => {
     const sala = r.tipo === 'sala';
     const ok = await confirm({
@@ -114,6 +120,7 @@ export default function ReservasScreen({ navigation, route }: PantallaProps) {
     }
   };
 
+  // Parte de arriba de la lista: buscador y filtros.
   const encabezado = (
     <View>
       {esStaff ? <SearchBar value={q} onChangeText={setQ} placeholder="Buscar por usuario, libro, DNI o código" /> : null}

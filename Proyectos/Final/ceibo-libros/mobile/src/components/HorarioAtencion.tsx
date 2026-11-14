@@ -13,6 +13,7 @@ interface HorarioAtencionProps {
   compacto?: boolean;
 }
 
+// compacto: versión en una sola línea.
 export default function HorarioAtencion({ style, compacto = false }: HorarioAtencionProps) {
   const { colors } = useTheme();
   return (

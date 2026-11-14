@@ -1,3 +1,4 @@
+// Logo de la app en tres versiones: solo el ícono (mark), vertical u horizontal.
 import React from 'react';
 import { Image, View } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';

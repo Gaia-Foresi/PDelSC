@@ -19,10 +19,12 @@ interface RevelaCtx {
   registrar: (campo: CampoRegistrado) => () => void;
 }
 
+// Contexto donde se registran los campos de una pantalla, para poder encontrar el primero con error.
 const Ctx = createContext<RevelaCtx | null>(null);
 export const RevelaProvider = Ctx.Provider;
 export const useRevelaCampos = () => useContext(Ctx);
 
+// Mide la posición (y) y el alto (h) de una vista en la pantalla.
 const medir = (vista: any): Promise<{ y: number; h: number }> =>
   new Promise((resolve) => (vista as any).measureInWindow((_x: number, y: number, _w: number, h: number) => resolve({ y, h })));
 
@@ -30,6 +32,7 @@ const medir = (vista: any): Promise<{ y: number; h: number }> =>
  * Se usa con el ScrollView que contiene el formulario. Devuelve `onScroll`, el `contenedor` (ref de una View que envuelve
  * al ScrollView) y el `valor` para el RevelaProvider.
  */
+// Hook que usa la pantalla: guarda los campos, sigue el scroll y, ante un error, desplaza hasta el primero.
 export function useRevelador(scrollRef: RefObject<any>) {
   const campos = useRef(new Set<CampoRegistrado>());
   const scrollY = useRef(0);
@@ -63,6 +66,7 @@ export function useRevelador(scrollRef: RefObject<any>) {
 }
 
 /** Mensaje de error de un campo: ícono + texto, bien visible. */
+// Texto de error en rojo debajo de un campo.
 export function MensajeError({ texto }: { texto?: string }) {
   const { colors } = useTheme();
   if (!texto) return null;
@@ -77,6 +81,7 @@ export function MensajeError({ texto }: { texto?: string }) {
 export const esWeb = Platform.OS === 'web';
 
 /** Envuelve cualquier bloque (una lista, un selector propio) para que también se lo lleve a la vista cuando tiene un error. */
+// Envuelve cualquier parte de la pantalla para que el revelador también pueda llevar la vista hasta ahí.
 export function ZonaConError({ error, children }: { error?: string; children?: React.ReactNode }) {
   const revela = useRevelaCampos();
   const caja = useRef<any>(null);

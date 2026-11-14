@@ -1,6 +1,7 @@
 // Qué secciones del manual ve cada rol y cómo se numeran. Lo usan la pantalla del manual y el generador de PDF.
 import manual from './manual.json';
 
+// Datos de cada manual: nombre del rol, título y nombre del PDF.
 export const ROLES: Record<string, { etiqueta: string; titulo: string; archivo: string }> = {
   usuario: { etiqueta: 'Usuario (lector)', titulo: 'Manual del usuario', archivo: 'manual-usuario' },
   bibliotecario: { etiqueta: 'Bibliotecario', titulo: 'Manual del bibliotecario', archivo: 'manual-bibliotecario' },

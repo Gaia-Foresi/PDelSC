@@ -25,6 +25,7 @@ export default function HistorialBusquedasScreen({ navigation }: PantallaProps) 
   const toast = useToast();
   const [lista, setLista] = useState<BusquedaGuardada[] | null>(null);
 
+  // Cada vez que se entra a la pantalla, se lee el historial guardado en el celular.
   useFocusEffect(
     useCallback(() => {
       let vivo = true;
@@ -33,8 +34,11 @@ export default function HistorialBusquedasScreen({ navigation }: PantallaProps) 
     }, [usuario?.id]),
   );
 
+  // Vuelve al inicio con el texto buscado (t: Date.now() fuerza a repetir la búsqueda aunque sea la misma).
   const buscarDeNuevo = (q: string) => navigation.navigate('Tabs', { screen: 'Inicio', params: { buscar: q, t: Date.now() } });
+  // Quita una búsqueda y actualiza la lista.
   const quitar = async (q: string) => setLista(await quitarBusqueda(usuario?.id, q));
+  // Borra todo el historial, previa confirmación.
   const borrarTodo = async () => {
     const ok = await confirm({ title: '¿Borrar el historial?', message: 'Se van a borrar todas tus búsquedas guardadas en este dispositivo.', confirmText: 'Borrar todo', destructive: true });
     if (!ok) return;
