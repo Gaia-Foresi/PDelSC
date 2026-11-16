@@ -21,14 +21,12 @@ import type { ReactNode } from 'react';
 const Ctx = createContext(null);
 export const useDatosLector = () => useContext(Ctx);
 
-// Deja solo los números del DNI ("40.123.456" -> "40123456").
 export const limpiarDni = (v) => String(v || '').replace(/\D/g, '');
 // Nombre y apellido: solo letras (con acentos), espacios, apóstrofe y guion. DNI: solo números.
 export const limpiarNombre = (v) => String(v || '').replace(/[^\p{L}\s'’-]/gu, '').replace(/\s{2,}/g, ' ');
 const NOMBRE_OK = /^\p{L}[\p{L}\s'’-]*$/u;
 
 /** Campos de datos del lector reutilizables (también los usa el préstamo directo del personal). */
-// Devuelve los errores de cada campo (o vacío si está todo bien).
 export function validarDatosLector(f) {
   return {
     nombre: !f.nombre.trim() ? 'Escribí el nombre' : (f.nombre.trim().length < 2 || !NOMBRE_OK.test(f.nombre.trim())) ? 'El nombre solo puede tener letras' : '',
@@ -43,7 +41,6 @@ interface CamposDatosLectorProps {
   errores?: any;
 }
 
-// Los tres campos del formulario (nombre, apellido y DNI), para reutilizarlos en otras pantallas.
 export function CamposDatosLector({ form, setCampo, errores }: CamposDatosLectorProps) {
   return (
     <View>
@@ -54,14 +51,12 @@ export function CamposDatosLector({ form, setCampo, errores }: CamposDatosLector
   );
 }
 
-// Arma el formulario inicial con los datos del usuario (si los tiene).
 export const formDesde = (u) => ({ nombre: u?.nombre || '', apellido: u?.apellido || '', dni: u?.dni || '' });
 
 interface DatosLectorProviderProps {
   children?: ReactNode;
 }
 
-// Provider que dibuja el formulario y el diálogo del código, y comparte pedirDatos y mostrarCodigo.
 export function DatosLectorProvider({ children }: DatosLectorProviderProps) {
   const { colors } = useTheme();
   const { usuario } = useAuth();
@@ -74,7 +69,6 @@ export function DatosLectorProvider({ children }: DatosLectorProviderProps) {
   const resolver = useRef(null);
   const resolverCodigo = useRef(null);
 
-  // Abre el formulario y devuelve una promesa: termina con los datos o con null si la persona cancela.
   const pedirDatos = useCallback((o) => new Promise((resolve) => {
     resolver.current = resolve;
     setErrores({});
@@ -90,6 +84,7 @@ export function DatosLectorProvider({ children }: DatosLectorProviderProps) {
   }), []);
 
   const cerrar = (resultado) => {
+    avisarCorrecto(); // al cerrar el formulario (con o sin guardar) se retira el cartel rojo de "hay campos para corregir"
     setOpts(null);
     resolver.current?.(resultado);
     resolver.current = null;
@@ -100,9 +95,7 @@ export function DatosLectorProvider({ children }: DatosLectorProviderProps) {
     resolverCodigo.current = null;
   };
 
-  // setCampo('dni') devuelve la función que actualiza ese campo y borra su error.
   const setCampo = (k) => (t) => { setForm((f) => ({ ...f, [k]: t })); setErrores((e) => ({ ...e, [k]: '' })); };
-  // Valida todo y, si está bien, cierra el formulario devolviendo los datos.
   const enviar = () => {
     const e = validarDatosLector(form);
     setErrores(e);
