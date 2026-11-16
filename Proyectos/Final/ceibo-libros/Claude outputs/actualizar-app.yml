@@ -1,0 +1,41 @@
+# Este archivo va en la RAÍZ del repositorio PDeISC (.github/workflows), porque GitHub solo lee ahí los flujos.
+# Publica sola la actualización de la app del celular cada vez que se sube un cambio de la carpeta mobile/.
+# Los celulares con la APK instalada la bajan solos al abrir la app. No toca la web ni la API (esas las redeploya Vercel).
+# Requiere el secreto EXPO_TOKEN en GitHub (Settings > Secrets and variables > Actions).
+name: Actualizar app del celular
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'Proyectos/Final/ceibo-libros/mobile/**'
+  workflow_dispatch: # también se puede lanzar a mano desde la pestaña Actions
+
+concurrency:
+  group: actualizar-app
+  cancel-in-progress: true
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Proyectos/Final/ceibo-libros/mobile
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      # Estas variables se "pegan" en el código al empaquetarlo; son las mismas (públicas) que usa eas.json para la APK
+      EXPO_PUBLIC_API_URL: https://ceibo-libros-api.vercel.app/api
+      EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID: 202784657482-qga1h714m18tuhlnvnjc43pilbqth9t1.apps.googleusercontent.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: Proyectos/Final/ceibo-libros/mobile/package-lock.json
+      - name: Instalar dependencias
+        run: npm ci --legacy-peer-deps
+      - name: Publicar actualización en el canal preview
+        env:
+          MENSAJE: ${{ github.event.head_commit.message || 'Actualización manual' }}
+        run: npx --yes eas-cli@latest update --channel preview --platform android --message "$MENSAJE" --non-interactive
