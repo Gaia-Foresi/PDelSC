@@ -117,7 +117,7 @@ Un **middleware** es una función `(req, res, next)` que se ejecuta antes del co
 | Préstamos y reservas | `/api/prestamos/...`, `/api/reservas/...` | `prestamos.js` | Crear préstamo, devolver, revisar devoluciones, extender plazo; reservar, cancelar y atender reservas. |
 | Calendario | `/api/calendario/listar` | `calendario.js` | Visitas (reservas y préstamos) entre dos fechas. Solo staff. |
 | Mensajes | `/api/mensajes/...` | `mensajes.js` | Consultas (usuario → biblioteca) y mensajes internos (gerente ↔ bibliotecario). |
-| Gestión | `/api/notificaciones`, `/distribuidoras`, `/reposicion`, `/estadisticas` | `gestion.js` | Notificaciones y push; distribuidoras y pedidos de libros por email; estadísticas y Excel. |
+| Gestión | `/api/notificaciones`, `/distribuidoras`, `/bloqueos`, `/reposicion`, `/estadisticas` | `gestion.js` | Notificaciones y push; distribuidoras y pedidos de libros por email; días no disponibles (ver: staff, crear y quitar: gerente); estadísticas y Excel. |
 
 ### Ideas de seguridad que se repiten (¡preguntas de examen!)
 
@@ -126,6 +126,7 @@ Un **middleware** es una función `(req, res, next)` que se ejecuta antes del co
 3. **Nada sensible en texto plano.** Contraseñas con **bcrypt**; códigos y refresh tokens con **sha256**.
 4. **Códigos de un solo uso:** vencen a los 10 minutos y admiten como máximo 5 intentos.
 5. **Baja lógica.** Libros y distribuidoras no se borran: se marcan `activo = 0` para conservar el historial.
+6. **Doble control.** Aunque la app no deje elegir un día bloqueado, el servidor lo vuelve a revisar al crear la reserva. Y el motivo del bloqueo nunca se le manda al usuario común.
 
 ---
 
@@ -136,7 +137,8 @@ Un **middleware** es una función `(req, res, next)` que se ejecuta antes del co
 | `prestamos.js` | Corazón del sistema: crear préstamo (valida usuario, datos y stock dentro de una transacción con `FOR UPDATE`), agregar libros, devolver (el libro queda "pendiente" de revisión), revisar (vuelve al stock, dañado o repuesto) y desbloqueo automático. |
 | `reservas.js` | Consultas de reservas y `expirarReservas()`, que marca como vencidas las que pasaron su fecha límite. |
 | `libros.js` | Consulta base de libros con **disponibles calculados**, categorías múltiples y autor ("buscar o crear"). |
-| `visitas.js` | Horarios de visita (lunes a sábado de 8 a 18, cada 30 min, hasta 14 días adelante) y validación del horario elegido. Todo se guarda en UTC. |
+| `visitas.js` | Horarios de visita (lunes a sábado de 8 a 18, cada 30 min, hasta 14 días adelante) y validación del horario elegido. Los días bloqueados salen marcados `no_disponible` y sin horas. Todo se guarda en UTC. |
+| `bloqueos.js` | `bloqueosVigentes()`: le pregunta a la base qué días están cerrados (ignora los que terminaron hace más de 2 días). Lo usan los horarios y la validación de reservas. |
 | `tokens.js` | Sesión: **access token** (JWT, 60 min) y **refresh token** (días, guardado como hash). Rotación: cada renovación anula el refresh anterior; reusar uno viejo cierra todas las sesiones. |
 | `oauth.js` | Login con Google, GitHub y Discord. El servidor **siempre** le pregunta al proveedor quién es el usuario. |
 | `mailer.js` | Emails con nodemailer. Sin SMTP configurado, los muestra en consola. `escapar()` evita romper el HTML. |
@@ -178,6 +180,7 @@ Reserva (activa) ──atender──▶ Préstamo (activo) ──devolver──�
 | Usuarios | `roles` (1 gerente, 2 bibliotecario, 3 usuario), `usuarios`, `identidades_sociales`, `codigos_verificacion`, `refresh_tokens` |
 | Catálogo | `categorias`, `autores`, `libros`, `libro_categorias` |
 | Préstamos | `reservas`, `prestamos`, `prestamo_items` (un renglón por libro), `prestamo_ediciones` |
+| Agenda | `dias_bloqueados` (días o semanas en que el gerente cierra las reservas, con un motivo interno) |
 | Mensajes | `hilos`, `hilo_participantes`, `mensajes` |
 | Reposición | `distribuidoras`, `pedidos_reposicion`, `pedido_items` |
 | Avisos | `notificaciones`, `dispositivos_push` |

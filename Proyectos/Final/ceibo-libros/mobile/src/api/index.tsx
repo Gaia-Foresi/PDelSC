@@ -3,9 +3,11 @@ import { post } from './client';
 import type { Categoria, Cuerpo, Libro, ResumenPerfil, Sesion, Usuario } from '../types';
 
 // `T` es lo que devuelve el endpoint dentro de `data`; sin indicarlo queda como any.
+// "publico" arma métodos que NO mandan token (login, registro). "privado" arma métodos que sí lo mandan.
 const publico = <T = any>(ruta: string) => (cuerpo?: Cuerpo) => post<T>(ruta, cuerpo, { auth: false });
 const privado = <T = any>(ruta: string) => (cuerpo?: Cuerpo) => post<T>(ruta, cuerpo);
 
+// Uso: await api.libros.listar({ q: 'borges' }). Cada método llama a POST /api/<ruta>.
 export const api = {
   auth: {
     registro: publico('/auth/registro'),

@@ -14,8 +14,11 @@ import * as gestion from './gestion.js';
 
 const { Router } = express;
 
+// Router principal: junta todos los routers. En app.js se monta en /api,
+// así que por ejemplo '/libros' + '/listar' queda como POST /api/libros/listar.
 const api = Router();
 
+// Ruta de prueba para saber si la API está viva.
 api.post('/salud', (req, res) => res.json({ ok: true, data: { estado: 'ok' } }));
 
 // Disparador externo de la tarea diaria (por si el hosting duerme el servidor y el cron interno no corre).
@@ -25,6 +28,7 @@ api.post('/mantenimiento/recordatorios', asyncHandler(async (req, res) => {
   res.json({ ok: true, data: await ejecutarRecordatorios() });
 }));
 
+// Las rutas de /auth tienen un límite de intentos más estricto, salvo refresh y logout.
 // El límite estricto es contra fuerza bruta en login/códigos; renovar o cerrar sesión no cuentan
 const SIN_LIMITE_AUTH = new Set(['/refresh', '/logout']);
 api.use('/auth', (req, res, next) => (SIN_LIMITE_AUTH.has(req.path) ? next() : limiteAuth(req, res, next)), authRouter);

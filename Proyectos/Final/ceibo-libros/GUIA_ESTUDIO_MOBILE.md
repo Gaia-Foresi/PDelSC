@@ -129,7 +129,7 @@ useEffect(() => {
 | Estructura | `ScreenContainer` (barra superior + scroll + recargar), `Header`, `BottomBar`, `NavAcciones` (menú de la cuenta) |
 | Estados | `Skeleton` (cargando), `EmptyState` (vacío), `ErrorState` (error + reintentar) |
 | Diálogos | `Modal` (`ConfirmDialog`, `SheetModal`), `Confirm` (`useConfirm()` devuelve true o false), `Toast` (`useToast()` para avisos cortos) |
-| Biblioteca | `BookCard` (tarjeta de libro), `DatosLector` (nombre, apellido, DNI y horario), `SelectorVisita` (calendario de horarios), `CodigoRetiro`, `BloqueoBanner`, `HorarioAtencion` |
+| Biblioteca | `BookCard` (tarjeta de libro), `DatosLector` (nombre, apellido, DNI y horario), `SelectorVisita` (calendario de horarios; los días bloqueados se ven tachados), `CodigoRetiro`, `BloqueoBanner`, `HorarioAtencion` |
 | Formularios | `Revelador`: si hay errores, lleva la pantalla hasta el primer campo marcado y lo enfoca |
 | Otros | `PanelColores`, `OrigenFoto`, `VisorFoto`, `VolverArriba`, `FondoDecorativo` (dibujo de la versión web) |
 
@@ -143,7 +143,7 @@ useEffect(() => {
 |---|---|---|
 | `auth/` | Login, Registro, Código (verificación y 2 pasos), Olvidé mi contraseña | Sin sesión |
 | `home/` | Inicio (buscador + categorías), Libros de una categoría | Todos |
-| `prestamos/` | Préstamos, Detalle, Nuevo préstamo, Reservas, Calendario | Lector: los suyos · Staff: todos |
+| `prestamos/` | Préstamos, Detalle, Nuevo préstamo, Reservas, Calendario, Días no disponibles | Lector: los suyos · Staff: todos · Días no disponibles: ver = staff, editar = gerente |
 | `mensajes/` | Lista de conversaciones, Conversación, Nuevo mensaje | Todos |
 | `notificaciones/` | Avisos de la biblioteca | Todos |
 | `perfil/` | Perfil, Editar perfil, Seguridad (2 pasos y contraseña) | Todos |
@@ -186,7 +186,7 @@ const enviar = async () => {
 | `validators.tsx` | Validaciones de formularios (las mismas reglas que el backend). |
 | `format.tsx` | Fechas en español, iniciales, estado de un préstamo, `plural()`… |
 | `storage.tsx` | Guardar y leer en el celular (SecureStore) o en la web (localStorage). |
-| `avisosCelular.tsx` | Notificaciones push y avisos locales antes del vencimiento. |
+| `avisosCelular.tsx` | Notificaciones push y avisos locales antes del vencimiento. Ya no pide permiso: solo revisa si está dado (en Android 13 o más se activa a mano en Ajustes). |
 | `archivos.tsx` | Descargar Excel y elegir archivos para analizar. |
 | `foto.tsx` | Elegir o sacar la foto de perfil y achicarla (256 px, JPEG). |
 | `historialBusquedas.tsx` | Historial completo y rápido (5) de búsquedas, por usuario. |

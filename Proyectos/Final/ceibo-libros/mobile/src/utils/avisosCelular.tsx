@@ -12,9 +12,11 @@ const CLAVE_TOKEN = 'ceibo_push_token';
 const CANAL = 'avisos';
 let configurado = false;
 
+// import() dinámico: la librería de notificaciones se carga recién cuando hace falta.
 const cargar = () => import('expo-notifications');
 
 /** Prepara cómo se muestran los avisos y crea el canal de Android. Se llama una vez. */
+// Configura cómo se muestran los avisos y crea el "canal" de Android (una sola vez).
 async function configurar() {
   if (!nativo || configurado) return;
   const N = await cargar();
@@ -45,6 +47,7 @@ async function pedirPermiso(): Promise<boolean> {
 }
 
 /** Registra este celular en el servidor para recibir los avisos. Se llama al iniciar sesión. */
+// Obtiene el token push de este celular y se lo manda al servidor para recibir avisos.
 export async function registrarAvisos(): Promise<void> {
   if (!nativo) return;
   try {
@@ -62,6 +65,7 @@ export async function registrarAvisos(): Promise<void> {
 }
 
 /** Al cerrar sesión, este celular deja de recibir los avisos de esa cuenta. */
+// Al cerrar sesión: le dice al servidor que este celular deja de recibir avisos.
 export async function quitarAvisos(): Promise<void> {
   if (!nativo) return;
   try {
@@ -78,6 +82,7 @@ export async function quitarAvisos(): Promise<void> {
 }
 
 /** Muestra ahora mismo un aviso en la barra del celular (sin pasar por el servidor). Sirve cuando la app está abierta o en segundo plano. */
+// Muestra un aviso en la barra de notificaciones del celular al instante.
 export async function mostrarAvisoLocal(titulo: string, cuerpo: string): Promise<void> {
   if (!nativo) return;
   try {
@@ -102,6 +107,7 @@ const aFecha = (iso: string, hora: number) => {
  * Programa en el celular los avisos de vencimiento de los préstamos activos: 2 días antes y el mismo día, a las 9:00.
  * Reemplaza lo programado antes, así que se puede llamar cada vez que se cargan los préstamos.
  */
+// Programa avisos locales antes del vencimiento de cada préstamo activo.
 export async function programarAvisosPrestamos(prestamos: { id: number; estado: string; fecha_vencimiento: string; items?: any[] }[]): Promise<void> {
   if (!nativo) return;
   try {

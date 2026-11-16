@@ -14,11 +14,13 @@ export const pushRegistrar = async (req, res) => {
   const ok = await registrarToken(req.usuario.id, req.body.token, req.body.plataforma);
   res.json({ ok: true, data: { registrado: ok } });
 };
+// Cuando el usuario cierra sesión, el celular deja de recibir notificaciones push.
 export const pushQuitar = async (req, res) => {
   await quitarToken(req.usuario.id, req.body.token);
   res.json({ ok: true, data: { quitado: true } });
 };
 
+// Lista las últimas 100 notificaciones del usuario (o solo las no leídas). "leida" se pasa a true/false con !!.
 export const notifListar = async (req, res) => {
   const filas = await consultar(
     `SELECT id, tipo, titulo, cuerpo, leida, creada_en FROM notificaciones
@@ -26,6 +28,7 @@ export const notifListar = async (req, res) => {
   res.json({ ok: true, data: { notificaciones: filas.map((n) => ({ ...n, leida: !!n.leida })) } });
 };
 
+// Marca como leídas las notificaciones indicadas, o todas si no mandan ids.
 export const notifMarcarLeidas = async (req, res) => {
   const { ids } = req.body;
   const r = ids?.length
@@ -34,18 +37,21 @@ export const notifMarcarLeidas = async (req, res) => {
   res.json({ ok: true, data: { marcadas: r.affectedRows } });
 };
 
+// Cuántas notificaciones sin leer tiene (para el numerito rojo en la app).
 export const notifCantidad = async (req, res) => {
   const [{ total }] = await consultar('SELECT COUNT(*) AS total FROM notificaciones WHERE usuario_id = ? AND leida = 0', [req.usuario.id]);
   res.json({ ok: true, data: { total: Number(total) } });
 };
 
 // ------------------------------------------------------------ distribuidoras
+// Consulta base: solo distribuidoras activas (las "eliminadas" quedan con activo = 0).
 const SQL_DIST = 'SELECT id, nombre, email, telefono FROM distribuidoras WHERE activo = 1';
 
 export const distListar = async (req, res) => {
   res.json({ ok: true, data: { distribuidoras: await consultar(`${SQL_DIST} ORDER BY nombre`) } });
 };
 
+// Busca una distribuidora activa por id.
 const distPorId = async (id) => (await consultar(`${SQL_DIST} AND id = ?`, [id]))[0];
 
 export const distCrear = async (req, res) => {
@@ -106,6 +112,8 @@ export const bloqueosEliminar = async (req, res) => {
 };
 
 // ---------------------------------------------------------------- reposición
+// Pedido de reposición: arma un email con la lista de libros, se lo manda a la distribuidora
+// y guarda el pedido en la base (aunque el email falle, queda registrado con estado 'error').
 export const reposicionCrear = async (req, res) => {
   const { distribuidora_id, mensaje, items } = req.body;
   const dist = await distPorId(distribuidora_id);
@@ -117,6 +125,7 @@ export const reposicionCrear = async (req, res) => {
     ? await consultar('SELECT l.id, l.titulo, a.nombre AS autor FROM libros l JOIN autores a ON a.id = l.autor_id WHERE l.id IN (?) AND l.activo = 1', [ids])
     : [];
   if (libros.length !== new Set(ids).size) throw err.noEncontrado('Alguno de los libros');
+  // Cada renglón: si es un libro del catálogo usa su título y autor; si no, el título escrito a mano.
   const lineas = items.map((i) => {
     const l = i.libro_id ? libros.find((x) => x.id === i.libro_id) : null;
     return { libro_id: i.libro_id || null, titulo_solicitado: l ? null : i.titulo, texto: l ? `${l.titulo} (${l.autor})` : i.titulo, cantidad: i.cantidad };
@@ -129,6 +138,7 @@ export const reposicionCrear = async (req, res) => {
     ...lineas.map((l) => `- ${l.cantidad} x ${l.texto}`),
     ...(mensaje ? ['', mensaje] : []), '', `Saludos, ${firmante}`,
   ].join('\n');
+  // Versión HTML del email. escapar() evita que un texto con < o > rompa el HTML o meta código.
   const html = plantilla('Pedido de reposición de stock',
     `<p>Hola ${escapar(dist.nombre)}, queremos reponer el siguiente stock:</p>
      <ul>${lineas.map((l) => `<li><b>${l.cantidad}</b> × ${escapar(l.texto)}</li>`).join('')}</ul>
@@ -143,6 +153,7 @@ export const reposicionCrear = async (req, res) => {
     estado = 'error';
   }
 
+  // Guarda el pedido y sus renglones. "VALUES ?" con una lista de listas inserta varias filas de una vez.
   const pedidoId = await transaccion(async (conn) => {
     const [p] = await conn.query(
       'INSERT INTO pedidos_reposicion (distribuidora_id, gerente_id, mensaje, estado_envio) VALUES (?, ?, ?, ?)',
@@ -154,6 +165,7 @@ export const reposicionCrear = async (req, res) => {
   res.status(201).json({ ok: true, data: { pedido: { id: pedidoId, estado_envio: estado, simulado } } });
 };
 
+// Lista los últimos 100 pedidos, cada uno con sus libros.
 export const reposicionListar = async (req, res) => {
   const pedidos = await consultar(
     `SELECT p.id, p.mensaje, p.estado_envio, p.creado_en, d.nombre AS distribuidora
@@ -170,6 +182,8 @@ export const reposicionListar = async (req, res) => {
 };
 
 // -------------------------------------------------------------- estadísticas
+// Resumen para el panel de estadísticas: totales, préstamos por mes, libros más prestados y por categoría.
+// Cada (SELECT COUNT(*) ...) es una subconsulta que cuenta una cosa distinta, todo en una sola consulta.
 export const resumen = async (req, res) => {
   const hoyStr = hoy();
   const [t] = await consultar(
@@ -201,6 +215,7 @@ export const resumen = async (req, res) => {
      FROM categorias c LEFT JOIN libros l ON (l.categoria_id = c.id OR EXISTS (SELECT 1 FROM libro_categorias lc WHERE lc.libro_id = l.id AND lc.categoria_id = c.id)) LEFT JOIN prestamo_items pi ON pi.libro_id = l.id
      GROUP BY c.id, c.nombre ORDER BY total DESC, c.nombre`);
 
+  // num(): pasa todos los valores de un objeto a número.
   const num = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, Number(v)]));
   res.json({
     ok: true,

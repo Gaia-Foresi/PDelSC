@@ -67,6 +67,7 @@ interface MenuPerfilProps {
 export interface Acceso { icon: IconName; texto: string; pantalla: string }
 
 /** Accesos del menú de la aplicación según el rol (celular: menú lateral; compu: menú de la cuenta). */
+// Accesos del menú de la cuenta según el rol (el gerente ve más opciones).
 export function useAccesos(): Acceso[] {
   const { esGerente, esStaff } = useAuth();
   return [
@@ -86,6 +87,7 @@ export function useAccesos(): Acceso[] {
 }
 
 
+// Menú desplegable de la cuenta.
 function MenuPerfil({ visible, onClose, onIr, onSalir }: MenuPerfilProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
@@ -145,6 +147,7 @@ interface NavAccionesProps {
   showBell?: boolean;
 }
 
+// Botones de la barra superior: tema, manual, campanita y el cuadro del perfil.
 export default function NavAcciones({ showBell = true }: NavAccionesProps) {
   const navigation = useNavigation<any>();
   const { colors, isDark, toggle } = useTheme();
@@ -154,6 +157,7 @@ export default function NavAcciones({ showBell = true }: NavAccionesProps) {
   const compu = useMenuFijo();
   const [abierto, setAbierto] = useState(false);
 
+  // Navega a una pantalla por su nombre.
   const ir = (pantalla) => navigation.navigate(pantalla);
   const irMenu = (donde) => {
     setAbierto(false);
@@ -161,6 +165,7 @@ export default function NavAcciones({ showBell = true }: NavAccionesProps) {
     else if (donde === 'seguridad') navigation.navigate('Seguridad');
     else navigation.navigate(donde);
   };
+  // Pide confirmación antes de cerrar la sesión.
   const salir = async () => {
     setAbierto(false);
     const ok = await confirm({ title: '¿Cerrar sesión?', message: 'Vas a tener que volver a ingresar para usar la aplicación.', confirmText: 'Cerrar sesión', destructive: true });

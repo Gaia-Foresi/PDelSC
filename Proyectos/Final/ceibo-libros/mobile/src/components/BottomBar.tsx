@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTecladoAbierto } from '../hooks/useTeclado';
 
 
+// Ícono y texto de cada botón de la barra.
 export const TAB_INFO = {
   Inicio: { label: 'Inicio', icon: 'home-variant-outline', iconOn: 'home-variant' },
   Mensajes: { label: 'Mensajes', icon: 'message-outline', iconOn: 'message' },
@@ -56,6 +57,7 @@ export default function BottomBar({ actual, onIr }: BottomBarProps) {
   const tecladoAbierto = useTecladoAbierto();
   const { mensajes } = useBadges();
   const staff = usuario?.rol !== 'usuario';
+  // Botones que se muestran según el rol: el personal ve además Stock y Usuarios.
   const botones = ['Inicio', 'Mensajes', ...(staff ? ['Stock'] : []), 'ReservasTab', 'Prestamos', ...(staff ? ['Usuarios'] : [])];
   const resaltado = PERTENECE[actual] || null;
 

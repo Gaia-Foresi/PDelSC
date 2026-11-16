@@ -1,3 +1,4 @@
+// Los controladores son "finitos": reciben el pedido, llaman al servicio que hace el trabajo y responden.
 // Préstamos y reservas. La lógica de stock y desbloqueo vive en services/prestamos.js.
 import { consultar, transaccion } from '../config/db.js';
 import env from '../config/env.js';
@@ -14,6 +15,7 @@ import { bloqueosVigentes } from '../services/bloqueos.js';
 const { reglas } = env;
 
 // ------------------------------------------------------------------ préstamos
+// Crea un préstamo (lo hace el staff para un usuario). Toda la lógica está en P.crearPrestamo.
 export const prestamosCrear = async (req, res) => {
   const { usuario_id, libro_ids, dias, nombre, apellido, curso, dni, visita } = req.body;
   const prestamo = await P.crearPrestamo({
@@ -23,10 +25,13 @@ export const prestamosCrear = async (req, res) => {
   res.status(201).json({ ok: true, data: { prestamo } });
 };
 
+// Préstamos del usuario logueado.
 export const prestamosMis = async (req, res) => {
   res.json({ ok: true, data: { prestamos: await P.cargarPrestamos('WHERE p.usuario_id = ?', [req.usuario.id]) } });
 };
 
+// Lista préstamos (staff) con filtros: estado (activo, vencido, cerrado), usuario y búsqueda por texto.
+// "Vencido" no es un estado guardado: es un préstamo activo cuya fecha de vencimiento ya pasó.
 export const prestamosListar = async (req, res) => {
   const { estado, usuario_id, q } = req.body;
   const donde = [];
@@ -46,6 +51,7 @@ export const prestamosListar = async (req, res) => {
   res.json({ ok: true, data: { prestamos } });
 };
 
+// Detalle de un préstamo. Un usuario común solo puede ver los suyos; el staff ve también las ediciones.
 export const prestamosDetalle = async (req, res) => {
   const prestamo = await P.obtenerPrestamo(req.body.id);
   if (!prestamo) throw err.noEncontrado('El préstamo');
@@ -54,26 +60,31 @@ export const prestamosDetalle = async (req, res) => {
   res.json({ ok: true, data: { prestamo } });
 };
 
+// Libros devueltos que esperan revisión (¿volvieron bien, dañados o hay que reponerlos?).
 export const prestamosPendientes = async (req, res) => {
   res.json({ ok: true, data: { pendientes: await P.pendientesRevision() } });
 };
 
+// Registra el resultado de esa revisión.
 export const prestamosRevisar = async (req, res) => {
   const { prestamo_id, libro_id, resultado } = req.body;
   const prestamo = await P.revisarDevolucion({ prestamoId: prestamo_id, libroId: libro_id, resultado, staffId: req.usuario.id });
   res.json({ ok: true, data: { prestamo, pendientes: await P.pendientesRevision() } });
 };
 
+// Agrega libros a un préstamo que sigue abierto.
 export const prestamosAgregarLibros = async (req, res) => {
   const prestamo = await P.agregarLibros({ prestamoId: req.body.prestamo_id, libroIds: req.body.libro_ids });
   res.json({ ok: true, data: { prestamo } });
 };
 
+// Devuelve un libro del préstamo, o todos si no se indica libro_id.
 export const prestamosDevolver = async (req, res) => {
   const { prestamo_id, libro_id } = req.body;
   res.json({ ok: true, data: await P.devolver({ prestamoId: prestamo_id, libroId: libro_id }) });
 };
 
+// Extiende el plazo del préstamo y deja registro de quién lo hizo.
 export const prestamosExtender = async (req, res) => {
   const { prestamo_id, dias } = req.body;
   const antes = await P.obtenerPrestamo(prestamo_id);
@@ -112,11 +123,14 @@ export const prestamosExtender = async (req, res) => {
 };
 
 // -------------------------------------------------------------------- reservas
+// Horarios disponibles para elegir la visita, agrupados por día.
 export const reservasHorarios = async (req, res) => {
   // Se le pasan los días cerrados para que los marque como "no disponible"
   res.json({ ok: true, data: { dias: V.horariosAgrupados(req.body.tipo, await bloqueosVigentes()) } });
 };
 
+// Crea una reserva. Hace varias validaciones antes de guardarla, todo en una transacción:
+// libro activo, límite de reservas, no repetida y que quede stock disponible.
 export const reservasCrear = async (req, res) => {
   const { libro_id, tipo, nombre, apellido, curso, dni, visita } = req.body;
   if (req.usuario.estado === 'bloqueado') throw err.bloqueado(req.usuario.motivo_bloqueo);
@@ -136,6 +150,7 @@ export const reservasCrear = async (req, res) => {
       "SELECT id FROM reservas WHERE usuario_id = ? AND libro_id = ? AND estado = 'activa' AND fecha_limite > NOW()", [req.usuario.id, libro_id]);
     if (dup.length) throw err.conflicto('YA_RESERVADO', 'Ya reservaste este libro.');
 
+    // Disponibles = stock total − ejemplares prestados (o en revisión) − reservas activas.
     const [[{ disponibles }]] = await conn.query(
       `SELECT CAST(? AS SIGNED)
          - (SELECT COUNT(*) FROM prestamo_items WHERE libro_id = ? AND (devuelto_en IS NULL OR revision = 'pendiente'))
@@ -157,6 +172,7 @@ export const reservasCrear = async (req, res) => {
   res.status(201).json({ ok: true, data: { reserva: await R.obtenerReserva(id) } });
 };
 
+// Reservas del usuario logueado (opcionalmente filtradas por estado).
 export const reservasMis = async (req, res) => {
   await R.expirarReservas();
   const { estado } = req.body;
@@ -166,6 +182,7 @@ export const reservasMis = async (req, res) => {
   res.json({ ok: true, data: { reservas: await R.listarReservas(`WHERE ${donde.join(' AND ')}`, params) } });
 };
 
+// Lista todas las reservas (staff), con búsqueda por libro, persona, código o DNI.
 export const reservasListar = async (req, res) => {
   await R.expirarReservas();
   const { estado, q } = req.body;
@@ -180,6 +197,7 @@ export const reservasListar = async (req, res) => {
   res.json({ ok: true, data: { reservas: await R.listarReservas(donde.length ? `WHERE ${donde.join(' AND ')}` : '', params) } });
 };
 
+// Cancela una reserva. El usuario solo puede cancelar las suyas; el staff, cualquiera.
 export const reservasCancelar = async (req, res) => {
   const reserva = await R.obtenerReserva(req.body.id);
   if (!reserva || (!esStaff(req.usuario) && reserva.usuario.id !== req.usuario.id)) throw err.noEncontrado('La reserva');
@@ -188,6 +206,8 @@ export const reservasCancelar = async (req, res) => {
   res.json({ ok: true, data: { reserva: await R.obtenerReserva(reserva.id) } });
 };
 
+// Atiende una reserva cuando la persona llega a la biblioteca.
+// Si era para leer en sala, se marca cumplida. Si era para llevar, se convierte en préstamo.
 export const reservasAtender = async (req, res) => {
   const { id, dias } = req.body;
   await R.expirarReservas();

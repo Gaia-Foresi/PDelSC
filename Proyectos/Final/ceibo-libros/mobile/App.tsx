@@ -12,6 +12,7 @@ import { ToastProvider } from './src/components/Toast';
 import { ConfirmProvider } from './src/components/Confirm';
 import { DatosLectorProvider } from './src/components/DatosLector';
 import RootNavigator from './src/navigation/RootNavigator';
+import { useActualizacionAutomatica } from './src/utils/actualizaciones';
 
 // En la versión web (compu) se ocultan las barras de scroll; se sigue scrolleando con rueda o dedo.
 if (Platform.OS === 'web' && typeof document !== 'undefined') {
@@ -39,7 +40,6 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
   }, { passive: true });
 }
 
-// Contenido: lo que se ve adentro de todos los proveedores (la navegación de la app).
 function Contenido() {
   const { isDark } = useTheme();
   return (
@@ -50,9 +50,8 @@ function Contenido() {
   );
 }
 
-// Componente raíz. Los "Provider" envuelven la app y comparten datos con todas las pantallas
-// (tema, sesión, contadores, avisos). El orden importa: el de adentro puede usar al de afuera.
 export default function App() {
+  useActualizacionAutomatica(); // el celular baja solo las versiones nuevas de la app
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>

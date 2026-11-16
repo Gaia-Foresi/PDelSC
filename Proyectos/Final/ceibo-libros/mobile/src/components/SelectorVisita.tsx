@@ -12,6 +12,7 @@ import HorarioAtencion from './HorarioAtencion';
 import { MensajeError, useRevelaCampos } from './Revelador';
 
 
+// Valor especial para "ahora mismo" (lo usa el personal al prestar en el momento).
 export const AHORA = 'ahora';
 const SEMANA = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 const pad = (n) => String(n).padStart(2, '0');
@@ -23,6 +24,7 @@ interface OpcionProps {
   onPress?: (...args: any[]) => any;
 }
 
+// Botón de una hora disponible.
 function Opcion({ texto, activo, error, onPress }: OpcionProps) {
   const { colors } = useTheme();
   return (
@@ -58,7 +60,9 @@ export default function SelectorVisita({ tipo = 'retiro', value, onChange, error
   const [dia, setDia] = useState(null);
   const [mes, setMes] = useState(null); // { y, m } (m: 0-11)
 
+  // Al abrir, pide al servidor los horarios disponibles y se ubica en el día ya elegido (o en el primero libre).
   useEffect(() => {
+    // "activo" evita actualizar el estado si el componente se cerró antes de que llegue la respuesta.
     let activo = true;
     setDias(null); setFallo(false);
     api.reservas.horarios({ tipo })
@@ -81,6 +85,7 @@ export default function SelectorVisita({ tipo = 'retiro', value, onChange, error
   const cerrados = useMemo(() => new Set((dias || []).filter((d) => d.no_disponible).map((d) => d.fecha)), [dias]);
   const meses = useMemo(() => [...new Set((dias || []).map((d) => d.fecha.slice(0, 7)))], [dias]);
   const idxMes = mes ? meses.indexOf(`${mes.y}-${pad(mes.m + 1)}`) : -1;
+  // Pasa al mes anterior (-1) o al siguiente (+1).
   const irMes = (delta) => {
     const k = meses[idxMes + delta] as string | undefined;
     if (k) { const [y, m] = k.split('-').map(Number); setMes({ y, m: m - 1 }); }
@@ -88,6 +93,7 @@ export default function SelectorVisita({ tipo = 'retiro', value, onChange, error
 
   const diaActual = dias?.find((d) => d.fecha === dia);
   let celdas = [];
+  // Arma las celdas del mes: espacios vacíos hasta el primer día y después los números de cada día.
   if (mes) {
     const primero = `${mes.y}-${pad(mes.m + 1)}-01`;
     celdas = [...Array((diaSemana(primero) + 6) % 7).fill(null), ...Array.from({ length: new Date(mes.y, mes.m + 1, 0).getDate() }, (_, i) => i + 1)];

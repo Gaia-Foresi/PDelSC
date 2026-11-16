@@ -1,7 +1,9 @@
+// Idempotente = se puede ejecutar muchas veces y el resultado es el mismo: solo agrega lo que falta.
 // Actualiza una base YA CREADA a la versión nueva, sin borrar datos. Es idempotente: se puede ejecutar siempre.
 import { codigoRetiroUnico } from '../utils/codigos.js';
 
 async function migrar(pool) {
+// information_schema es una base "interna" de MySQL que describe las tablas: sirve para preguntar si algo existe.
 const existeColumna = async (tabla, columna) => {
   const [r] = await pool.query(
     'SELECT 1 FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?', [tabla, columna]);
@@ -13,7 +15,9 @@ const existeIndice = async (tabla, indice) => {
   return r.length > 0;
 };
 
+  // "hechos" junta la lista de cambios aplicados, para mostrarla en consola.
   const hechos = [];
+  // Agrega una columna solo si todavía no existe.
   const agregar = async (tabla, columna, definicion) => {
     if (!(await existeColumna(tabla, columna))) {
       await pool.query(`ALTER TABLE ${tabla} ADD COLUMN ${columna} ${definicion}`);

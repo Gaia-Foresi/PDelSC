@@ -5,8 +5,10 @@ import { err } from '../utils/httpError.js';
 
 const { visitas, tzOffsetHoras } = env;
 
+// "sala" = leer en la biblioteca, "retiro" = llevarse el libro.
 const HORAS_VENTANA = { sala: 24, retiro: 72 }; // cuánto se guarda la reserva como mínimo según el tipo
 const DIAS_ELEGIBLES = 14; // hasta cuántos días adelante se puede elegir la visita
+// Agrega un 0 adelante a los números de una cifra (5 -> "05").
 const dos = (n) => String(n).padStart(2, '0');
 const DIAS_CORTO = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
 
@@ -31,6 +33,8 @@ function publica(fecha) {
 const aUtc = (y, m, d, h = 0, min = 0) => new Date(Date.UTC(y, m - 1, d, h, min) - tzOffsetHoras * 3600000);
 
 /** Todos los horarios de atención entre `desde` y `hasta` (Dates UTC), en orden. */
+// Recorre día por día y, en los días de atención, agrega un horario cada "pasoMin" minutos
+// entre la hora de apertura y la de cierre.
 function generarHorarios(desde, hasta) {
   const salida = [];
   const inicio = aLocal(desde).fecha.split('-').map(Number);
@@ -38,6 +42,7 @@ function generarHorarios(desde, hasta) {
   for (let dia = new Date(Date.UTC(inicio[0], inicio[1] - 1, inicio[2])); ; dia = new Date(dia.getTime() + 86400000)) {
     const [y, m, d] = [dia.getUTCFullYear(), dia.getUTCMonth() + 1, dia.getUTCDate()];
     if (aUtc(y, m, d).getTime() > fin) break;
+    // getUTCDay() da 0 para el domingo; acá se pasa a 7 para que coincida con la configuración (1 = lunes ... 7 = domingo).
     const dow = dia.getUTCDay() === 0 ? 7 : dia.getUTCDay();
     if (!visitas.dias.includes(dow)) continue;
     for (let minutos = visitas.horaApertura * 60; minutos < visitas.horaCierre * 60; minutos += visitas.pasoMin) {
@@ -96,6 +101,7 @@ function validarVisitaReserva(iso, tipo, bloqueos = []) {
   if (diaBloqueado(aLocal(t).fecha, bloqueos)) {
     throw err.validacion('Ese día no está disponible para reservas. Elegí otra fecha.', { visita: 'Día no disponible' });
   }
+  // La reserva se guarda como mínimo 24 h (sala) o 72 h (retiro), o hasta la hora de visita más el margen, lo que sea más tarde.
   const base = new Date(Date.now() + (HORAS_VENTANA[tipo] || 24) * 3600000);
   const conGracia = new Date(t.getTime() + visitas.graciaHoras * 3600000);
   return { visita: t, limite: conGracia > base ? conGracia : base };

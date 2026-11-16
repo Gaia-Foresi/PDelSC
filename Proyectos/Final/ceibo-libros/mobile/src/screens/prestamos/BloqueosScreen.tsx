@@ -32,6 +32,7 @@ const sumarDias = (f, n) => {
 // Texto legible: un solo día -> 'lunes 16 de noviembre'; varios -> 'Del lunes 16 de noviembre al miércoles 18 de noviembre'
 const rangoTexto = (desde, hasta) => (desde === hasta ? diaLargo(desde) : `Del ${diaLargo(desde)} al ${diaLargo(hasta)}`);
 
+// Pantalla: calendario para elegir días (gerente) y lista de los bloqueos que siguen vigentes.
 export default function BloqueosScreen() {
   const { colors } = useTheme();
   const { esGerente, esStaff } = useAuth();
@@ -61,6 +62,7 @@ export default function BloqueosScreen() {
     () => [...Array((diaSemana(primero) + 6) % 7).fill(null), ...Array.from({ length: diasMes }, (_, i) => i + 1)],
     [primero, diasMes],
   );
+  // Pasa al mes anterior (-1) o al siguiente (+1).
   const cambiarMes = (delta) => {
     const f = new Date(mes.y, mes.m + delta, 1);
     setMes({ y: f.getFullYear(), m: f.getMonth() });
@@ -90,6 +92,7 @@ export default function BloqueosScreen() {
     const [y, m] = lunes.split('-').map(Number);
     setMes({ y, m: m - 1 });
   };
+  // Borra la selección y el motivo escrito.
   const limpiar = () => { setIni(null); setFin(null); setMotivo(''); };
 
   // Botón "Bloquear estos días": manda el rango al servidor. Si sale bien, limpia la selección y vuelve a pedir la lista.

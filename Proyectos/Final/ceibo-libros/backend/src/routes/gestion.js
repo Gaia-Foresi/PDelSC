@@ -1,3 +1,4 @@
+// Rutas de gestión: mensajes, notificaciones, distribuidoras, pedidos de reposición y estadísticas.
 import express from 'express';
 import * as mensajes from '../controllers/mensajes.js';
 import * as gestion from '../controllers/gestion.js';
@@ -12,6 +13,7 @@ const { Router } = express;
 
 const vacio = z.object({}).passthrough();
 const soloId = z.object({ id });
+// "w" es un nombre corto para asyncHandler, para que las líneas no queden tan largas.
 const w = asyncHandler;
 
 // ------------------------------------------------------------------- mensajes
@@ -61,6 +63,8 @@ bloqueos.post('/crear', requiereRol('gerente'), validar(z.object({ desde: fechaD
 bloqueos.post('/eliminar', requiereRol('gerente'), validar(soloId), w(gestion.bloqueosEliminar));
 
 // ------------------------------------------------------------------ reposición
+// Un renglón del pedido: o un libro del catálogo (libro_id) o un título escrito a mano, y la cantidad.
+// .refine() agrega una regla propia: tiene que venir al menos uno de los dos.
 const item = z.object({
   libro_id: id.optional(),
   titulo: z.string().trim().min(1, 'Obligatorio').max(160, 'Máximo 160 caracteres').optional(),
@@ -81,6 +85,7 @@ const estadisticas = Router();
 estadisticas.use(autenticar, requiereRol('gerente'));
 estadisticas.post('/resumen', validar(vacio), w(gestion.resumen));
 estadisticas.post('/meses', validar(vacio), w(gestion.mesesInforme));
+// Exportar informe: según el "periodo" elegido, exige otros campos (mes, meses o rango).
 estadisticas.post('/exportar', validar(z.object({
   periodo: z.enum(PERIODOS, { message: 'Período inválido' }).optional(),
   mes: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Mes inválido').optional(), // con periodo 'rango' es el mes de inicio
@@ -91,6 +96,7 @@ estadisticas.post('/exportar', validar(z.object({
   .refine((d) => d.periodo !== 'rango' || !!d.mes, { message: 'Elegí desde qué mes', path: ['mes'] })
   .refine((d) => d.periodo !== 'rango' || !!d.hasta, { message: 'Elegí hasta qué mes', path: ['hasta'] })
   .refine((d) => d.periodo !== 'rango' || !d.mes || !d.hasta || d.mes <= d.hasta, { message: 'El mes de inicio no puede ser posterior al final', path: ['hasta'] })), w(gestion.exportar));
+// Analizar informes: se suben archivos Excel en base64 (máximo 12 y unos 4 MB en total).
 const analisisCuerpo = z.object({
   archivos: z.array(z.object({ nombre: texto(200), contenido: z.string().min(20, 'Archivo vacío') }))
     .min(1, 'Subí al menos un archivo').max(12, 'Máximo 12 archivos')

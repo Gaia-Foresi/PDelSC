@@ -1,3 +1,4 @@
+// "Prueba de humo" = prueba rápida que recorre las funciones principales para ver que nada esté roto.
 // Prueba de humo de toda la API (necesita el servidor corriendo y la base con `npm run db:seed`).
 //   npm start            (en otra terminal)
 //   npm test
@@ -14,17 +15,21 @@ import { ejecutarRecordatorios } from '../src/services/recordatorios.js';
 
 const { puerto } = env;
 
+// Dirección de la API a probar y usuarios de prueba [email, contraseña].
 const BASE = process.env.API_URL || `http://localhost:${puerto}/api`;
 const CLAVES = { gerente: ['gerente@ceibolibros.com', 'Gerente2026'], biblio: ['biblioteca@ceibolibros.com', 'Biblio2026'], lucia: ['lucia@ejemplo.com', 'Lector2026'], tomas: ['tomas@ejemplo.com', 'Lector2026'] };
 
 const DATOS = { nombre: 'Lucía', apellido: 'Lectora', dni: '40.123.456' };
 
+// Contadores: cuántas pruebas pasaron y cuáles fallaron.
 let ok = 0;
 const fallos = [];
+// check(nombre, condición): si la condición es verdadera suma un ✔; si no, anota el ✘.
 const check = (nombre, condicion, extra = '') => {
   if (condicion) { ok += 1; console.log(`  ✔ ${nombre}`); } else { fallos.push(nombre); console.log(`  ✘ ${nombre} ${extra}`); }
 };
 
+// post(): hace un pedido POST a la API (con token si se lo pasan) y devuelve status y JSON.
 async function post(ruta, cuerpo = {}, token) {
   const r = await fetch(BASE + ruta, {
     method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(cuerpo),
@@ -33,6 +38,7 @@ async function post(ruta, cuerpo = {}, token) {
   return { status: r.status, ok: json.ok, data: json.data, error: json.error };
 }
 
+// login(): inicia sesión con uno de los usuarios de prueba y devuelve sus tokens.
 async function login(clave) {
   const [email, password] = CLAVES[clave];
   const r = await post('/auth/login', { email, password });
@@ -40,10 +46,12 @@ async function login(clave) {
   return { token: r.data.access_token, refresh: r.data.refresh_token, usuario: r.data.usuario };
 }
 
+// poner(): reemplaza en la base el código enviado por email por uno conocido (123456), para poder usarlo en la prueba.
 const poner = async (usuarioId, proposito, codigo = '123456') => {
   await pool.query('UPDATE codigos_verificacion SET codigo_hash = ? WHERE usuario_id = ? AND proposito = ? AND usado = 0', [sha256(codigo), usuarioId, proposito]);
 };
 
+// Cada bloque empieza con console.log('# Tema') y adentro hay varios check().
 async function main() {
   const sufijo = Date.now();
 

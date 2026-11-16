@@ -51,6 +51,8 @@ import HistorialBusquedasScreen from '../screens/busquedas/HistorialBusquedasScr
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 // Los navegadores usan rutas por nombre sin lista de tipos (React Navigation exige un `id` si se tipan a medias)
+// Navegadores: Stack = pantallas apiladas (se vuelve con "atrás"), Drawer = menú lateral,
+// Tab = botones de abajo. navRef permite navegar desde fuera de una pantalla.
 const AuthStack = createNativeStackNavigator() as any;
 const Drawer = createDrawerNavigator() as any;
 const Stack = createNativeStackNavigator() as any;
@@ -84,6 +86,7 @@ const linking = {
   },
 };
 
+// Pantallas para quien no inició sesión.
 function AuthNavigator() {
   return (
     <AuthStack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
@@ -98,6 +101,7 @@ function AuthNavigator() {
 // En la compu las pantallas son transparentes (se ve el dibujo de fondo): una pestaña que no se está mirando
 // no debe dibujarse, si no se transparenta detrás de la pestaña activa.
 const soloEnfocada = (Pantalla: React.ComponentType<any>) => {
+  // useIsFocused() dice si la pantalla está visible; si no lo está, no se dibuja nada (null).
   const Envuelta = (props: any) => (useIsFocused() ? <Pantalla {...props} /> : null);
   Envuelta.displayName = `Enfocada(${Pantalla.displayName || Pantalla.name || 'Pantalla'})`;
   return Envuelta;
@@ -130,6 +134,7 @@ function Tabs() {
   );
 }
 
+// Pila de pantallas principales: las pestañas y las pantallas de detalle que se abren encima.
 function MainStack() {
   return (
     <View style={{ flex: 1 }}>
@@ -149,6 +154,7 @@ function BarraFija() {
     leer();
     return navRef.addListener('state', leer);
   }, []);
+  // Navega a una pestaña desde la barra fija.
   const ir = (nombre) => {
     if (!navRef.isReady()) return;
     navRef.navigate('Main', { screen: 'Tabs', params: { screen: nombre } });
@@ -203,6 +209,7 @@ function AppNavigator() {
   );
 }
 
+// Componente principal de la navegación: muestra el login o la app según haya sesión.
 export default function RootNavigator() {
   const { colors, isDark } = useTheme();
   const { usuario, restaurando } = useAuth();
@@ -214,6 +221,7 @@ export default function RootNavigator() {
   // En la compu las pantallas son transparentes para que se vea el dibujo de fondo a los costados
   const hayFondo = useHayFondo();
   const base = isDark ? DarkTheme : DefaultTheme;
+  // Tema de la navegación (colores de fondo, texto, bordes) armado con los colores de la app.
   const tema = {
     ...base,
     colors: { ...base.colors, background: hayFondo ? 'transparent' : colors.bg, card: colors.surface, text: colors.text, border: colors.border, primary: colors.primary },
